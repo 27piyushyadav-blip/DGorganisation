@@ -1,24 +1,21 @@
 {
   "app": {
-    "[project]/apps/organization/src/app/_not-found/page": [
+    "[project]/p1/New folder (3)/organization/src/app/_not-found/page": [
       "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
     ],
-    "[project]/apps/organization/src/app/dashboard/page": [
+    "[project]/p1/New folder (3)/organization/src/app/bookings/page": [
       "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
     ],
-    "[project]/apps/organization/src/app/experts/page": [
+    "[project]/p1/New folder (3)/organization/src/app/dashboard/page": [
       "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
     ],
-    "[project]/apps/organization/src/app/notifications/page": [
+    "[project]/p1/New folder (3)/organization/src/app/experts/page": [
       "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
     ],
-    "[project]/apps/organization/src/app/page": [
+    "[project]/p1/New folder (3)/organization/src/app/page": [
       "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
     ],
-    "[project]/apps/organization/src/app/profile/page": [
-      "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
-    ],
-    "[project]/apps/organization/src/app/sessions/page": [
+    "[project]/p1/New folder (3)/organization/src/app/sessions/page": [
       "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
     ]
   },
