@@ -1,8 +1,17 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
+  "/analytics/page": "app/analytics/page.js",
   "/bookings/page": "app/bookings/page.js",
   "/dashboard/page": "app/dashboard/page.js",
+  "/expert-requests/[id]/page": "app/expert-requests/[id]/page.js",
+  "/expert-requests/page": "app/expert-requests/page.js",
+  "/experts/[id]/booking-details/page": "app/experts/[id]/booking-details/page.js",
+  "/experts/[id]/page": "app/experts/[id]/page.js",
   "/experts/page": "app/experts/page.js",
+  "/messages/page": "app/messages/page.js",
+  "/notifications/page": "app/notifications/page.js",
   "/page": "app/page.js",
+  "/profile/page": "app/profile/page.js",
+  "/services/page": "app/services/page.js",
   "/sessions/page": "app/sessions/page.js"
 }

@@ -1,3 +1,1604 @@
-[00:00:02.055] Server  LOG      ✓ Ready in 1492ms
-[00:00:07.026] Server  LOG      ○ Compiling / ...
-[00:00:10.006] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:02.122] Server  LOG      ✓ Ready in 1435ms
+[00:00:09.791] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:10:48.093] Browser LOG     Navigating to profile for expert: 1
+[00:10:48.390] Browser LOG     Navigating to profile for expert: 1
+[00:10:48.589] Browser LOG     Navigating to profile for expert: 1
+[00:10:59.294] Browser LOG     Navigating to profile for expert: 1
+[00:11:13.987] Browser LOG     Navigating to profile for expert: 1
+[00:22:34.893] Server  LOG      ✓ Compiled in 693ms
+[00:22:36.812] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:22:40.244] Server  LOG      ✓ Compiled in 104ms
+[00:24:20.753] Server  LOG      ✓ Compiled in 99ms
+[00:24:51.690] Server  LOG      ✓ Compiled in 110ms
+[00:25:09.826] Server  LOG      ✓ Compiled in 42ms
+[00:31:27.253] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:41:05.564] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.568] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.574] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.577] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.586] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.590] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.594] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.597] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.600] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.604] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.608] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.611] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.647] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.651] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.653] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.663] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.666] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.668] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.671] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.674] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.676] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.679] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.681] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.683] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.687] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.690] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.692] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.694] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.696] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.698] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.700] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.702] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.704] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.707] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.709] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.712] Server  ERROR    ⨯ ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:41:05.715] Server  LOG      ✓ Compiled in 186ms
+[00:41:06.125] Browser ERROR   ./p1/New folder (3)/organization/src/app/experts/page.tsx:28:1
+Module not found: Can't resolve '@/components/ui/dropdown-menu'
+  26 |   CardTitle,
+  27 | } from '@/components/ui/card';
+> 28 | import {
+     | ^^^^^^^^
+> 29 |   DropdownMenu,
+     | ^^^^^^^^^^^^^^^
+> 30 |   DropdownMenuContent,
+     | ^^^^^^^^^^^^^^^
+> 31 |   DropdownMenuItem,
+     | ^^^^^^^^^^^^^^^
+> 32 |   DropdownMenuSeparator,
+     | ^^^^^^^^^^^^^^^
+> 33 |   DropdownMenuTrigger,
+     | ^^^^^^^^^^^^^^^
+> 34 | } from '@/components/ui/dropdown-menu';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  35 | import { Input } from '@/components/ui/input';
+  36 | import {
+  37 |   Select,
+
+Import map: aliased to relative './src/components/ui/dropdown-menu' inside of [project]/p1/New folder (3)/organization
+
+Import traces:
+  Client Component Browser:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component Browser]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Client Component SSR]
+    ./p1/New folder (3)/organization/src/app/experts/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+[00:41:28.392] Server  LOG      ✓ Compiled in 199ms
+[00:41:56.298] Server  LOG      ✓ Compiled in 80ms
+[00:42:27.543] Server  LOG      ✓ Compiled in 81ms
+[00:42:33.462] Server  LOG      ✓ Compiled in 68ms
+[00:42:38.138] Server  LOG      ✓ Compiled in 63ms
+[00:42:43.976] Server  LOG      ✓ Compiled in 55ms
+[00:42:44.163] Browser ERROR   uncaughtError: ReferenceError: TrendingUp is not defined
+[00:42:48.569] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:42:48.570] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:42:48.570] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:42:48.571] Server  LOG      ✓ Compiled in 187ms
+[00:42:48.831] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:42:49.431] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:43:23.299] Server  LOG      ✓ Compiled in 64ms
+[00:43:31.114] Server  LOG      ✓ Compiled in 37ms
+[00:43:39.117] Server  LOG      ✓ Compiled in 49ms
+[00:43:40.095] Browser ERROR   uncaughtError: ReferenceError: DropdownMenu is not defined
+[00:43:46.992] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:43:47.300] Server  LOG      ✓ Compiled in 57ms
+[00:43:47.536] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:45:13.338] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:45:58.922] Server  LOG      ✓ Compiled in 42ms
+[00:45:59.515] Server  LOG      ✓ Compiled in 177ms
+[00:46:30.609] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:46:32.927] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:47:21.099] Server  LOG      ✓ Compiled in 37ms
+[00:48:04.849] Server  LOG      ✓ Compiled in 57ms
+[00:49:52.374] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /services
+[00:49:52.374] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /analytics
+[00:49:52.748] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:49:53.376] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /services
+[00:49:53.376] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /analytics
+[00:50:07.445] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:50:07.570] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /services
+[00:50:07.570] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /analytics
+[00:50:17.955] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /services
+[00:50:17.956] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /analytics
+[00:50:19.257] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /services
+[00:50:19.257] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /analytics
+[00:50:20.735] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /services
+[00:50:20.735] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /analytics
+[00:50:20.735] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /services
+[00:50:20.735] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /analytics
+[00:50:20.735] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /services
+[00:50:20.735] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /analytics
+[00:50:26.841] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /services
+[00:50:26.841] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /analytics
+[00:50:28.333] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /services
+[00:50:28.333] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /analytics
+[00:50:28.333] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /services
+[00:50:28.333] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /analytics
+[00:50:28.333] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /services
+[00:50:28.333] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /analytics
+[00:50:30.336] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /services
+[00:50:30.336] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /analytics
+[00:50:31.587] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /services
+[00:50:31.587] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /analytics
+[00:50:31.587] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /services
+[00:50:31.587] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /analytics
+[00:50:32.381] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /services
+[00:50:32.381] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /analytics
+[00:50:36.861] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /services
+[00:50:36.861] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /analytics
+[00:50:39.033] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /services
+[00:50:39.033] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /analytics
+[00:50:39.751] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /services
+[00:50:39.751] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /analytics
+[00:50:40.996] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /services
+[00:50:40.996] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /analytics
+[00:51:12.643] Server  LOG      ✓ Compiled in 92ms
+[00:51:16.711] Server  LOG      ✓ Compiled in 40ms
+[00:51:22.297] Server  LOG      ✓ Compiled in 99ms
+[00:51:35.673] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:51:35.802] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /services
+[00:51:35.802] Browser ERROR   Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. /analytics
+[00:51:54.272] Server  LOG      ✓ Compiled in 107ms
+[00:59:56.204] Server  LOG      ✓ Compiled in 45ms
+[01:00:16.007] Server  LOG      ✓ Compiled in 69ms
+[01:00:33.520] Server  LOG      ✓ Compiled in 59ms
+[01:00:42.222] Server  LOG      ✓ Compiled in 41ms
+[01:00:47.988] Server  LOG      ✓ Compiled in 40ms
+[01:00:53.738] Server  LOG      ✓ Compiled in 44ms
+[01:00:59.205] Server  LOG      ✓ Compiled in 39ms
+[01:01:05.319] Server  LOG      ✓ Compiled in 43ms
+[01:01:10.557] Server  LOG      ✓ Compiled in 96ms
+[01:01:14.316] Server  LOG      ✓ Compiled in 40ms
+[01:40:04.870] Server  LOG      ✓ Compiled in 43ms
+[01:40:10.515] Server  LOG      ✓ Compiled in 56ms
+[01:40:20.719] Server  LOG      ✓ Compiled in 95ms
+[01:41:24.092] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[01:44:36.059] Server  LOG      ✓ Compiled in 85ms
+[01:44:49.385] Server  LOG      ✓ Compiled in 43ms
+[01:45:03.589] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[01:46:33.013] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[01:47:59.775] Server  LOG      ✓ Compiled in 99ms
+[01:47:59.871] Browser ERROR   uncaughtError: ReferenceError: Mic is not defined
+[01:48:07.768] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[01:48:08.097] Server  LOG      ✓ Compiled in 54ms
+[01:48:08.738] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[01:48:34.632] Browser LOG     Rejecting expert: Dr. Alice Brown
+[01:48:35.268] Browser LOG     Rejecting expert: Dr. Alice Brown
+[01:48:35.571] Browser LOG     Rejecting expert: Dr. Alice Brown
+[02:03:57.036] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[02:04:26.153] Server  LOG      ✓ Compiled in 101ms
+[02:04:43.021] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[02:05:34.463] Server  LOG      ✓ Compiled in 138ms
+[02:08:08.381] Server  LOG      ✓ Compiled in 46ms
+[02:09:19.480] Server  LOG      ✓ Compiled in 64ms
+[02:09:36.626] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[02:10:02.003] Server  LOG      ✓ Compiled in 43ms
+[02:10:31.889] Server  LOG      ✓ Compiled in 49ms
+[02:11:43.683] Server  LOG      ✓ Compiled in 41ms
+[02:14:44.671] Server  LOG      ✓ Compiled in 65ms
+[02:14:58.022] Server  LOG      ✓ Compiled in 103ms
+[02:16:46.090] Server  LOG      ✓ Compiled in 124ms
+[02:17:52.841] Server  LOG      ✓ Compiled in 116ms
+[02:20:04.061] Server  LOG      ✓ Compiled in 85ms
+[02:20:07.990] Server  LOG      ✓ Compiled in 76ms
+[02:20:11.987] Server  LOG      ✓ Compiled in 69ms
+[02:20:15.206] Server  LOG      ✓ Compiled in 42ms
+[02:20:24.117] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[02:20:55.772] Browser LOG     Rejecting expert: Dr. Alice Brown
+[02:21:00.713] Browser LOG     Approving expert: Dr. Alice Brown
+[02:21:00.922] Browser LOG     Approving expert: Dr. Alice Brown
+[02:25:07.530] Server  LOG      ✓ Compiled in 120ms
+[02:25:28.065] Server  LOG      ✓ Compiled in 138ms
+[02:29:21.239] Server  LOG      ✓ Compiled in 67ms
+[02:29:33.126] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[02:30:07.038] Server  LOG      ✓ Compiled in 46ms
+[02:30:10.490] Server  LOG      ✓ Compiled in 49ms
+[02:31:14.938] Server  LOG      ✓ Compiled in 41ms
+[02:31:18.042] Server  LOG      ✓ Compiled in 44ms
+[02:31:21.691] Server  LOG      ✓ Compiled in 88ms
+[02:32:02.624] Server  LOG      ✓ Compiled in 55ms
+[02:32:33.710] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[02:32:58.155] Server  LOG      ✓ Compiled in 44ms
+[02:33:01.271] Server  LOG      ✓ Compiled in 73ms
+[02:33:09.572] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[02:33:19.624] Server  LOG      ✓ Compiled in 68ms
+[02:33:26.506] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[02:33:37.702] Server  LOG      ✓ Compiled in 47ms
+[02:34:14.839] Server  LOG      ✓ Compiled in 77ms
+[02:34:26.159] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[02:34:55.851] Server  LOG      ✓ Compiled in 76ms
+[02:35:09.635] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[02:36:54.325] Server  LOG      ✓ Compiled in 45ms
+[02:37:42.488] Server  LOG      ✓ Compiled in 71ms
+[02:37:50.841] Server  LOG      ✓ Compiled in 43ms
+[02:38:02.425] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[02:38:04.806] Browser LOG     Edit profile for expert: 1
+[02:38:07.638] Browser LOG     View profile for expert: 1
+[02:38:09.205] Browser LOG     Change display picture for expert: 1
+[02:38:10.534] Browser LOG     Change video for expert: 1
+[02:38:13.237] Browser LOG     Change timings for expert: 1
+[02:38:15.741] Browser LOG     Toggle visibility for expert: 1 Current status: active
+[02:38:17.063] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[02:38:58.440] Server  LOG      ✓ Compiled in 46ms
+[02:39:06.825] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[02:39:08.166] Browser LOG     Edit profile for expert: 1
+[02:39:10.150] Browser LOG     View profile for expert: 1
+[02:39:12.053] Browser LOG     Change display picture for expert: 1
+[02:39:13.285] Browser LOG     Change video for expert: 1
+[02:40:18.424] Server  LOG      ✓ Compiled in 55ms
+[02:40:29.725] Server  LOG      ✓ Compiled in 47ms
+[02:40:45.875] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[02:40:47.238] Browser LOG     View profile for expert: 1
+[02:40:48.748] Browser LOG     Edit profile for expert: 1
+[02:40:53.595] Server  LOG      ✓ Compiled in 66ms
+[02:40:56.327] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[02:44:58.536] Server  LOG      ✓ Compiled in 42ms
+[02:45:23.566] Server  LOG      ✓ Compiled in 82ms
+[02:45:57.602] Server  LOG      ✓ Compiled in 227ms
+[02:46:45.808] Server  LOG      ✓ Compiled in 287ms
+[02:50:34.628] Server  LOG      ✓ Compiled in 95ms
+[02:50:40.131] Server  LOG      ✓ Compiled in 68ms
+[02:50:46.875] Server  LOG      ✓ Compiled in 46ms
+[02:50:55.104] Server  LOG      ✓ Compiled in 143ms
+[02:51:08.916] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[02:51:13.062] Browser ERROR   A param property was accessed directly with `params.id`. `params` is a Promise and must be unwrapped with `React.use()` before accessing its properties. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
+[02:51:13.062] Browser ERROR   A param property was accessed directly with `params.id`. `params` is a Promise and must be unwrapped with `React.use()` before accessing its properties. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
+[02:52:40.773] Server  ERROR   C:\Users\HP\Desktop\isckon sagar new change\p1\New folder (3)\organization\.next\dev\server\chunks\ssr\c76d5_next_dist_161f03d0._.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[02:52:40.776] Server  ERROR   C:\Users\HP\Desktop\isckon sagar new change\p1\New folder (3)\organization\.next\dev\server\chunks\ssr\p1_New folder (3)_organization_8342af76._.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+[02:52:40.777] Server  WARN    Error: Route "/experts/[id]/booking-details" used `params.id`. `params` is a Promise and must be unwrapped with `await` or `React.use()` before accessing its properties. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
+[02:52:40.965] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[02:52:41.153] Browser ERROR   A param property was accessed directly with `params.id`. `params` is a Promise and must be unwrapped with `React.use()` before accessing its properties. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
+[02:52:41.153] Browser ERROR   A param property was accessed directly with `params.id`. `params` is a Promise and must be unwrapped with `React.use()` before accessing its properties. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
+[02:53:41.437] Server  LOG      ✓ Compiled in 98ms
+[02:55:48.955] Server  LOG      ✓ Compiled in 68ms
+[02:57:40.089] Server  LOG      ✓ Compiled in 50ms
+[03:05:01.374] Server  LOG      ✓ Compiled in 53ms
+[03:05:12.171] Server  LOG      ✓ Compiled in 81ms
+[03:05:26.022] Server  LOG      ✓ Compiled in 92ms
+[03:05:31.887] Server  LOG      ✓ Compiled in 41ms
+[03:05:35.239] Server  LOG      ✓ Compiled in 49ms
+[03:05:40.490] Server  LOG      ✓ Compiled in 49ms
+[03:06:09.132] Server  LOG      ✓ Compiled in 124ms
+[03:07:10.545] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[03:34:55.329] Server  LOG      ✓ Compiled in 117ms
+[03:35:00.189] Server  LOG      ✓ Compiled in 72ms
+[03:35:05.790] Server  LOG      ✓ Compiled in 47ms
+[03:35:24.355] Server  LOG      ✓ Compiled in 47ms
+[03:35:29.619] Server  LOG      ✓ Compiled in 124ms
+[03:37:58.271] Server  LOG      ✓ Compiled in 87ms
+[03:38:01.954] Server  LOG      ✓ Compiled in 45ms
+[03:38:06.079] Server  LOG      ✓ Compiled in 145ms
+[03:38:06.407] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[03:38:22.372] Server  LOG      ✓ Compiled in 44ms
+[03:38:27.840] Server  LOG      ✓ Compiled in 41ms
+[03:39:54.162] Server  LOG      ✓ Compiled in 45ms
+[03:39:55.091] Browser ERROR   uncaughtError: ReferenceError: Building is not defined
+[03:39:57.490] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[03:39:57.798] Server  LOG      ✓ Compiled in 75ms
+[03:39:58.040] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[03:40:01.394] Server  LOG      ✓ Compiled in 138ms
+[03:40:41.983] Server  LOG      ✓ Compiled in 46ms
+[03:40:46.038] Server  LOG      ✓ Compiled in 96ms
+[03:40:52.340] Server  LOG      ✓ Compiled in 80ms
+[03:40:58.360] Server  LOG      ✓ Compiled in 44ms
+[03:41:02.790] Server  LOG      ✓ Compiled in 44ms
+[04:00:43.102] Server  LOG      ✓ Compiled in 54ms
+[04:00:46.993] Server  LOG      ✓ Compiled in 56ms
+[04:00:52.613] Server  LOG      ✓ Compiled in 65ms
+[04:01:32.330] Server  LOG      ✓ Compiled in 214ms
