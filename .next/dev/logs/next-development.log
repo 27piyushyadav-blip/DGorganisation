@@ -660,3 +660,48 @@ Import traces:
 [03:02:28.978] Server  LOG      ✓ Compiled in 63ms
 [03:02:46.672] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
 [03:05:38.337] Server  LOG      ✓ Compiled in 89ms
+[03:29:32.919] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[03:29:32.919] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[03:30:05.416] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[03:30:05.416] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[03:31:26.356] Server  LOG      ✓ Compiled in 126ms
+[03:31:38.372] Server  LOG      ✓ Compiled in 88ms
+[03:32:02.534] Server  LOG      ✓ Compiled in 73ms
+[03:32:21.617] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[03:32:36.565] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[03:32:36.566] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[03:34:28.939] Server  LOG      ✓ Compiled in 74ms
+[03:35:20.564] Server  LOG      ✓ Compiled in 109ms
+[03:35:37.809] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[03:35:43.678] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[03:35:43.678] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[03:35:58.353] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[03:35:58.353] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[03:36:17.829] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[03:36:17.829] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[03:37:32.603] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[03:37:32.603] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[03:39:08.674] Server  LOG      ✓ Compiled in 208ms
+[03:39:20.297] Server  LOG      ✓ Compiled in 64ms
+[03:39:26.874] Server  LOG      ✓ Compiled in 74ms
+[03:39:39.294] Server  LOG      ✓ Compiled in 170ms
+[03:39:45.438] Server  LOG      ✓ Compiled in 67ms
+[03:39:57.943] Server  LOG      ✓ Compiled in 76ms
+[03:40:10.572] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[03:40:13.571] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[03:40:13.571] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[03:40:17.839] Browser LOG     Issuing refund: {"amount":"150","booking":{"amount":150,"customerName":"Sarah Johnson","date":"2024-02-20","expertName":"Dr. Michael Chen","id":1,"isCompleted":false,"paymentStatus":"paid","serviceName":"Health Consultation","status":"Payment Received","time":"10:00 AM"},"reason":"dfef"}
+[03:40:37.857] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[03:40:37.857] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[03:41:20.021] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[03:41:20.021] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[03:41:52.239] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[03:41:52.239] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[03:42:54.828] Server  LOG      ✓ Compiled in 103ms
+[03:43:17.925] Server  LOG      ✓ Compiled in 171ms
+[03:43:28.171] Server  LOG      ✓ Compiled in 64ms
+[03:43:36.287] Server  LOG      ✓ Compiled in 102ms
+[03:43:49.991] Server  LOG      ✓ Compiled in 102ms
+[03:44:00.917] Server  LOG      ✓ Compiled in 71ms
+[03:44:25.306] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[03:44:25.306] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
