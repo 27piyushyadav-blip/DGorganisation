@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { 
   Building,
   Mail,
@@ -21,7 +23,13 @@ import {
   Upload,
   CheckCircle,
   AlertCircle,
-  Clock
+  Clock,
+  Video,
+  Tag,
+  Eye,
+  EyeOff,
+  Plus,
+  Trash2
 } from "lucide-react";
 
 export default function ProfilePage() {
@@ -36,13 +44,80 @@ export default function ProfilePage() {
     foundedYear: "2018",
     licenseNumber: "HLTH-ORG-2018-4567",
     specialties: ["Clinical Psychology", "Counseling", "Psychiatry", "Therapy"],
-    workingHours: "Mon-Fri: 9:00 AM - 8:00 PM, Sat-Sun: 10:00 AM - 6:00 PM"
+    workingHours: "Mon-Fri: 9:00 AM - 8:00 PM, Sat-Sun: 10:00 AM - 6:00 PM",
+    tags: ["Healthcare", "Mental Health", "Wellness", "Professional"],
+    profileImage: "",
+    profileVideo: ""
   });
+
+  const [visibilitySettings, setVisibilitySettings] = useState({
+    showEmail: true,
+    showPhone: true,
+    showAddress: true,
+    showWebsite: true,
+    showProfileVideo: true
+  });
+
+  const [newTag, setNewTag] = useState("");
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
+    }));
+  };
+
+  const handleVisibilityChange = (field: string, checked: boolean) => {
+    setVisibilitySettings(prev => ({
+      ...prev,
+      [field]: checked
+    }));
+  };
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({
+          ...prev,
+          profileImage: reader.result as string
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleVideoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({
+          ...prev,
+          profileVideo: reader.result as string
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const addTag = () => {
+    if (newTag.trim() && !formData.tags.includes(newTag.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        tags: [...prev.tags, newTag.trim()]
+      }));
+      setNewTag("");
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setFormData(prev => ({
+      ...prev,
+      tags: prev.tags.filter(tag => tag !== tagToRemove)
     }));
   };
 
@@ -89,14 +164,105 @@ export default function ProfilePage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col items-center space-y-4">
-              <div className="w-32 h-32 bg-muted rounded-lg flex items-center justify-center">
-                <Building className="h-16 w-16 text-muted-foreground" />
+              <div className="relative">
+                <div className="w-32 h-32 bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+                  {formData.profileImage ? (
+                    <img src={formData.profileImage} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <Building className="h-16 w-16 text-muted-foreground" />
+                  )}
+                </div>
               </div>
               {isEditing && (
-                <Button variant="outline" className="w-full">
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload Logo
-                </Button>
+                <>
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => imageInputRef.current?.click()}
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload Logo
+                  </Button>
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Video className="h-5 w-5" />
+                <span>Profile Video</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {(visibilitySettings.showProfileVideo || isEditing) && (
+                <>
+                  {formData.profileVideo ? (
+                    <video 
+                      src={formData.profileVideo} 
+                      controls 
+                      className="w-full rounded-lg"
+                      style={{ maxHeight: '200px' }}
+                    />
+                  ) : (
+                    <div className="w-full h-32 bg-muted rounded-lg flex items-center justify-center">
+                      <Video className="h-12 w-12 text-muted-foreground" />
+                    </div>
+                  )}
+                </>
+              )}
+              {!visibilitySettings.showProfileVideo && !isEditing && (
+                <div className="w-full h-32 bg-muted rounded-lg flex items-center justify-center">
+                  <EyeOff className="h-12 w-12 text-muted-foreground" />
+                  <span className="text-muted-foreground ml-2">Video Hidden</span>
+                </div>
+              )}
+              {isEditing && (
+                <>
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => videoInputRef.current?.click()}
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload Video
+                  </Button>
+                  <input
+                    ref={videoInputRef}
+                    type="file"
+                    accept="video/*"
+                    onChange={handleVideoUpload}
+                    className="hidden"
+                  />
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="show-video"
+                      checked={visibilitySettings.showProfileVideo}
+                      onCheckedChange={(checked: boolean) => handleVisibilityChange('showProfileVideo', checked)}
+                    />
+                    <Label htmlFor="show-video" className="text-sm">
+                      {visibilitySettings.showProfileVideo ? (
+                        <span className="flex items-center space-x-1">
+                          <Eye className="h-3 w-3" />
+                          <span>Visible to public</span>
+                        </span>
+                      ) : (
+                        <span className="flex items-center space-x-1">
+                          <EyeOff className="h-3 w-3" />
+                          <span>Hidden from public</span>
+                        </span>
+                      )}
+                    </Label>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
@@ -183,43 +349,109 @@ export default function ProfilePage() {
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Email</label>
                       {isEditing ? (
-                        <Input
-                          type="email"
-                          value={formData.email}
-                          onChange={(e) => handleInputChange('email', e.target.value)}
-                        />
+                        <div className="space-y-2">
+                          <Input
+                            type="email"
+                            value={formData.email}
+                            onChange={(e) => handleInputChange('email', e.target.value)}
+                          />
+                          <div className="flex items-center space-x-2">
+                            <Switch
+                              id="show-email"
+                              checked={visibilitySettings.showEmail}
+                              onCheckedChange={(checked: boolean) => handleVisibilityChange('showEmail', checked)}
+                            />
+                            <Label htmlFor="show-email" className="text-sm">
+                              {visibilitySettings.showEmail ? (
+                                <span className="flex items-center space-x-1">
+                                  <Eye className="h-3 w-3" />
+                                  <span>Visible to public</span>
+                                </span>
+                              ) : (
+                                <span className="flex items-center space-x-1">
+                                  <EyeOff className="h-3 w-3" />
+                                  <span>Hidden from public</span>
+                                </span>
+                              )}
+                            </Label>
+                          </div>
+                        </div>
                       ) : (
                         <div className="flex items-center space-x-2">
                           <Mail className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{formData.email}</span>
+                          <span className="text-sm">{visibilitySettings.showEmail ? formData.email : 'Hidden'}</span>
                         </div>
                       )}
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Phone</label>
                       {isEditing ? (
-                        <Input
-                          value={formData.phone}
-                          onChange={(e) => handleInputChange('phone', e.target.value)}
-                        />
+                        <div className="space-y-2">
+                          <Input
+                            value={formData.phone}
+                            onChange={(e) => handleInputChange('phone', e.target.value)}
+                          />
+                          <div className="flex items-center space-x-2">
+                            <Switch
+                              id="show-phone"
+                              checked={visibilitySettings.showPhone}
+                              onCheckedChange={(checked: boolean) => handleVisibilityChange('showPhone', checked)}
+                            />
+                            <Label htmlFor="show-phone" className="text-sm">
+                              {visibilitySettings.showPhone ? (
+                                <span className="flex items-center space-x-1">
+                                  <Eye className="h-3 w-3" />
+                                  <span>Visible to public</span>
+                                </span>
+                              ) : (
+                                <span className="flex items-center space-x-1">
+                                  <EyeOff className="h-3 w-3" />
+                                  <span>Hidden from public</span>
+                                </span>
+                              )}
+                            </Label>
+                          </div>
+                        </div>
                       ) : (
                         <div className="flex items-center space-x-2">
                           <Phone className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{formData.phone}</span>
+                          <span className="text-sm">{visibilitySettings.showPhone ? formData.phone : 'Hidden'}</span>
                         </div>
                       )}
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Website</label>
                       {isEditing ? (
-                        <Input
-                          value={formData.website}
-                          onChange={(e) => handleInputChange('website', e.target.value)}
-                        />
+                        <div className="space-y-2">
+                          <Input
+                            value={formData.website}
+                            onChange={(e) => handleInputChange('website', e.target.value)}
+                          />
+                          <div className="flex items-center space-x-2">
+                            <Switch
+                              id="show-website"
+                              checked={visibilitySettings.showWebsite}
+                              onCheckedChange={(checked: boolean) => handleVisibilityChange('showWebsite', checked)}
+                            />
+                            <Label htmlFor="show-website" className="text-sm">
+                              {visibilitySettings.showWebsite ? (
+                                <span className="flex items-center space-x-1">
+                                  <Eye className="h-3 w-3" />
+                                  <span>Visible to public</span>
+                                </span>
+                              ) : (
+                                <span className="flex items-center space-x-1">
+                                  <EyeOff className="h-3 w-3" />
+                                  <span>Hidden from public</span>
+                                </span>
+                              )}
+                            </Label>
+                          </div>
+                        </div>
                       ) : (
                         <div className="flex items-center space-x-2">
                           <Globe className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{formData.website}</span>
+                          <span className="text-sm">{visibilitySettings.showWebsite ? formData.website : 'Hidden'}</span>
                         </div>
                       )}
                     </div>
@@ -227,19 +459,41 @@ export default function ProfilePage() {
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Address</label>
                     {isEditing ? (
-                      <Input
-                        value={formData.address}
-                        onChange={(e) => handleInputChange('address', e.target.value)}
-                      />
+                      <div className="space-y-2">
+                        <Input
+                          value={formData.address}
+                          onChange={(e) => handleInputChange('address', e.target.value)}
+                        />
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="show-address"
+                            checked={visibilitySettings.showAddress}
+                            onCheckedChange={(checked: boolean) => handleVisibilityChange('showAddress', checked)}
+                          />
+                          <Label htmlFor="show-address" className="text-sm">
+                            {visibilitySettings.showAddress ? (
+                              <span className="flex items-center space-x-1">
+                                <Eye className="h-3 w-3" />
+                                <span>Visible to public</span>
+                              </span>
+                            ) : (
+                              <span className="flex items-center space-x-1">
+                                <EyeOff className="h-3 w-3" />
+                                <span>Hidden from public</span>
+                              </span>
+                            )}
+                          </Label>
+                        </div>
+                      </div>
                     ) : (
                       <div className="flex items-center space-x-2">
                         <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{formData.address}</span>
+                        <span className="text-sm">{visibilitySettings.showAddress ? formData.address : 'Hidden'}</span>
                       </div>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Description</label>
+                    <label className="text-sm font-medium">Bio</label>
                     {isEditing ? (
                       <textarea
                         className="w-full p-3 border rounded-md resize-none"
@@ -250,6 +504,42 @@ export default function ProfilePage() {
                     ) : (
                       <p className="text-sm">{formData.description}</p>
                     )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium flex items-center space-x-2">
+                      <Tag className="h-4 w-4" />
+                      <span>Tags</span>
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {formData.tags.map((tag, index) => (
+                        <Badge key={index} variant="secondary" className="flex items-center space-x-1">
+                          <span>{tag}</span>
+                          {isEditing && (
+                            <button
+                              onClick={() => removeTag(tag)}
+                              className="ml-1 hover:text-red-500"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          )}
+                        </Badge>
+                      ))}
+                      {isEditing && (
+                        <div className="flex items-center space-x-1">
+                          <Input
+                            placeholder="Add tag"
+                            value={newTag}
+                            onChange={(e) => setNewTag(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && addTag()}
+                            className="w-24 h-8"
+                          />
+                          <Button size="sm" onClick={addTag} className="h-8 px-2">
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>

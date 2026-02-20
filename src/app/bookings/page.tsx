@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 
 import {
   AlertCircle,
@@ -8,15 +9,11 @@ import {
   CheckCircle,
   Clock,
   DollarSign,
-  Filter,
-  MapPin,
-  MoreHorizontal,
-  Phone,
-  RefreshCw,
-  Search,
-  User,
+  Users,
   Video,
   XCircle,
+  TrendingUp,
+  ArrowRight,
 } from 'lucide-react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -29,121 +26,110 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function BookingsPage() {
-  const [searchTerm, setSearchTerm] = useState('');
+  // Sample data - in real app this would come from API
+  const stats = {
+    totalBookings: 156,
+    bookingRequests: 8,
+    confirmedBookings: 12,
+    ongoingSessions: 3,
+    completedToday: 15,
+    disputes: 2,
+    revenue: 12450,
+    revenueChange: '+8%',
+  };
 
-  const upcomingBookings = [
+  const recentActivity = [
     {
       id: 1,
-      userName: 'John Doe',
-      expertName: 'Dr. Sarah Smith',
-      date: '2024-02-15',
-      time: '2:00 PM',
-      duration: '60 min',
-      type: 'online',
-      status: 'confirmed',
-      amount: '$120',
-      userAvatar: '/avatars/john.jpg',
-      expertAvatar: '/avatars/sarah.jpg',
+      type: 'booking_request',
+      user: 'Jane Smith',
+      expert: 'Dr. Michael Johnson',
+      time: '2 minutes ago',
+      avatar: '/avatars/jane.jpg',
     },
     {
       id: 2,
-      userName: 'Jane Smith',
-      expertName: 'Dr. Michael Johnson',
-      date: '2024-02-15',
-      time: '3:30 PM',
-      duration: '45 min',
-      type: 'offline',
-      status: 'pending',
-      amount: '$100',
-      userAvatar: '/avatars/jane.jpg',
-      expertAvatar: '/avatars/michael.jpg',
+      type: 'session_started',
+      user: 'David Wilson',
+      expert: 'Dr. Sarah Smith',
+      time: '5 minutes ago',
+      avatar: '/avatars/david.jpg',
     },
-  ];
-
-  const pastBookings = [
     {
       id: 3,
-      userName: 'Bob Johnson',
-      expertName: 'Dr. Emily Davis',
-      date: '2024-02-14',
-      time: '4:00 PM',
-      duration: '60 min',
-      type: 'online',
-      status: 'completed',
-      amount: '$120',
-      userAvatar: '/avatars/bob.jpg',
-      expertAvatar: '/avatars/emily.jpg',
+      type: 'dispute_raised',
+      user: 'Emma Davis',
+      expert: 'Dr. Michael Johnson',
+      time: '10 minutes ago',
+      avatar: '/avatars/emma.jpg',
     },
     {
       id: 4,
-      userName: 'Alice Brown',
-      expertName: 'Dr. Carol White',
-      date: '2024-02-13',
-      time: '10:00 AM',
-      duration: '30 min',
-      type: 'online',
-      status: 'cancelled',
-      amount: '$60',
-      userAvatar: '/avatars/alice.jpg',
-      expertAvatar: '/avatars/carol.jpg',
+      type: 'booking_completed',
+      user: 'Bob Johnson',
+      expert: 'Dr. Emily Davis',
+      time: '15 minutes ago',
+      avatar: '/avatars/bob.jpg',
     },
   ];
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return <Badge className="bg-green-100 text-green-800">Confirmed</Badge>;
-      case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
-      case 'completed':
-        return <Badge className="bg-blue-100 text-blue-800">Completed</Badge>;
-      case 'cancelled':
-        return <Badge className="bg-red-100 text-red-800">Cancelled</Badge>;
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'booking_request':
+        return <AlertCircle className="h-4 w-4 text-yellow-500" />;
+      case 'session_started':
+        return <Video className="h-4 w-4 text-green-500" />;
+      case 'dispute_raised':
+        return <XCircle className="h-4 w-4 text-red-500" />;
+      case 'booking_completed':
+        return <CheckCircle className="h-4 w-4 text-blue-500" />;
       default:
-        return <Badge variant="secondary">{status}</Badge>;
+        return <Clock className="h-4 w-4 text-gray-500" />;
     }
   };
 
-  const getTypeIcon = (type: string) => {
-    return type === 'online' ? (
-      <Video className="h-4 w-4" />
-    ) : (
-      <Phone className="h-4 w-4" />
-    );
+  const getActivityText = (activity: any) => {
+    switch (activity.type) {
+      case 'booking_request':
+        return `New booking request from ${activity.user}`;
+      case 'session_started':
+        return `Session started: ${activity.user} → ${activity.expert}`;
+      case 'dispute_raised':
+        return `Dispute raised by ${activity.user}`;
+      case 'booking_completed':
+        return `Booking completed: ${activity.user} → ${activity.expert}`;
+      default:
+        return 'Unknown activity';
+    }
   };
 
   return (
-    <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">
-          Booking Management
-        </h2>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh
-          </Button>
-          <Button>
-            <Calendar className="mr-2 h-4 w-4" />
-            New Booking
-          </Button>
+    <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Bookings Overview</h1>
+          <p className="text-muted-foreground">
+            Manage all your booking operations from one central dashboard
+          </p>
         </div>
+        <Button>
+          <Calendar className="mr-2 h-4 w-4" />
+          New Booking
+        </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      {/* Stats Grid */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Bookings
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Total Bookings</CardTitle>
             <Calendar className="text-muted-foreground h-4 w-4" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">156</div>
+            <div className="text-2xl font-bold">{stats.totalBookings}</div>
             <p className="text-muted-foreground text-xs">
               +12% from last month
             </p>
@@ -152,25 +138,23 @@ export default function BookingsPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+            <CardTitle className="text-sm font-medium">Pending Requests</CardTitle>
             <AlertCircle className="text-muted-foreground h-4 w-4" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">8</div>
+            <div className="text-2xl font-bold">{stats.bookingRequests}</div>
             <p className="text-muted-foreground text-xs">Need approval</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Today's Bookings
-            </CardTitle>
-            <Clock className="text-muted-foreground h-4 w-4" />
+            <CardTitle className="text-sm font-medium">Active Sessions</CardTitle>
+            <Video className="text-muted-foreground h-4 w-4" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
-            <p className="text-muted-foreground text-xs">3 online, 9 offline</p>
+            <div className="text-2xl font-bold">{stats.ongoingSessions}</div>
+            <p className="text-muted-foreground text-xs">Currently running</p>
           </CardContent>
         </Card>
 
@@ -180,231 +164,127 @@ export default function BookingsPage() {
             <DollarSign className="text-muted-foreground h-4 w-4" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$12,450</div>
-            <p className="text-muted-foreground text-xs">+8% from last month</p>
+            <div className="text-2xl font-bold">${stats.revenue.toLocaleString()}</div>
+            <p className="text-muted-foreground text-xs">{stats.revenueChange} from last month</p>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs defaultValue="upcoming" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="upcoming">
-            Upcoming ({upcomingBookings.length})
-          </TabsTrigger>
-          <TabsTrigger value="past">Past ({pastBookings.length})</TabsTrigger>
-        </TabsList>
+      {/* Quick Actions */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="cursor-pointer transition-shadow hover:shadow-md">
+          <Link href="/bookings/requests">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-sm font-medium flex items-center">
+                <AlertCircle className="mr-2 h-4 w-4 text-yellow-500" />
+                Booking Requests
+              </CardTitle>
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-yellow-600">{stats.bookingRequests}</div>
+              <p className="text-muted-foreground text-xs">View all requests</p>
+            </CardContent>
+          </Link>
+        </Card>
 
-        <TabsContent value="upcoming" className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <div className="relative max-w-sm flex-1">
-              <Search className="text-muted-foreground absolute top-2.5 left-2 h-4 w-4" />
-              <Input
-                placeholder="Search bookings..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8"
-              />
-            </div>
-            <Button variant="outline">
-              <Filter className="mr-2 h-4 w-4" />
-              Filter
-            </Button>
-          </div>
+        <Card className="cursor-pointer transition-shadow hover:shadow-md">
+          <Link href="/bookings/confirmed">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-sm font-medium flex items-center">
+                <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                Confirmed Bookings
+              </CardTitle>
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-green-600">{stats.confirmedBookings}</div>
+              <p className="text-muted-foreground text-xs">View confirmed sessions</p>
+            </CardContent>
+          </Link>
+        </Card>
 
-          <div className="grid gap-4">
-            {upcomingBookings.map((booking) => (
-              <Card key={booking.id}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex items-center space-x-2">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage
-                            src={booking.userAvatar}
-                            alt={booking.userName}
-                          />
-                          <AvatarFallback>
-                            {booking.userName
-                              .split(' ')
-                              .map((n) => n[0])
-                              .join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="bg-border h-px w-4"></div>
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage
-                            src={booking.expertAvatar}
-                            alt={booking.expertName}
-                          />
-                          <AvatarFallback>
-                            {booking.expertName
-                              .split(' ')
-                              .map((n) => n[0])
-                              .join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                      </div>
-                      <div>
-                        <CardTitle className="text-lg">
-                          {booking.userName} → {booking.expertName}
-                        </CardTitle>
-                        <div className="text-muted-foreground flex items-center space-x-2 text-sm">
-                          <span>
-                            {booking.date} at {booking.time}
-                          </span>
-                          <span>•</span>
-                          <span>{booking.duration}</span>
-                          <span>•</span>
-                          <div className="flex items-center space-x-1">
-                            {getTypeIcon(booking.type)}
-                            <span>{booking.type}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {getStatusBadge(booking.status)}
-                      <span className="font-semibold">{booking.amount}</span>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between">
-                    <div className="flex space-x-2">
-                      {booking.status === 'pending' && (
-                        <>
-                          <Button
-                            size="sm"
-                            className="bg-green-600 hover:bg-green-700"
-                          >
-                            <CheckCircle className="mr-2 h-4 w-4" />
-                            Approve
-                          </Button>
-                          <Button size="sm" variant="destructive">
-                            <XCircle className="mr-2 h-4 w-4" />
-                            Reject
-                          </Button>
-                        </>
-                      )}
-                      {booking.status === 'confirmed' && (
-                        <>
-                          <Button size="sm" variant="outline">
-                            <RefreshCw className="mr-2 h-4 w-4" />
-                            Reschedule
-                          </Button>
-                          <Button size="sm" variant="destructive">
-                            <XCircle className="mr-2 h-4 w-4" />
-                            Cancel
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                    <Button size="sm" variant="outline">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+        <Card className="cursor-pointer transition-shadow hover:shadow-md">
+          <Link href="/bookings/ongoing">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-sm font-medium flex items-center">
+                <Clock className="mr-2 h-4 w-4 text-blue-500" />
+                Ongoing Sessions
+              </CardTitle>
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-blue-600">{stats.ongoingSessions}</div>
+              <p className="text-muted-foreground text-xs">Monitor live sessions</p>
+            </CardContent>
+          </Link>
+        </Card>
+
+        <Card className="cursor-pointer transition-shadow hover:shadow-md">
+          <Link href="/bookings/disputes">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-sm font-medium flex items-center">
+                <XCircle className="mr-2 h-4 w-4 text-red-500" />
+                Disputes
+              </CardTitle>
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-red-600">{stats.disputes}</div>
+              <p className="text-muted-foreground text-xs">Resolve disputes</p>
+            </CardContent>
+          </Link>
+        </Card>
+      </div>
+
+      {/* Recent Activity */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Clock className="mr-2 h-5 w-5" />
+            Recent Activity
+          </CardTitle>
+          <CardDescription>
+            Latest booking activities and updates
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {recentActivity.map((activity) => (
+              <div key={activity.id} className="flex items-center space-x-4">
+                <div className="flex-shrink-0">
+                  {getActivityIcon(activity.type)}
+                </div>
+                <Avatar className="h-8 w-8">
+                  <AvatarImage
+                    src={activity.avatar}
+                    alt={activity.user}
+                  />
+                  <AvatarFallback>
+                    {activity.user.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">
+                    {getActivityText(activity)}
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    {activity.time}
+                  </p>
+                </div>
+                <Button variant="ghost" size="sm">
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
             ))}
           </div>
-        </TabsContent>
-
-        <TabsContent value="past" className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <div className="relative max-w-sm flex-1">
-              <Search className="text-muted-foreground absolute top-2.5 left-2 h-4 w-4" />
-              <Input
-                placeholder="Search bookings..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8"
-              />
-            </div>
-            <Button variant="outline">
-              <Filter className="mr-2 h-4 w-4" />
-              Filter
+          <div className="mt-4 pt-4 border-t">
+            <Button variant="outline" className="w-full">
+              View All Activity
             </Button>
           </div>
-
-          <div className="grid gap-4">
-            {pastBookings.map((booking) => (
-              <Card key={booking.id}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex items-center space-x-2">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage
-                            src={booking.userAvatar}
-                            alt={booking.userName}
-                          />
-                          <AvatarFallback>
-                            {booking.userName
-                              .split(' ')
-                              .map((n) => n[0])
-                              .join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="bg-border h-px w-4"></div>
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage
-                            src={booking.expertAvatar}
-                            alt={booking.expertName}
-                          />
-                          <AvatarFallback>
-                            {booking.expertName
-                              .split(' ')
-                              .map((n) => n[0])
-                              .join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                      </div>
-                      <div>
-                        <CardTitle className="text-lg">
-                          {booking.userName} → {booking.expertName}
-                        </CardTitle>
-                        <div className="text-muted-foreground flex items-center space-x-2 text-sm">
-                          <span>
-                            {booking.date} at {booking.time}
-                          </span>
-                          <span>•</span>
-                          <span>{booking.duration}</span>
-                          <span>•</span>
-                          <div className="flex items-center space-x-1">
-                            {getTypeIcon(booking.type)}
-                            <span>{booking.type}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {getStatusBadge(booking.status)}
-                      <span className="font-semibold">{booking.amount}</span>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between">
-                    <div className="flex space-x-2">
-                      <Button size="sm" variant="outline">
-                        View Details
-                      </Button>
-                      {booking.status === 'completed' && (
-                        <Button size="sm" variant="outline">
-                          Download Receipt
-                        </Button>
-                      )}
-                    </div>
-                    <Button size="sm" variant="outline">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-      </Tabs>
+        </CardContent>
+      </Card>
     </div>
   );
 }

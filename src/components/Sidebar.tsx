@@ -8,6 +8,8 @@ import {
   Bell,
   Building,
   Calendar,
+  ChevronDown,
+  ChevronRight,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -16,6 +18,16 @@ import {
   Users,
   Video,
   X,
+  Wallet,
+  CreditCard,
+  ArrowUpDown,
+  Building2,
+  History,
+  DollarSign,
+  Clock,
+  AlertCircle,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -29,6 +41,11 @@ interface SidebarProps {
 export default function Sidebar({ currentPage }: SidebarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCommunicationExpanded, setIsCommunicationExpanded] = useState(false);
+  const [isWalletExpanded, setIsWalletExpanded] = useState(false);
+  const [isBookingsExpanded, setIsBookingsExpanded] = useState(false);
+  const [isRefundExpanded, setIsRefundExpanded] = useState(false);
+  const [isBankExpanded, setIsBankExpanded] = useState(false);
 
   const menuItems = [
     {
@@ -37,9 +54,88 @@ export default function Sidebar({ currentPage }: SidebarProps) {
       icon: LayoutDashboard,
     },
     {
+      title: 'Communication',
+      href: '/communication',
+      icon: Bell,
+      hasSubmenu: true,
+      submenu: [
+        {
+          title: 'Messages',
+          href: '/messages',
+          icon: Bell,
+        },
+        {
+          title: 'Services',
+          href: '/services',
+          icon: Calendar,
+        },
+      ],
+    },
+    {
+      title: 'Bookings',
+      href: '/bookings',
+      icon: Video,
+      hasSubmenu: true,
+      submenu: [
+        {
+          title: 'Overview',
+          href: '/bookings',
+          icon: LayoutDashboard,
+        },
+        {
+          title: 'Requests',
+          href: '/bookings/requests',
+          icon: AlertCircle,
+        },
+        {
+          title: 'Confirmed',
+          href: '/bookings/confirmed',
+          icon: CheckCircle,
+        },
+        {
+          title: 'Ongoing',
+          href: '/bookings/ongoing',
+          icon: Clock,
+        },
+        {
+          title: 'Completed',
+          href: '/bookings/completed',
+          icon: CheckCircle,
+        },
+        {
+          title: 'Cancelled',
+          href: '/bookings/cancelled',
+          icon: XCircle,
+        },
+        {
+          title: 'Disputes',
+          href: '/bookings/disputes',
+          icon: XCircle,
+        },
+      ],
+    },
+    {
       title: 'Experts',
       href: '/experts',
       icon: Users,
+    },
+    {
+      title: 'Refund',
+      href: '/refunds',
+      icon: CreditCard,
+      hasSubmenu: true,
+      submenu: [
+        {
+          title: 'Refund Dashboard',
+          href: '/refunds',
+          icon: CreditCard,
+        },
+        {
+          title: 'Refund Logs',
+          href: '/wallet/refund-logs',
+          icon: History,
+        },
+      ],
     },
     {
       title: 'Expert Requests',
@@ -47,24 +143,47 @@ export default function Sidebar({ currentPage }: SidebarProps) {
       icon: Users,
     },
     {
-      title: 'Services',
-      href: '/services',
-      icon: Calendar,
-    },
-    {
-      title: 'Bookings',
-      href: '/bookings',
-      icon: Video,
-    },
-    {
       title: 'Analytics',
       href: '/analytics',
       icon: TrendingUp,
     },
     {
-      title: 'Messages',
-      href: '/messages',
-      icon: Bell,
+      title: 'Bank',
+      href: '/bank',
+      icon: Building2,
+      hasSubmenu: true,
+      submenu: [
+        {
+          title: 'Wallet',
+          href: '/wallet',
+          icon: Wallet,
+        },
+        {
+          title: 'Balance Overview',
+          href: '/wallet/balance',
+          icon: DollarSign,
+        },
+        {
+          title: 'Transactions',
+          href: '/wallet/transactions',
+          icon: CreditCard,
+        },
+        {
+          title: 'Withdraw',
+          href: '/wallet/withdraw',
+          icon: ArrowUpDown,
+        },
+        {
+          title: 'Bank Details',
+          href: '/bank-details',
+          icon: Building2,
+        },
+        {
+          title: 'Bank History',
+          href: '/wallet/bank-history',
+          icon: History,
+        },
+      ],
     },
     {
       title: 'Profile',
@@ -129,25 +248,125 @@ export default function Sidebar({ currentPage }: SidebarProps) {
           {/* Navigation */}
           <nav className={`flex-1 ${isCollapsed ? 'p-2' : 'p-4'}`}>
             {menuItems.map((item) => {
-              const isActive = currentPage === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} rounded-lg px-3 py-3 text-sm transition-colors ${
-                    isActive
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                  } `}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  title={isCollapsed ? item.title : undefined}
-                >
-                  <item.icon className="h-5 w-5" />
-                  {!isCollapsed && (
-                    <span className="font-medium">{item.title}</span>
-                  )}
-                </Link>
-              );
+              if (item.hasSubmenu) {
+                const isActive = 
+                  (item.title === 'Communication' && (currentPage === '/messages' || currentPage === '/services')) ||
+                  (item.title === 'Bookings' && currentPage.startsWith('/bookings')) ||
+                  (item.title === 'Refund' && (currentPage === '/refunds' || currentPage.startsWith('/refunds/') || currentPage === '/wallet/refund-logs')) ||
+                  (item.title === 'Bank' && (currentPage === '/bank' || currentPage === '/wallet' || currentPage === '/bank-details' || currentPage.startsWith('/wallet/') && currentPage !== '/wallet/refund-logs'));
+                return (
+                  <div key={item.title}>
+                    <button
+                      className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} rounded-lg px-3 py-3 text-sm transition-colors w-full ${
+                        isActive
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                      } `}
+                      onClick={() => {
+                        if (item.title === 'Communication') {
+                          setIsCommunicationExpanded(!isCommunicationExpanded);
+                        } else if (item.title === 'Wallet') {
+                          setIsWalletExpanded(!isWalletExpanded);
+                        } else if (item.title === 'Bookings') {
+                          setIsBookingsExpanded(!isBookingsExpanded);
+                        } else if (item.title === 'Refund') {
+                          setIsRefundExpanded(!isRefundExpanded);
+                        } else if (item.title === 'Bank') {
+                          setIsBankExpanded(!isBankExpanded);
+                        }
+                      }}
+                      title={isCollapsed ? item.title : undefined}
+                    >
+                      <item.icon className="h-5 w-5" />
+                      {!isCollapsed && (
+                        <>
+                          <span className="font-medium">{item.title}</span>
+                          {item.title === 'Communication' ? (
+                            isCommunicationExpanded ? (
+                              <ChevronDown className="h-4 w-4 ml-auto" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 ml-auto" />
+                            )
+                          ) : item.title === 'Wallet' ? (
+                            isWalletExpanded ? (
+                              <ChevronDown className="h-4 w-4 ml-auto" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 ml-auto" />
+                            )
+                          ) : item.title === 'Bookings' ? (
+                            isBookingsExpanded ? (
+                              <ChevronDown className="h-4 w-4 ml-auto" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 ml-auto" />
+                            )
+                          ) : item.title === 'Refund' ? (
+                            isRefundExpanded ? (
+                              <ChevronDown className="h-4 w-4 ml-auto" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 ml-auto" />
+                            )
+                          ) : item.title === 'Bank' ? (
+                            isBankExpanded ? (
+                              <ChevronDown className="h-4 w-4 ml-auto" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 ml-auto" />
+                            )
+                          ) : null}
+                        </>
+                      )}
+                    </button>
+                    
+                    {!isCollapsed && 
+                      ((item.title === 'Communication' && isCommunicationExpanded) || 
+                       (item.title === 'Wallet' && isWalletExpanded) ||
+                       (item.title === 'Bookings' && isBookingsExpanded) ||
+                       (item.title === 'Refund' && isRefundExpanded) ||
+                       (item.title === 'Bank' && isBankExpanded)) && 
+                      item.submenu && (
+                      <div className="ml-6 mt-1 space-y-1">
+                        {item.submenu.map((subItem) => {
+                          const isSubActive = currentPage === subItem.href;
+                          return (
+                            <Link
+                              key={subItem.href}
+                              href={subItem.href}
+                              className={`flex items-center space-x-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+                                isSubActive
+                                  ? 'bg-primary text-primary-foreground'
+                                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                              } `}
+                              onClick={() => setIsMobileMenuOpen(false)}
+                            >
+                              <subItem.icon className="h-4 w-4" />
+                              <span className="font-medium">{subItem.title}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              } else {
+                const isActive = currentPage === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} rounded-lg px-3 py-3 text-sm transition-colors ${
+                      isActive
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                    } `}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    title={isCollapsed ? item.title : undefined}
+                  >
+                    <item.icon className="h-5 w-5" />
+                    {!isCollapsed && (
+                      <span className="font-medium">{item.title}</span>
+                    )}
+                  </Link>
+                );
+              }
             })}
           </nav>
 

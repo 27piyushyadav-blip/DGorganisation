@@ -6,13 +6,31 @@
     "[project]/p1/New folder (3)/organization/src/app/analytics/page": [
       "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
     ],
+    "[project]/p1/New folder (3)/organization/src/app/bank-details/page": [
+      "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
+    ],
+    "[project]/p1/New folder (3)/organization/src/app/bookings/cancelled/page": [
+      "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
+    ],
+    "[project]/p1/New folder (3)/organization/src/app/bookings/completed/page": [
+      "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
+    ],
+    "[project]/p1/New folder (3)/organization/src/app/bookings/confirmed/page": [
+      "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
+    ],
+    "[project]/p1/New folder (3)/organization/src/app/bookings/disputes/page": [
+      "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
+    ],
+    "[project]/p1/New folder (3)/organization/src/app/bookings/ongoing/page": [
+      "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
+    ],
     "[project]/p1/New folder (3)/organization/src/app/bookings/page": [
       "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
     ],
-    "[project]/p1/New folder (3)/organization/src/app/dashboard/page": [
+    "[project]/p1/New folder (3)/organization/src/app/bookings/requests/page": [
       "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
     ],
-    "[project]/p1/New folder (3)/organization/src/app/expert-requests/[id]/page": [
+    "[project]/p1/New folder (3)/organization/src/app/dashboard/page": [
       "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
     ],
     "[project]/p1/New folder (3)/organization/src/app/expert-requests/page": [
@@ -21,16 +39,10 @@
     "[project]/p1/New folder (3)/organization/src/app/experts/[id]/booking-details/page": [
       "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
     ],
-    "[project]/p1/New folder (3)/organization/src/app/experts/[id]/page": [
-      "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
-    ],
     "[project]/p1/New folder (3)/organization/src/app/experts/page": [
       "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
     ],
     "[project]/p1/New folder (3)/organization/src/app/messages/page": [
-      "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
-    ],
-    "[project]/p1/New folder (3)/organization/src/app/notifications/page": [
       "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
     ],
     "[project]/p1/New folder (3)/organization/src/app/page": [
@@ -39,10 +51,49 @@
     "[project]/p1/New folder (3)/organization/src/app/profile/page": [
       "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
     ],
+    "[project]/p1/New folder (3)/organization/src/app/refunds/analytics/page": [
+      "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
+    ],
+    "[project]/p1/New folder (3)/organization/src/app/refunds/auto-refund/page": [
+      "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
+    ],
+    "[project]/p1/New folder (3)/organization/src/app/refunds/disputes/page": [
+      "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
+    ],
+    "[project]/p1/New folder (3)/organization/src/app/refunds/history/page": [
+      "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
+    ],
+    "[project]/p1/New folder (3)/organization/src/app/refunds/page": [
+      "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
+    ],
+    "[project]/p1/New folder (3)/organization/src/app/refunds/requests/page": [
+      "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
+    ],
+    "[project]/p1/New folder (3)/organization/src/app/refunds/reschedule/page": [
+      "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
+    ],
     "[project]/p1/New folder (3)/organization/src/app/services/page": [
       "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
     ],
-    "[project]/p1/New folder (3)/organization/src/app/sessions/page": [
+    "[project]/p1/New folder (3)/organization/src/app/wallet/balance/page": [
+      "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
+    ],
+    "[project]/p1/New folder (3)/organization/src/app/wallet/bank-details/page": [
+      "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
+    ],
+    "[project]/p1/New folder (3)/organization/src/app/wallet/bank-history/page": [
+      "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
+    ],
+    "[project]/p1/New folder (3)/organization/src/app/wallet/page": [
+      "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
+    ],
+    "[project]/p1/New folder (3)/organization/src/app/wallet/refund-logs/page": [
+      "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
+    ],
+    "[project]/p1/New folder (3)/organization/src/app/wallet/transactions/page": [
+      "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
+    ],
+    "[project]/p1/New folder (3)/organization/src/app/wallet/withdraw/page": [
       "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
     ]
   },
