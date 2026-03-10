@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Bell, Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { UserNav } from '@/components/UserNav';
 
 export default function TopBar() {
   return (
@@ -31,6 +32,8 @@ export default function TopBar() {
               </span>
             </Button>
           </Link>
+          
+          <UserNav />
         </div>
       </div>
     </div>

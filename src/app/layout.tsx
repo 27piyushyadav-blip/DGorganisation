@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 
 import DashboardLayout from '@/components/DashboardLayout';
+import { AuthProvider } from '@/contexts/auth-context';
 
 import './globals.css';
 
@@ -20,7 +21,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <DashboardLayout>{children}</DashboardLayout>
+        <AuthProvider>
+          <DashboardLayout>{children}</DashboardLayout>
+        </AuthProvider>
       </body>
     </html>
   );

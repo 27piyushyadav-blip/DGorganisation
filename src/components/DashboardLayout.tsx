@@ -11,6 +11,17 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
 
+  // Check if current page is an authentication page
+  const isAuthPage = pathname === '/login' || pathname === '/register' || pathname === '/forgot-password' || pathname === '/check-email' || pathname === '/verify';
+
+  if (isAuthPage) {
+    return (
+      <div className="min-h-screen bg-background">
+        {children}
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen bg-background">
       <Sidebar currentPage={pathname} />
