@@ -1,15 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Mail, ArrowRight, Building, RefreshCw } from "lucide-react";
+import { Mail, ArrowRight, Building } from "lucide-react";
 import Link from "next/link";
 
-export default function CheckEmailPage() {
-  const router = useRouter();
+// 1. Move the logic using useSearchParams into a sub-component
+function EmailContent() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
-  const [countdown, setCountdown] = useState(0);
 
   useEffect(() => {
     const emailParam = searchParams?.get("email");
@@ -17,6 +16,22 @@ export default function CheckEmailPage() {
       setEmail(emailParam);
     }
   }, [searchParams]);
+
+  const maskedEmail = email
+    ? email.replace(/^(.{2})(.*)(@.*)$/, (_, a, b, c) => a + "*".repeat(b.length) + c)
+    : "your email";
+
+  return (
+    <p className="text-sm text-zinc-500 max-w-xs">
+      We've sent a verification link to{" "}
+      <span className="font-medium text-zinc-900">{maskedEmail}</span>
+    </p>
+  );
+}
+
+export default function CheckEmailPage() {
+  const router = useRouter();
+  const [countdown, setCountdown] = useState(0);
 
   useEffect(() => {
     let timer: ReturnType<typeof setInterval> | undefined;
@@ -30,19 +45,13 @@ export default function CheckEmailPage() {
 
   const handleResend = () => {
     if (countdown > 0) return;
-    
-    // Here you would implement resend logic
     setCountdown(60);
     // TODO: Call resend API
   };
 
-  const maskedEmail = email
-    ? email.replace(/^(.{2})(.*)(@.*)$/, (_, a, b, c) => a + "*".repeat(b.length) + c)
-    : "your email";
-
   return (
     <div className="flex min-h-dvh w-full bg-white">
-      {/* Left Side */}
+      {/* Left Side (Static Content) */}
       <div className="hidden lg:flex w-1/2 bg-zinc-950 items-center justify-center relative overflow-hidden">
         <div
           className="absolute inset-0 opacity-40 mix-blend-overlay bg-cover bg-center"
@@ -83,10 +92,10 @@ export default function CheckEmailPage() {
               Check your email
             </h1>
             
-            <p className="text-sm text-zinc-500 max-w-xs">
-              We've sent a verification link to{" "}
-              <span className="font-medium text-zinc-900">{maskedEmail}</span>
-            </p>
+            {/* 2. Wrap the search-param dependent component in Suspense */}
+            <Suspense fallback={<p className="text-sm text-zinc-500">Loading...</p>}>
+              <EmailContent />
+            </Suspense>
           </div>
 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
