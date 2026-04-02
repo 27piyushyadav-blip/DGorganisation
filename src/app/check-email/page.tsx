@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, ArrowRight, Building, RefreshCw } from "lucide-react";
 import Link from "next/link";
 
-export default function CheckEmailPage() {
+function CheckEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
@@ -140,5 +140,17 @@ export default function CheckEmailPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CheckEmailPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-dvh w-full bg-white items-center justify-center">
+        <Mail className="h-8 w-8 animate-pulse" />
+      </div>
+    }>
+      <CheckEmailContent />
+    </Suspense>
   );
 }

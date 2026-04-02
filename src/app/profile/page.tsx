@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -69,6 +69,33 @@ export default function ProfilePage() {
     }));
   };
 
+  useEffect(() => {
+    async function loadProfile() {
+      try {
+        const token = localStorage.getItem("access_token");
+        const res = await fetch("http://localhost:3000/organizations/profile", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setFormData(prev => ({
+             ...prev,
+             name: data.name || prev.name,
+             email: data.email || prev.email,
+             description: data.description || prev.description,
+             profileImage: data.logo || prev.profileImage,
+             profileVideo: data.introVideo || prev.profileVideo,
+             address: data.location || prev.address,
+             website: data.website || prev.website,
+          }));
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    loadProfile();
+  }, []);
+
   const handleVisibilityChange = (field: string, checked: boolean) => {
     setVisibilitySettings(prev => ({
       ...prev,
@@ -76,31 +103,47 @@ export default function ProfilePage() {
     }));
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData(prev => ({
-          ...prev,
-          profileImage: reader.result as string
-        }));
-      };
-      reader.readAsDataURL(file);
+      const formDataUpload = new FormData();
+      formDataUpload.append("file", file);
+      const token = localStorage.getItem("access_token");
+      try {
+        const res = await fetch("http://localhost:3000/organizations/profile/logo", {
+           method: "POST",
+           headers: { Authorization: `Bearer ${token}` },
+           body: formDataUpload
+        });
+        if (res.ok) {
+           const d = await res.json();
+           setFormData(prev => ({...prev, profileImage: d.logoUrl}));
+        }
+      } catch (err) {
+        console.error(err);
+      }
     }
   };
 
-  const handleVideoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleVideoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData(prev => ({
-          ...prev,
-          profileVideo: reader.result as string
-        }));
-      };
-      reader.readAsDataURL(file);
+      const formDataUpload = new FormData();
+      formDataUpload.append("file", file);
+      const token = localStorage.getItem("access_token");
+      try {
+        const res = await fetch("http://localhost:3000/organizations/profile/intro-video", {
+           method: "POST",
+           headers: { Authorization: `Bearer ${token}` },
+           body: formDataUpload
+        });
+        if (res.ok) {
+           const d = await res.json();
+           setFormData(prev => ({...prev, profileVideo: d.fileUrl}));
+        }
+      } catch (err) {
+        console.error(err);
+      }
     }
   };
 
@@ -121,8 +164,26 @@ export default function ProfilePage() {
     }));
   };
 
-  const handleSave = () => {
-    setIsEditing(false);
+  const handleSave = async () => {
+    const token = localStorage.getItem("access_token");
+    try {
+      await fetch("http://localhost:3000/organizations/profile", {
+         method: "PUT",
+         headers: { 
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+         },
+         body: JSON.stringify({
+           name: formData.name,
+           description: formData.description,
+           location: formData.address,
+           website: formData.website,
+         })
+      });
+      setIsEditing(false);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleCancel = () => {
