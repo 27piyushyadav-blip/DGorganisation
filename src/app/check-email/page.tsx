@@ -1,15 +1,13 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Mail, ArrowRight, Building, RefreshCw } from "lucide-react";
+import { Mail, ArrowRight, Building } from "lucide-react";
 import Link from "next/link";
 
-function CheckEmailContent() {
-  const router = useRouter();
+function EmailContent() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
-  const [countdown, setCountdown] = useState(0);
 
   useEffect(() => {
     const emailParam = searchParams?.get("email");
@@ -17,6 +15,22 @@ function CheckEmailContent() {
       setEmail(emailParam);
     }
   }, [searchParams]);
+
+  const maskedEmail = email
+    ? email.replace(/^(.{2})(.*)(@.*)$/, (_, a, b, c) => a + "*".repeat(b.length) + c)
+    : "your email";
+
+  return (
+    <p className="text-sm text-zinc-500 max-w-xs">
+      We've sent a verification link to{" "}
+      <span className="font-medium text-zinc-900">{maskedEmail}</span>
+    </p>
+  );
+}
+
+export default function CheckEmailPage() {
+  const router = useRouter();
+  const [countdown, setCountdown] = useState(0);
 
   useEffect(() => {
     let timer: ReturnType<typeof setInterval> | undefined;
@@ -30,15 +44,8 @@ function CheckEmailContent() {
 
   const handleResend = () => {
     if (countdown > 0) return;
-    
-    // Here you would implement resend logic
     setCountdown(60);
-    // TODO: Call resend API
   };
-
-  const maskedEmail = email
-    ? email.replace(/^(.{2})(.*)(@.*)$/, (_, a, b, c) => a + "*".repeat(b.length) + c)
-    : "your email";
 
   return (
     <div className="flex min-h-dvh w-full bg-white">
@@ -83,10 +90,9 @@ function CheckEmailContent() {
               Check your email
             </h1>
             
-            <p className="text-sm text-zinc-500 max-w-xs">
-              We've sent a verification link to{" "}
-              <span className="font-medium text-zinc-900">{maskedEmail}</span>
-            </p>
+            <Suspense fallback={<p className="text-sm text-zinc-500">Loading...</p>}>
+              <EmailContent />
+            </Suspense>
           </div>
 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -140,17 +146,5 @@ function CheckEmailContent() {
         </div>
       </div>
     </div>
-  );
-}
-
-export default function CheckEmailPage() {
-  return (
-    <Suspense fallback={
-      <div className="flex min-h-dvh w-full bg-white items-center justify-center">
-        <Mail className="h-8 w-8 animate-pulse" />
-      </div>
-    }>
-      <CheckEmailContent />
-    </Suspense>
   );
 }
