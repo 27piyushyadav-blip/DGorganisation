@@ -73,7 +73,7 @@ export default function ProfilePage() {
     async function loadProfile() {
       try {
         const token = localStorage.getItem("access_token");
-        const res = await fetch("http://localhost:3000/organizations/profile", {
+        const res = await fetch(process.env.NEXT_PUBLIC_PROFILE_BASE_URL || "http://localhost:3000/organizations/profile", {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
