@@ -8,3 +8,6 @@ coverage
 .vscode
 .next
 .next/
+next-env.d.ts
+.next/cache
+.next/out
