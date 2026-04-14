@@ -73,17 +73,23 @@ export default function ProfilePage() {
   useEffect(() => {
     async function loadProfile() {
       try {
-        const data = await apiClient<any>("http://localhost:3000/organizations/profile");
-        setFormData(prev => ({
-           ...prev,
-           name: data.name || prev.name,
-           email: data.email || prev.email,
-           description: data.description || prev.description,
-           profileImage: data.logo || prev.profileImage,
-           profileVideo: data.introVideo || prev.profileVideo,
-           address: data.location || prev.address,
-           website: data.website || prev.website,
-        }));
+        const token = localStorage.getItem("access_token");
+        const res = await fetch(process.env.NEXT_PUBLIC_PROFILE_BASE_URL || "http://localhost:3000/organizations/profile", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setFormData(prev => ({
+             ...prev,
+             name: data.name || prev.name,
+             email: data.email || prev.email,
+             description: data.description || prev.description,
+             profileImage: data.logo || prev.profileImage,
+             profileVideo: data.introVideo || prev.profileVideo,
+             address: data.location || prev.address,
+             website: data.website || prev.website,
+          }));
+        }
       } catch (err) {
         console.error(err);
       }
