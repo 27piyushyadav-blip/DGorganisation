@@ -97,6 +97,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Add proactive refresh timer
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    if (user) {
+      // Set interval to 12 minutes (tokens expire in 15m)
+      interval = setInterval(async () => {
+        try {
+          console.log("Proactively refreshing organization token...");
+          await refreshToken();
+        } catch (error) {
+          console.error("Proactive refresh failed:", error);
+        }
+      }, 12 * 60 * 1000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [user]);
+
   const value: AuthContextType = {
     user,
     isLoading,

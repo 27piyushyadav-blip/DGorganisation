@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { apiClient } from "@/client/api/api-client";
 import { 
   Building,
   Mail,
@@ -72,23 +73,17 @@ export default function ProfilePage() {
   useEffect(() => {
     async function loadProfile() {
       try {
-        const token = localStorage.getItem("access_token");
-        const res = await fetch("http://localhost:3000/organizations/profile", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setFormData(prev => ({
-             ...prev,
-             name: data.name || prev.name,
-             email: data.email || prev.email,
-             description: data.description || prev.description,
-             profileImage: data.logo || prev.profileImage,
-             profileVideo: data.introVideo || prev.profileVideo,
-             address: data.location || prev.address,
-             website: data.website || prev.website,
-          }));
-        }
+        const data = await apiClient<any>("http://localhost:3000/organizations/profile");
+        setFormData(prev => ({
+           ...prev,
+           name: data.name || prev.name,
+           email: data.email || prev.email,
+           description: data.description || prev.description,
+           profileImage: data.logo || prev.profileImage,
+           profileVideo: data.introVideo || prev.profileVideo,
+           address: data.location || prev.address,
+           website: data.website || prev.website,
+        }));
       } catch (err) {
         console.error(err);
       }
@@ -108,17 +103,12 @@ export default function ProfilePage() {
     if (file) {
       const formDataUpload = new FormData();
       formDataUpload.append("file", file);
-      const token = localStorage.getItem("access_token");
       try {
-        const res = await fetch("http://localhost:3000/organizations/profile/logo", {
+        const d = await apiClient<any>("http://localhost:3000/organizations/profile/logo", {
            method: "POST",
-           headers: { Authorization: `Bearer ${token}` },
            body: formDataUpload
         });
-        if (res.ok) {
-           const d = await res.json();
-           setFormData(prev => ({...prev, profileImage: d.logoUrl}));
-        }
+        setFormData(prev => ({...prev, profileImage: d.logoUrl}));
       } catch (err) {
         console.error(err);
       }
@@ -130,17 +120,12 @@ export default function ProfilePage() {
     if (file) {
       const formDataUpload = new FormData();
       formDataUpload.append("file", file);
-      const token = localStorage.getItem("access_token");
       try {
-        const res = await fetch("http://localhost:3000/organizations/profile/intro-video", {
+        const d = await apiClient<any>("http://localhost:3000/organizations/profile/intro-video", {
            method: "POST",
-           headers: { Authorization: `Bearer ${token}` },
            body: formDataUpload
         });
-        if (res.ok) {
-           const d = await res.json();
-           setFormData(prev => ({...prev, profileVideo: d.fileUrl}));
-        }
+        setFormData(prev => ({...prev, profileVideo: d.fileUrl}));
       } catch (err) {
         console.error(err);
       }
@@ -165,14 +150,9 @@ export default function ProfilePage() {
   };
 
   const handleSave = async () => {
-    const token = localStorage.getItem("access_token");
     try {
-      await fetch("http://localhost:3000/organizations/profile", {
+      await apiClient("http://localhost:3000/organizations/profile", {
          method: "PUT",
-         headers: { 
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json"
-         },
          body: JSON.stringify({
            name: formData.name,
            description: formData.description,
