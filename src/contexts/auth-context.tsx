@@ -9,6 +9,7 @@ import {
   isAuthenticated,
   AuthError 
 } from "@/client/api/auth";
+import { apiClient } from "@/client/api/api-client";
 
 type User = {
   id?: string;
@@ -16,6 +17,7 @@ type User = {
   email?: string;
   provider?: "credentials" | "google";
   role?: string;
+  verificationStatus?: string;
 };
 
 type AuthContextType = {
@@ -25,6 +27,7 @@ type AuthContextType = {
   login: (identifier: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshToken: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,25 +36,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check authentication status on mount
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        if (isAuthenticated()) {
-          // User has tokens, consider them authenticated
-          // You might want to validate the token with the backend here
-          setUser({ 
-            id: "authenticated", 
-            email: "organization@example.com" 
-          });
-        }
-      } catch (error) {
-        console.error("Auth check failed:", error);
-      } finally {
-        setIsLoading(false);
+  const checkAuth = async () => {
+    try {
+      if (isAuthenticated()) {
+        const profile: any = await apiClient("http://localhost:3000/organizations/profile");
+        setUser({ 
+          id: profile.userId, 
+          email: profile.email,
+          name: profile.name,
+          verificationStatus: profile.verificationStatus,
+        });
       }
-    };
+    } catch (error) {
+      console.error("Auth check failed:", error);
+      if (isAuthenticated()) {
+        await logout();
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     checkAuth();
   }, []);
 
@@ -59,9 +65,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       await loginUserApi({ identifier, password });
+      
+      // Fetch profile immediately after login to get status
+      const profile: any = await apiClient("http://localhost:3000/organizations/profile");
       setUser({ 
-        id: "authenticated", 
-        email: identifier 
+        id: profile.userId, 
+        email: profile.email,
+        name: profile.name,
+        verificationStatus: profile.verificationStatus,
       });
     } catch (error) {
       if (error instanceof AuthError) {
@@ -125,6 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     logout,
     refreshToken,
+    refreshUser: checkAuth,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

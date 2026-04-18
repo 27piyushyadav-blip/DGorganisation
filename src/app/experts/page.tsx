@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 import {
   CheckCircle,
@@ -25,6 +27,15 @@ import {
   Upload,
   Camera,
   Trash2,
+  Briefcase,
+  GraduationCap,
+  Globe,
+  MapPin,
+  ShieldCheck,
+  Link as LinkIcon,
+  Languages,
+  Mail,
+  UserPlus,
 } from 'lucide-react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -38,17 +49,14 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
+import { apiClient } from '@/client/api/api-client';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface Expert {
   id: number;
@@ -85,82 +93,29 @@ interface TimingSlot {
 }
 
 export default function ExpertsPage() {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('all');
   const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
-  const [experts, setExperts] = useState<Expert[]>([
-    {
-      id: 1,
-      name: 'Dr. Sarah Johnson',
-      username: '@dr_sarah_consulting',
-      avatar: '/avatars/sarah.jpg',
-      status: 'active',
-      rating: 4.8,
-      timings: [
-        { day: 'Mon', time: '9AM - 5PM' },
-        { day: 'Wed', time: '9AM - 5PM' },
-        { day: 'Fri', time: '9AM - 5PM' },
-      ],
-      totalBookings: 45,
-      revenue: 1250,
-      services: ['Business Consulting', 'Strategy Planning'],
-      email: 'sarah.johnson@example.com',
-      phone: '+1 234-567-8900',
-      bio: 'Experienced business consultant with 10+ years helping companies grow.',
-    },
-    {
-      id: 2,
-      name: 'Dr. Michael Chen',
-      username: '@dr_michael_advisor',
-      avatar: '/avatars/michael.jpg',
-      status: 'active',
-      rating: 4.6,
-      timings: [
-        { day: 'Tue', time: '10AM - 6PM' },
-        { day: 'Thu', time: '10AM - 6PM' },
-        { day: 'Sat', time: '10AM - 2PM' },
-      ],
-      totalBookings: 38,
-      revenue: 980,
-      services: ['Financial Advisory', 'Investment Planning'],
-      email: 'michael.chen@example.com',
-      phone: '+1 234-567-8901',
-      bio: 'Financial expert specializing in investment strategies and wealth management.',
-    },
-    {
-      id: 3,
-      name: 'Dr. Emily Davis',
-      username: '@dr_emily_expert',
-      avatar: '/avatars/emily.jpg',
-      status: 'active',
-      rating: 4.9,
-      timings: [],
-      totalBookings: 52,
-      revenue: 1450,
-      services: ['Legal Consulting', 'Compliance Advisory'],
-      email: 'emily.davis@example.com',
-      phone: '+1 234-567-8902',
-      bio: 'Legal consultant with expertise in corporate law and regulatory compliance.',
-    },
-    {
-      id: 4,
-      name: 'Dr. Robert Wilson',
-      username: '@dr_robert_consultant',
-      avatar: '/avatars/robert.jpg',
-      status: 'hidden',
-      rating: 4.7,
-      timings: [
-        { day: 'Mon', time: '1PM - 8PM' },
-        { day: 'Fri', time: '1PM - 8PM' },
-      ],
-      totalBookings: 28,
-      revenue: 720,
-      services: ['Technology Consulting', 'Digital Transformation'],
-      email: 'robert.wilson@example.com',
-      phone: '+1 234-567-8903',
-      bio: 'Technology consultant helping businesses with digital transformation.',
-    },
-  ]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [experts, setExperts] = useState<Expert[]>([]);
+
+  useEffect(() => {
+    const fetchExperts = async () => {
+      try {
+        setIsLoading(true);
+        const response = await apiClient<any>('http://localhost:3000/organizations/experts');
+        setExperts(response.experts || []);
+      } catch (error) {
+        console.error("Failed to fetch experts:", error);
+        toast.error("Failed to load experts from database");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchExperts();
+  }, []);
 
   // Modal states
   const [editProfileOpen, setEditProfileOpen] = useState(false);
@@ -168,8 +123,14 @@ export default function ExpertsPage() {
   const [changeDPOpen, setChangeDPOpen] = useState(false);
   const [changeVideoOpen, setChangeVideoOpen] = useState(false);
   const [changeTimingsOpen, setChangeTimingsOpen] = useState(false);
+  const [inviteExpertOpen, setInviteExpertOpen] = useState(false);
+  const [choiceModalOpen, setChoiceModalOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [isInviting, setIsInviting] = useState(false);
   const [selectedExpert, setSelectedExpert] = useState<Expert | null>(null);
   
+
+
   // Form states
   const [editForm, setEditForm] = useState<EditFormData>({});
   const [timingSlots, setTimingSlots] = useState<TimingSlot[]>([]);
@@ -211,6 +172,40 @@ export default function ExpertsPage() {
     setSelectedExpert(expert);
     setViewProfileOpen(true);
     setOpenDropdownId(null);
+  };
+
+  const handleInviteExpert = async () => {
+    if (!inviteEmail) return;
+    setIsInviting(true);
+    try {
+      await apiClient("http://localhost:3000/organizations/invite-expert", {
+        method: "POST",
+        body: JSON.stringify({ email: inviteEmail }),
+      });
+      // Add a mock expert to the list just for UI response
+      const newExpert: Expert = {
+        id: Date.now(),
+        name: inviteEmail.split('@')[0],
+        username: `@${inviteEmail.split('@')[0]}`,
+        avatar: '',
+        status: 'hidden',
+        rating: 0,
+        timings: [],
+        totalBookings: 0,
+        revenue: 0,
+        services: [],
+        email: inviteEmail,
+      };
+      setExperts([...experts, newExpert]);
+      setInviteExpertOpen(false);
+      setInviteEmail('');
+      alert("Expert invited successfully!");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to invite expert");
+    } finally {
+      setIsInviting(false);
+    }
   };
 
   const handleChangeDP = (expert: Expert) => {
@@ -616,7 +611,10 @@ export default function ExpertsPage() {
           </Card>
         ))}
 
-        <Card className="w-[280px] border-dashed border-2 hover:border-primary/50 transition-colors cursor-pointer shadow-sm border-gray-100">
+        <Card 
+          className="w-[280px] border-dashed border-2 hover:border-primary/50 transition-colors cursor-pointer shadow-sm border-gray-100"
+          onClick={() => setChoiceModalOpen(true)}
+        >
           <CardContent className="p-6 flex flex-col items-center justify-center h-full min-h-[280px]">
             <div className="bg-primary/10 rounded-full p-4 mb-4">
               <Plus className="h-6 w-6 text-primary" />
@@ -628,6 +626,78 @@ export default function ExpertsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Choice Modal */}
+      <Dialog open={choiceModalOpen} onOpenChange={setChoiceModalOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Add New Expert</DialogTitle>
+            <DialogDescription>
+              Choose how you want to add an expert to your organization.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <Button 
+              variant="outline" 
+              className="h-auto flex flex-col items-center gap-3 p-6 hover:bg-zinc-50 border-2"
+              onClick={() => {
+                setChoiceModalOpen(false);
+                setInviteExpertOpen(true);
+              }}
+            >
+              <Mail className="h-8 w-8 text-primary" />
+              <div className="text-center">
+                <div className="font-bold">Quick Invite</div>
+                <div className="text-xs text-zinc-500">Send an invitation link via email</div>
+              </div>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="h-auto flex flex-col items-center gap-3 p-6 hover:bg-zinc-50 border-2"
+              onClick={() => {
+                setChoiceModalOpen(false);
+                router.push('/experts/new');
+              }}
+            >
+              <UserPlus className="h-8 w-8 text-indigo-600" />
+              <div className="text-center">
+                <div className="font-bold">Add Manually</div>
+                <div className="text-xs text-zinc-500">Explicitly fill all profile details now</div>
+              </div>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invite Expert Modal */}
+      <Dialog open={inviteExpertOpen} onOpenChange={setInviteExpertOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Invite via Email</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="invite-email">Expert Email Address</Label>
+              <Input
+                id="invite-email"
+                type="email"
+                placeholder="expert@example.com"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+              />
+            </div>
+            <p className="text-sm text-gray-500">
+              An invitation will be sent to this email address containing instructions to join your organization.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInviteExpertOpen(false)}>Cancel</Button>
+            <Button onClick={handleInviteExpert} disabled={isInviting}>
+              {isInviting ? "Inviting..." : "Send Invitation"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Profile Modal */}
       <Dialog open={editProfileOpen} onOpenChange={setEditProfileOpen}>

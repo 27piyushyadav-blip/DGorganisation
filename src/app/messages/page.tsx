@@ -24,6 +24,7 @@ import {
   MessageSquare,
   Pause,
   Play,
+  Loader2,
 } from 'lucide-react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -54,189 +55,122 @@ interface Message {
   isOrganizationReply: boolean;
 }
 
+import { apiClient } from '@/client/api/api-client';
+import { useRouter } from 'next/navigation';
+
 export default function MessagesPage() {
-  const [selectedChat, setSelectedChat] = useState<number | null>(null);
-  const [selectedExpert, setSelectedExpert] = useState<string>('expert-1');
+  const router = useRouter();
+  const [selectedChat, setSelectedChat] = useState<string | null>(null);
+  const [selectedExpert, setSelectedExpert] = useState<string>('all');
   const [messageInput, setMessageInput] = useState('');
-  const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [isOrganizationReply, setIsOrganizationReply] = useState(false);
-  const [attachedPdf, setAttachedPdf] = useState<File | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      sender: 'customer',
-      content: 'Hi, I wanted to ask about the therapy session',
-      time: '10:00 AM',
-      type: 'text',
-      isOrganizationReply: false,
-    },
-    {
-      id: 2,
-      sender: 'expert',
-      content: 'Hello! I\'m here to help. What would you like to know?',
-      time: '10:02 AM',
-      type: 'text',
-      isOrganizationReply: false,
-    },
-    {
-      id: 3,
-      sender: 'customer',
-      content: 'Thank you for the session today',
-      time: '10:05 AM',
-      type: 'text',
-      isOrganizationReply: false,
-    },
-  ]);
+  const [isLoading, setIsLoading] = useState(true);
   
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [organizationExperts, setOrganizationExperts] = useState<any[]>([]);
+  const [allConversations, setAllConversations] = useState<any[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
 
-  const conversations = [
-    {
-      id: 1,
-      name: 'John Doe',
-      expert: 'Dr. Sarah Smith',
-      expertId: 'expert-1',
-      lastMessage: 'Thank you for the session today',
-      time: '2 min ago',
-      unread: 2,
-      avatar: '/avatars/john.jpg',
-      status: 'online',
-    },
-    {
-      id: 2,
-      name: 'Jane Smith',
-      expert: 'Dr. Michael Johnson',
-      expertId: 'expert-2',
-      lastMessage: 'Can we reschedule tomorrow?',
-      time: '1 hour ago',
-      unread: 0,
-      avatar: '/avatars/jane.jpg',
-      status: 'offline',
-    },
-    {
-      id: 3,
-      name: 'Bob Johnson',
-      expert: 'Dr. Emily Davis',
-      expertId: 'expert-3',
-      lastMessage: 'Looking forward to our next session',
-      time: '3 hours ago',
-      unread: 1,
-      avatar: '/avatars/bob.jpg',
-      status: 'online',
-    },
-  ];
+  // 1. Initial Data Fetching
+  useEffect(() => {
+    const initPage = async () => {
+      try {
+        setIsLoading(true);
+        // Fetch experts
+        const expertsRes = await apiClient<any>('http://localhost:3000/organizations/experts');
+        setOrganizationExperts(expertsRes.experts || []);
+        
+        // Fetch conversations
+        const conversationsRes = await apiClient<any>('http://localhost:3000/organizations/conversations');
+        setAllConversations(conversationsRes.conversations || []);
+      } catch (error) {
+        console.error("Failed to load page data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    initPage();
+  }, []);
 
-  const organizationExperts = [
-    { id: 'expert-1', name: 'Dr. Sarah Smith', specialty: 'Psychology' },
-    { id: 'expert-2', name: 'Dr. Michael Johnson', specialty: 'Psychiatry' },
-    { id: 'expert-3', name: 'Dr. Emily Davis', specialty: 'Counseling' },
-    { id: 'expert-4', name: 'Dr. James Wilson', specialty: 'Therapy' },
-  ];
+  // 2. Fetch Messages when Chat is selected
+  useEffect(() => {
+    if (!selectedChat) return;
+
+    const fetchMessages = async () => {
+      try {
+        const response = await apiClient<any>(`http://localhost:3000/organizations/conversations/${selectedChat}/messages`);
+        setMessages(response.messages || []);
+      } catch (error) {
+        console.error("Failed to fetch messages:", error);
+      }
+    };
+
+    fetchMessages();
+    const interval = setInterval(fetchMessages, 5000); // Poll every 5 seconds
+    return () => clearInterval(interval);
+  }, [selectedChat]);
 
   // Filter conversations by selected expert
-  const expertConversations = conversations.filter(chat => chat.expertId === selectedExpert);
-  const currentChat = selectedChat ? conversations.find(chat => chat.id === selectedChat) : null;
+  const filteredConversations = selectedExpert === 'all' 
+    ? allConversations 
+    : allConversations.filter(chat => chat.expertId === selectedExpert);
 
-  // Voice recording functions
-  const startRecording = async () => {
+  const currentChat = selectedChat ? allConversations.find(chat => chat._id === selectedChat) : null;
+
+  // 3. Send Message
+  const sendMessage = async () => {
+    if (!messageInput.trim() || !selectedChat) return;
+    
+    const token = localStorage.getItem('token');
+    
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      
-      const chunks: Blob[] = [];
-      mediaRecorder.ondataavailable = (event) => {
-        chunks.push(event.data);
+      const payload = {
+        content: messageInput,
+        senderType: isOrganizationReply ? 'organization' : 'expert',
+        recipientId: currentChat?.otherUser?._id,
+        recipientType: 'client'
       };
-      
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'audio/webm' });
-        setAudioBlob(blob);
-        const url = URL.createObjectURL(blob);
-        setAudioUrl(url);
-        stream.getTracks().forEach(track => track.stop());
-      };
-      
-      mediaRecorder.start();
-      setIsRecording(true);
+
+      await apiClient<any>(`http://localhost:3000/chat/${selectedChat}/send`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+
+      setMessageInput('');
+      // Refresh messages immediately
+      const response = await apiClient<any>(`http://localhost:3000/organizations/conversations/${selectedChat}/messages`);
+      setMessages(response.messages || []);
     } catch (error) {
-      console.error('Error accessing microphone:', error);
+      console.error("Failed to send message:", error);
     }
   };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  };
-
-  // PDF upload function
-  const handlePdfUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && file.type === 'application/pdf') {
-      setAttachedPdf(file);
-    } else {
-      alert('Please select a valid PDF file');
-    }
-  };
-
-  // Message sending function
-  const sendMessage = () => {
-    if (!messageInput.trim() && !attachedPdf && !audioBlob) return;
-    
-    const newMessage: Message = {
-      id: messages.length + 1,
-      sender: isOrganizationReply ? 'organization' : 'expert',
-      content: messageInput,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      type: attachedPdf ? 'pdf' : audioBlob ? 'audio' : 'text',
-      fileName: attachedPdf?.name,
-      audioUrl: audioUrl,
-      expertName: isOrganizationReply && selectedExpert 
-        ? organizationExperts.find(e => e.id === selectedExpert)?.name 
-        : currentChat?.expert,
-      isOrganizationReply: isOrganizationReply,
-    };
-    
-    setMessages([...messages, newMessage]);
-    setMessageInput('');
-    setAttachedPdf(null);
-    setAudioBlob(null);
-    setAudioUrl(null);
-  };
-
-  // Auto-select expert when chat changes
-  useEffect(() => {
-    if (currentChat) {
-      setSelectedExpert(currentChat.expertId);
-    }
-  }, [selectedChat, currentChat]);
 
   // Handle expert selection
   const handleExpertSelect = (expertId: string) => {
     setSelectedExpert(expertId);
-    setSelectedChat(null); // Reset selected chat when switching experts
+    setSelectedChat(null); 
   };
 
   // Handle chat selection
-  const handleChatSelect = (chatId: number) => {
+  const handleChatSelect = (chatId: string) => {
     setSelectedChat(chatId);
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex-1 h-full">
+    <div className="flex-1 h-full min-h-[calc(100vh-4rem)]">
       <div className="flex h-full">
         {/* Left Panel - Expert List */}
-        <div className="w-80 border-r">
+        <div className="w-80 border-r bg-white">
           <div className="p-4 border-b">
-            <h2 className="text-2xl font-bold mb-4">Experts</h2>
+            <h2 className="text-xl font-bold mb-4">Experts</h2>
             <div className="relative">
               <Search className="text-muted-foreground absolute top-2.5 left-2 h-4 w-4" />
               <Input
@@ -247,6 +181,23 @@ export default function MessagesPage() {
           </div>
           
           <div className="overflow-y-auto">
+             <div
+                className={`p-4 border-b cursor-pointer hover:bg-accent transition-colors ${
+                  selectedExpert === 'all' ? 'bg-accent' : ''
+                }`}
+                onClick={() => handleExpertSelect('all')}
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center">
+                    <Users className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium">All Conversations</p>
+                    <p className="text-sm text-muted-foreground">{allConversations.length} total chats</p>
+                  </div>
+                </div>
+              </div>
+
             {organizationExperts.map((expert) => (
               <div
                 key={expert.id}
@@ -256,21 +207,19 @@ export default function MessagesPage() {
                 onClick={() => handleExpertSelect(expert.id)}
               >
                 <div className="flex items-start space-x-3">
-                  <Avatar className="h-12 w-12">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={expert.profileImage} />
                     <AvatarFallback>
                       {expert.name.split(' ').map((n: string) => n[0]).join('')}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium">{expert.name}</p>
-                    <p className="text-sm text-muted-foreground">{expert.specialty}</p>
+                    <p className="font-medium truncate">{expert.name}</p>
+                    <p className="text-sm text-muted-foreground truncate">{expert.specialization}</p>
                     <div className="flex items-center justify-between mt-1">
-                      <p className="text-sm text-muted-foreground">
-                        {conversations.filter(c => c.expertId === expert.id).length} conversations
+                      <p className="text-xs text-muted-foreground">
+                        {allConversations.filter(c => c.expertId === expert.id).length} chats
                       </p>
-                      <Badge variant="secondary" className="ml-2">
-                        Active
-                      </Badge>
                     </div>
                   </div>
                 </div>
@@ -280,23 +229,23 @@ export default function MessagesPage() {
         </div>
 
         {/* Middle Section - Chat Conversation */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col bg-zinc-50">
           {currentChat ? (
             <>
               {/* Chat Header */}
-              <div className="p-4 border-b">
+              <div className="p-4 border-b bg-white">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <Avatar className="h-10 w-10">
-                      <AvatarImage src={currentChat.avatar} alt={currentChat.name} />
+                      <AvatarImage src={currentChat.otherUser?.profilePicture} />
                       <AvatarFallback>
-                        {currentChat.name.split(' ').map((n: string) => n[0]).join('')}
+                        {currentChat.otherUser?.name?.split(' ').map((n: string) => n[0]).join('') || '?'}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-medium">{currentChat.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        with {currentChat.expert}
+                      <p className="font-medium">{currentChat.otherUser?.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Conversation ID: {currentChat._id.substring(0, 8)}...
                       </p>
                     </div>
                   </div>
@@ -307,308 +256,164 @@ export default function MessagesPage() {
                     <Button size="sm" variant="outline">
                       <Video className="h-4 w-4" />
                     </Button>
-                    <div className="relative">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => setOpenDropdownId(openDropdownId === currentChat.id ? null : currentChat.id)}
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                      
-                      {openDropdownId === currentChat.id && (
-                        <div className="absolute right-0 top-8 z-50 w-48 bg-white border border-gray-200 rounded-md shadow-lg py-1">
-                          <div className="px-1 py-1 text-sm text-gray-700">
-                            <div className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded">
-                              <Eye className="mr-2 h-4 w-4" />
-                              View Expert Profile
-                            </div>
-                            <div className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded">
-                              <Paperclip className="mr-2 h-4 w-4" />
-                              Send PDF File
-                            </div>
-                            <div className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded">
-                              <Mic className="mr-2 h-4 w-4" />
-                              Send Audio Message
-                            </div>
-                            <div className="border-t border-gray-100 my-1"></div>
-                            <div className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded text-orange-600">
-                              <X className="mr-2 h-4 w-4" />
-                              Decline Request
-                            </div>
-                            <div className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded text-red-600">
-                              <Ban className="mr-2 h-4 w-4" />
-                              Block User
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Messages */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${message.sender === 'organization' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div className={`max-w-xs lg:max-w-md ${message.sender === 'organization' ? 'space-y-2' : ''}`}>
-                      {/* Organization indicator */}
-                      {message.isOrganizationReply && (
-                        <div className="flex items-center justify-end space-x-2 text-xs text-muted-foreground">
-                          <Building2 className="h-3 w-3" />
-                          <span>Sent by Organization on behalf of {message.expertName}</span>
-                        </div>
-                      )}
-                      
-                      <div
-                        className={`px-4 py-2 rounded-lg ${
-                          message.sender === 'organization'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted'
-                        }`}
-                      >
-                        {/* Text message */}
-                        {message.type === 'text' && (
-                          <p className="text-sm">{message.content}</p>
-                        )}
-                        
-                        {/* PDF message */}
-                        {message.type === 'pdf' && (
-                          <div className="flex items-center space-x-2">
-                            <FileText className="h-5 w-5" />
-                            <div>
-                              <p className="text-sm font-medium">{message.fileName}</p>
-                              <p className="text-xs opacity-70">PDF Document</p>
-                            </div>
-                            <Button size="sm" variant="outline" className="ml-auto">
-                              <Download className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
-                        
-                        {/* Audio message */}
-                        {message.type === 'audio' && message.audioUrl && (
-                          <div className="flex items-center space-x-2">
-                            <audio ref={audioRef} src={message.audioUrl} className="hidden" />
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => {
-                                if (audioRef.current) {
-                                  if (isPlaying) {
-                                    audioRef.current.pause();
-                                  } else {
-                                    audioRef.current.play();
-                                  }
-                                  setIsPlaying(!isPlaying);
-                                }
-                              }}
-                            >
-                              {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                            </Button>
-                            <div className="flex-1">
-                              <p className="text-sm">Voice Message</p>
-                              <div className="w-full bg-current/20 rounded-full h-1">
-                                <div className="bg-current h-1 rounded-full w-1/3"></div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        
-                        <p className={`text-xs mt-1 ${
-                          message.sender === 'organization'
-                            ? 'text-primary-foreground/70' 
-                            : 'text-muted-foreground'
-                        }`}>
-                          {message.time}
-                        </p>
-                      </div>
-                    </div>
+                {messages.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    <p>No messages yet.</p>
                   </div>
-                ))}
+                ) : (
+                  messages.map((message) => {
+                    const isSystem = message.senderType === 'system';
+                    const isFromMe = message.senderType === 'organization' || message.senderType === 'expert';
+                    
+                    return (
+                      <div
+                        key={message._id}
+                        className={`flex ${isFromMe ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div className={`max-w-xs lg:max-w-md ${isFromMe ? 'items-end' : 'items-start'} flex flex-col`}>
+                          <div
+                            className={`px-4 py-2 rounded-2xl text-sm ${
+                              isFromMe
+                                ? 'bg-primary text-primary-foreground rounded-tr-none'
+                                : 'bg-white border rounded-tl-none shadow-sm'
+                            }`}
+                          >
+                            {message.senderType === 'organization' && (
+                              <div className="flex items-center space-x-1 mb-1 text-[10px] opacity-80 uppercase font-bold tracking-wider">
+                                <Building2 className="h-3 w-3" />
+                                <span>Organization Reply</span>
+                              </div>
+                            )}
+                            <p>{message.content}</p>
+                            <p className={`text-[10px] mt-1 ${isFromMe ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                              {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
 
               {/* Message Input */}
-              <div className="p-4 border-t space-y-3">
+              <div className="p-4 border-t bg-white space-y-3">
                 {/* Organization Reply Toggle */}
-                <div className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center space-x-4 p-3 bg-zinc-50 rounded-xl border border-dashed border-zinc-300">
                   <div className="flex items-center space-x-2">
                     <input
                       type="checkbox"
                       id="org-reply"
                       checked={isOrganizationReply}
                       onChange={(e) => setIsOrganizationReply(e.target.checked)}
-                      className="rounded border-gray-300"
+                      className="rounded border-zinc-300 accent-primary w-4 h-4"
                     />
-                    <label htmlFor="org-reply" className="text-sm font-medium flex items-center space-x-2">
-                      <Building2 className="h-4 w-4" />
-                      <span>Reply as Organization</span>
+                    <label htmlFor="org-reply" className="text-sm font-semibold flex items-center space-x-2 cursor-pointer">
+                      <Building2 className="h-4 w-4 text-primary" />
+                      <span>Official Organization Response</span>
                     </label>
                   </div>
-                  
-                  {isOrganizationReply && (
-                    <div className="flex items-center space-x-2 flex-1">
-                      <span className="text-sm text-muted-foreground">on behalf of:</span>
-                      <Select value={selectedExpert} onValueChange={setSelectedExpert}>
-                        <SelectTrigger className="w-48">
-                          <SelectValue placeholder="Select expert" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {organizationExperts.map((expert) => (
-                            <SelectItem key={expert.id} value={expert.id}>
-                              <div>
-                                <p className="font-medium">{expert.name}</p>
-                                <p className="text-xs text-muted-foreground">{expert.specialty}</p>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
+                  <p className="text-xs text-muted-foreground flex-1 italic">
+                    {isOrganizationReply 
+                      ? "Messages will be marked as coming from the dashboard admin level."
+                      : "Messages will be sent as standard expert communication."}
+                  </p>
                 </div>
                 
-                {/* Attachment Preview */}
-                {(attachedPdf || audioBlob) && (
-                  <div className="flex items-center space-x-2 p-2 bg-muted rounded-lg">
-                    {attachedPdf && (
-                      <div className="flex items-center space-x-2 flex-1">
-                        <FileText className="h-4 w-4" />
-                        <span className="text-sm">{attachedPdf.name}</span>
-                        <Button 
-                          size="sm" 
-                          variant="ghost"
-                          onClick={() => setAttachedPdf(null)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
-                    {audioBlob && (
-                      <div className="flex items-center space-x-2 flex-1">
-                        <Mic className="h-4 w-4" />
-                        <span className="text-sm">Voice recording ready</span>
-                        <Button 
-                          size="sm" 
-                          variant="ghost"
-                          onClick={() => {
-                            setAudioBlob(null);
-                            setAudioUrl(null);
-                          }}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                )}
-                
-                {/* Message Input Controls */}
                 <div className="flex items-center space-x-2">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    accept=".pdf"
-                    onChange={handlePdfUpload}
-                    className="hidden"
-                  />
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
+                  <Button size="icon" variant="outline" className="shrink-0">
                     <Paperclip className="h-4 w-4" />
                   </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={isRecording ? stopRecording : startRecording}
-                    className={isRecording ? 'bg-red-100 text-red-600' : ''}
-                  >
-                    {isRecording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                  </Button>
                   <Input
-                    placeholder="Type a message..."
+                    placeholder="Type your message here..."
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
                     className="flex-1"
                   />
-                  <Button size="sm" onClick={sendMessage}>
-                    <Send className="h-4 w-4" />
+                  <Button onClick={sendMessage} className="px-5">
+                    <Send className="h-4 w-4 mr-2" />
+                    Send
                   </Button>
                 </div>
               </div>
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <div className="bg-muted rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                  <MessageSquare className="h-8 w-8 text-muted-foreground" />
+              <div className="text-center max-w-sm p-6">
+                <div className="bg-primary/5 rounded-full p-6 w-24 h-24 mx-auto mb-6 flex items-center justify-center border border-primary/10">
+                  <MessageSquare className="h-10 w-10 text-primary" />
                 </div>
-                <h3 className="text-lg font-semibold">Select a chat</h3>
-                <p className="text-muted-foreground">Choose an expert and select a conversation to start messaging</p>
+                <h3 className="text-xl font-bold mb-2">Customer Communications</h3>
+                <p className="text-muted-foreground">
+                  Select an expert on the left and then pick a conversation to view customer messages and provide support.
+                </p>
               </div>
             </div>
           )}
         </div>
 
         {/* Right Panel - Expert Chats */}
-        <div className="w-80 border-l">
+        <div className="w-80 border-l bg-white">
           <div className="p-4 border-b">
-            <h3 className="text-lg font-semibold mb-2">
-              {organizationExperts.find(e => e.id === selectedExpert)?.name || 'Expert'} Chats
+            <h3 className="text-lg font-bold mb-4">
+              {selectedExpert === 'all' ? 'All Recent' : organizationExperts.find(e => e.id === selectedExpert)?.name?.split(' ')[1] || 'Expert'} Chats
             </h3>
             <div className="relative">
               <Search className="text-muted-foreground absolute top-2.5 left-2 h-4 w-4" />
               <Input
-                placeholder="Search chats..."
+                placeholder="Search conversations..."
                 className="pl-8"
               />
             </div>
           </div>
           
           <div className="overflow-y-auto">
-            {expertConversations.length > 0 ? (
-              expertConversations.map((conversation) => (
+            {filteredConversations.length > 0 ? (
+              filteredConversations.map((conversation) => (
                 <div
-                  key={conversation.id}
-                  className={`p-4 border-b cursor-pointer hover:bg-accent transition-colors ${
-                    selectedChat === conversation.id ? 'bg-accent' : ''
+                  key={conversation._id}
+                  className={`p-4 border-b cursor-pointer hover:bg-zinc-50 transition-colors relative ${
+                    selectedChat === conversation._id ? 'bg-zinc-50 border-r-4 border-r-primary' : ''
                   }`}
-                  onClick={() => handleChatSelect(conversation.id)}
+                  onClick={() => handleChatSelect(conversation._id)}
                 >
                   <div className="flex items-start space-x-3">
-                    <div className="relative">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={conversation.avatar} alt={conversation.name} />
-                        <AvatarFallback>
-                          {conversation.name.split(' ').map((n: string) => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                      {conversation.status === 'online' && (
-                        <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border-2 border-background"></div>
-                      )}
-                    </div>
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={conversation.otherUser?.profilePicture} />
+                      <AvatarFallback>
+                        {conversation.otherUser?.name?.split(' ').map((n: string) => n[0]).join('') || '?'}
+                      </AvatarFallback>
+                    </Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <p className="font-medium truncate">{conversation.name}</p>
-                        <span className="text-xs text-muted-foreground">{conversation.time}</span>
+                        <p className="font-semibold truncate text-sm">{conversation.otherUser?.name}</p>
+                        <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                          {new Date(conversation.lastMessageAt).toLocaleDateString() === new Date().toLocaleDateString()
+                            ? new Date(conversation.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                            : new Date(conversation.lastMessageAt).toLocaleDateString()}
+                        </span>
                       </div>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {conversation.lastMessage}
+                      <p className="text-xs text-muted-foreground truncate italic">
+                        {conversation.lastMessage || 'No messages yet'}
                       </p>
-                      <div className="flex items-center justify-between mt-1">
-                        <p className="text-xs text-muted-foreground">
-                          {conversation.status}
-                        </p>
-                        {conversation.unread > 0 && (
-                          <Badge variant="destructive" className="ml-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
-                            {conversation.unread}
+                      <div className="flex items-center justify-between mt-2">
+                        <Badge variant="outline" className="text-[10px] py-0 px-1 opacity-70">
+                          {selectedExpert === 'all' && (
+                            <span className="mr-1">
+                              to {organizationExperts.find(e => e.id === conversation.expertId)?.name?.split(' ')[1] || 'Expert'}
+                            </span>
+                          )}
+                        </Badge>
+                        {conversation.unreadCount > 0 && (
+                          <Badge className="h-5 min-w-5 flex items-center justify-center text-[10px] rounded-full">
+                            {conversation.unreadCount}
                           </Badge>
                         )}
                       </div>
@@ -617,9 +422,8 @@ export default function MessagesPage() {
                 </div>
               ))
             ) : (
-              <div className="p-4 text-center text-muted-foreground">
-                <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>No chats found for this expert</p>
+              <div className="p-8 text-center text-muted-foreground">
+                <p className="text-sm">No conversations found.</p>
               </div>
             )}
           </div>
@@ -628,3 +432,4 @@ export default function MessagesPage() {
     </div>
   );
 }
+

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import Link from 'next/link';
+import { useAuth } from '@/contexts/auth-context';
 
 import {
   Bell,
@@ -39,6 +40,9 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ currentPage }: SidebarProps) {
+  const { user } = useAuth();
+  const isVerified = user?.verificationStatus === 'VERIFIED';
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isCommunicationExpanded, setIsCommunicationExpanded] = useState(false);
@@ -52,12 +56,14 @@ export default function Sidebar({ currentPage }: SidebarProps) {
       title: 'Dashboard',
       href: '/dashboard',
       icon: LayoutDashboard,
+      protected: true,
     },
     {
       title: 'Communication',
       href: '/communication',
       icon: Bell,
       hasSubmenu: true,
+      protected: true,
       submenu: [
         {
           title: 'Messages',
@@ -76,6 +82,7 @@ export default function Sidebar({ currentPage }: SidebarProps) {
       href: '/bookings',
       icon: Video,
       hasSubmenu: true,
+      protected: true,
       submenu: [
         {
           title: 'Overview',
@@ -118,12 +125,14 @@ export default function Sidebar({ currentPage }: SidebarProps) {
       title: 'Experts',
       href: '/experts',
       icon: Users,
+      protected: true,
     },
     {
       title: 'Refund',
       href: '/refunds',
       icon: CreditCard,
       hasSubmenu: true,
+      protected: true,
       submenu: [
         {
           title: 'Refund Dashboard',
@@ -141,17 +150,20 @@ export default function Sidebar({ currentPage }: SidebarProps) {
       title: 'Expert Requests',
       href: '/expert-requests',
       icon: Users,
+      protected: true,
     },
     {
       title: 'Analytics',
       href: '/analytics',
       icon: TrendingUp,
+      protected: true,
     },
     {
       title: 'Bank',
       href: '/bank',
       icon: Building2,
       hasSubmenu: true,
+      protected: true,
       submenu: [
         {
           title: 'Wallet',
@@ -189,6 +201,7 @@ export default function Sidebar({ currentPage }: SidebarProps) {
       title: 'Profile',
       href: '/profile',
       icon: Settings,
+      protected: false,
     },
   ];
 
@@ -227,10 +240,10 @@ export default function Sidebar({ currentPage }: SidebarProps) {
                 <AvatarFallback>DO</AvatarFallback>
               </Avatar>
               {!isCollapsed && (
-                <div className="ml-3 flex-1">
-                  <p className="text-sm font-medium">Digital Health Org</p>
-                  <p className="text-muted-foreground text-xs">
-                    contact@digitalhealth.com
+                <div className="ml-3 flex-1 overflow-hidden">
+                  <p className="text-sm font-medium truncate">{user?.name || "New Organization"}</p>
+                  <p className="text-muted-foreground text-xs truncate">
+                    {user?.email}
                   </p>
                 </div>
               )}
@@ -261,8 +274,9 @@ export default function Sidebar({ currentPage }: SidebarProps) {
                         isActive
                           ? 'bg-primary text-primary-foreground'
                           : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                      } `}
+                      } ${item.protected && !isVerified ? 'opacity-50 cursor-not-allowed' : ''}`}
                       onClick={() => {
+                        if (item.protected && !isVerified) return;
                         if (item.title === 'Communication') {
                           setIsCommunicationExpanded(!isCommunicationExpanded);
                         } else if (item.title === 'Wallet') {
@@ -356,8 +370,14 @@ export default function Sidebar({ currentPage }: SidebarProps) {
                       isActive
                         ? 'bg-primary text-primary-foreground'
                         : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                    } `}
-                    onClick={() => setIsMobileMenuOpen(false)}
+                    } ${item.protected && !isVerified ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
+                    onClick={(e) => {
+                      if (item.protected && !isVerified) {
+                        e.preventDefault();
+                        return;
+                      }
+                      setIsMobileMenuOpen(false);
+                    }}
                     title={isCollapsed ? item.title : undefined}
                   >
                     <item.icon className="h-5 w-5" />
