@@ -58,6 +58,8 @@ import Link from 'next/link';
 import { apiClient } from '@/client/api/api-client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL!;
+
 interface Expert {
   id: number;
   name: string;
@@ -104,7 +106,7 @@ export default function ExpertsPage() {
     const fetchExperts = async () => {
       try {
         setIsLoading(true);
-        const response = await apiClient<any>('http://localhost:3000/organizations/experts');
+        const response = await apiClient<any>(`${API_BASE}/organizations/experts`);
         setExperts(response.experts || []);
       } catch (error) {
         console.error("Failed to fetch experts:", error);
@@ -178,7 +180,7 @@ export default function ExpertsPage() {
     if (!inviteEmail) return;
     setIsInviting(true);
     try {
-      await apiClient("http://localhost:3000/organizations/invite-expert", {
+      await apiClient(`${API_BASE}/organizations/invite-expert`, {
         method: "POST",
         body: JSON.stringify({ email: inviteEmail }),
       });
