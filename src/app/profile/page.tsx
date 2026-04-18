@@ -156,7 +156,7 @@ export default function ProfilePage() {
       const formDataUpload = new FormData();
       formDataUpload.append("file", file);
       try {
-        const d = await apiClient(`${PROFILE_BASE}/logo`, {
+        const d = await apiClient<any>(`${PROFILE_BASE}/logo`, {
   method: "POST",
   body: formDataUpload
 });
@@ -173,7 +173,7 @@ export default function ProfilePage() {
       const formDataUpload = new FormData();
       formDataUpload.append("file", file);
       try {
-        const d = await apiClient(`${PROFILE_BASE}/intro-video`, {
+        const d = await apiClient<any>(`${PROFILE_BASE}/intro-video`, {
   method: "POST",
   body: formDataUpload
 });
@@ -190,7 +190,7 @@ export default function ProfilePage() {
       const formDataUpload = new FormData();
       formDataUpload.append("file", file);
       try {
-        const d = await apiClient(`${PROFILE_BASE}/cover-image`, {
+        const d = await apiClient<any>(`${PROFILE_BASE}/cover-image`, {
   method: "POST",
   body: formDataUpload
 });
@@ -209,7 +209,7 @@ export default function ProfilePage() {
       formDataUpload.append("title", "Business License");
       formDataUpload.append("category", "Verification");
       try {
-        const d = await apiClient(`${PROFILE_BASE}/documents`, {
+        const d = await apiClient<any>(`${PROFILE_BASE}/documents`, {
   method: "POST",
   body: formDataUpload
 });
