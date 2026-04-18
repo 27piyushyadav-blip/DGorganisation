@@ -11,6 +11,9 @@ import {
 } from "@/client/api/auth";
 import { apiClient } from "@/client/api/api-client";
 
+
+const PROFILE_BASE = process.env.NEXT_PUBLIC_PROFILE_BASE_URL!;
+
 type User = {
   id?: string;
   name?: string;
