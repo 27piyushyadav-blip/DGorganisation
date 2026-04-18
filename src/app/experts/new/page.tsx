@@ -42,6 +42,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { apiClient } from '@/client/api/api-client';
 import { toast } from 'sonner';
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL!;
+
 export default function NewExpertPage() {
   const router = useRouter();
   const [isAdding, setIsAdding] = useState(false);
@@ -127,7 +129,7 @@ export default function NewExpertPage() {
         experience: Number(manualForm.experience) || 0,
       };
 
-      const response = await apiClient<any>('http://localhost:3000/organizations/experts', {
+      const response = await apiClient<any>(`${API_BASE}/organizations/experts`, {
         method: 'POST',
         body: JSON.stringify(payload)
       });
