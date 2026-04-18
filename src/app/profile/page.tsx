@@ -40,6 +40,9 @@ import {
 import { useAuth } from "@/contexts/auth-context";
 import OnboardingForm from "@/components/OnboardingForm";
 
+
+const PROFILE_BASE = process.env.NEXT_PUBLIC_PROFILE_BASE_URL!;
+
 export default function ProfilePage() {
   const { user, isLoading: authLoading, refreshUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
@@ -99,7 +102,7 @@ export default function ProfilePage() {
   const loadProfile = async () => {
     setLoading(true);
     try {
-      const data: any = await apiClient("http://localhost:3000/organizations/profile");
+      const data: any = await apiClient(PROFILE_BASE);
       setProfileData(data);
       setFormData({
         name: data.name || "",
@@ -153,10 +156,10 @@ export default function ProfilePage() {
       const formDataUpload = new FormData();
       formDataUpload.append("file", file);
       try {
-        const d = await apiClient<any>("http://localhost:3000/organizations/profile/logo", {
-           method: "POST",
-           body: formDataUpload
-        });
+        const d = await apiClient(`${PROFILE_BASE}/logo`, {
+  method: "POST",
+  body: formDataUpload
+});
         setFormData(prev => ({...prev, logo: d.logoUrl}));
       } catch (err) {
         console.error(err);
@@ -170,10 +173,10 @@ export default function ProfilePage() {
       const formDataUpload = new FormData();
       formDataUpload.append("file", file);
       try {
-        const d = await apiClient<any>("http://localhost:3000/organizations/profile/intro-video", {
-           method: "POST",
-           body: formDataUpload
-        });
+        const d = await apiClient(`${PROFILE_BASE}/intro-video`, {
+  method: "POST",
+  body: formDataUpload
+});
         setFormData(prev => ({...prev, profileVideo: d.fileUrl}));
       } catch (err) {
         console.error(err);
@@ -187,10 +190,10 @@ export default function ProfilePage() {
       const formDataUpload = new FormData();
       formDataUpload.append("file", file);
       try {
-        const d = await apiClient<any>("http://localhost:3000/organizations/profile/cover-image", {
-           method: "POST",
-           body: formDataUpload
-        });
+        const d = await apiClient(`${PROFILE_BASE}/cover-image`, {
+  method: "POST",
+  body: formDataUpload
+});
         setFormData(prev => ({...prev, coverImageUrl: d.coverUrl}));
       } catch (err) {
         console.error(err);
@@ -206,10 +209,10 @@ export default function ProfilePage() {
       formDataUpload.append("title", "Business License");
       formDataUpload.append("category", "Verification");
       try {
-        const d = await apiClient<any>("http://localhost:3000/organizations/profile/documents", {
-           method: "POST",
-           body: formDataUpload
-        });
+        const d = await apiClient(`${PROFILE_BASE}/documents`, {
+  method: "POST",
+  body: formDataUpload
+});
         setFormData(prev => ({...prev, businessLicenseUrl: d.document.url}));
       } catch (err) {
         console.error(err);
@@ -236,7 +239,7 @@ export default function ProfilePage() {
 
   const handleSave = async () => {
     try {
-      await apiClient("http://localhost:3000/organizations/profile", {
+      await apiClient(PROFILE_BASE, {
          method: "PUT",
          body: JSON.stringify({
            ...formData,
