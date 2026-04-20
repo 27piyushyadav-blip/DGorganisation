@@ -122,6 +122,12 @@ export default function Sidebar({ currentPage }: SidebarProps) {
       ],
     },
     {
+      title: 'Sessions',
+      href: '/sessions',
+      icon: Clock,
+      protected: true,
+    },
+    {
       title: 'Experts',
       href: '/experts',
       icon: Users,

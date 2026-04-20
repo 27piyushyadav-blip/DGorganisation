@@ -255,7 +255,7 @@ export default function NewExpertPage() {
                     <div className="flex-1 space-y-2 text-center md:text-left">
                       <h4 className="text-sm font-bold text-zinc-900">Profile Photo</h4>
                       <p className="text-xs text-zinc-500 max-w-sm leading-relaxed">
-                        A clear profile photo helps clients trust and recognize the expert. Recommended size: 400x400px.
+                        A clear profile photo helps clients trust and recognize the expert. Recommended size: 400x400px (Max 5MB).
                       </p>
                       <div className="flex gap-2 justify-center md:justify-start pt-1">
                         <Button variant="outline" size="sm" onClick={() => document.getElementById('avatar-upload')?.click()}>
@@ -698,7 +698,7 @@ export default function NewExpertPage() {
                         >
                           <UploadCloud className="h-8 w-8 text-zinc-300 mx-auto mb-2 group-hover:text-rose-400" />
                           <p className="text-sm text-zinc-600 font-medium">Click to upload video</p>
-                          <p className="text-[10px] text-zinc-400 mt-1">MP4, WebM up to 50MB</p>
+                          <p className="text-[10px] text-zinc-400 mt-1">Maximum size: 50MB (MP4, WebM)</p>
                           <input 
                             id="video-upload" 
                             type="file" 
@@ -761,7 +761,7 @@ export default function NewExpertPage() {
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div>
                     <CardTitle>Documents</CardTitle>
-                    <CardDescription>Verification records for security and trust.</CardDescription>
+                    <CardDescription>Verification records for security and trust (Max 10MB per file).</CardDescription>
                   </div>
                   <Button variant="outline" size="sm" onClick={() => setManualForm(prev => ({
                     ...prev, 

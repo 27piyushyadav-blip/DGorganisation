@@ -434,6 +434,7 @@ export default function ProfilePage() {
                     onChange={handleImageUpload}
                     className="hidden"
                   />
+                  <p className="text-[10px] text-muted-foreground mt-1">Maximum size: 2MB</p>
                 </>
               )}
             </CardContent>
@@ -473,6 +474,7 @@ export default function ProfilePage() {
                     onChange={handleCoverUpload}
                     className="hidden"
                   />
+                  <p className="text-[10px] text-muted-foreground mt-1">Maximum size: 5MB</p>
                 </>
               )}
             </CardContent>
@@ -525,6 +527,7 @@ export default function ProfilePage() {
                     onChange={handleVideoUpload}
                     className="hidden"
                   />
+                  <p className="text-[10px] text-muted-foreground">Maximum size: 50MB</p>
                   <div className="flex items-center space-x-2">
                     <Switch
                       id="show-video"
@@ -799,6 +802,7 @@ export default function ProfilePage() {
                              <Upload className="h-4 w-4 mr-2" />
                              {formData.businessLicenseUrl ? "Update License" : "Upload License"}
                            </Button>
+                           <p className="text-[10px] text-muted-foreground mt-1">Maximum size: 10MB (PDF, PNG, JPG)</p>
                            <input type="file" ref={docInputRef} className="hidden" onChange={handleLicenseUpload} />
                         </div>
                       )}

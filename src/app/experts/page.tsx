@@ -57,6 +57,7 @@ import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
 import { apiClient } from '@/client/api/api-client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface Expert {
   id: number;
@@ -478,153 +479,184 @@ export default function ExpertsPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-4">
-        {filteredExperts.map((expert) => (
-          <Card key={expert.id} className="w-[280px] shadow-sm border-gray-100">
-            <CardContent className="p-6">
-              {/* Name and Username Section */}
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="font-bold text-lg text-gray-900">{expert.name}</h3>
-                  <p className="text-sm text-gray-500 mt-1">{expert.username}</p>
-                </div>
-                <div className="relative">
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    className="h-8 w-8 p-0"
-                    onClick={() => setOpenDropdownId(openDropdownId === expert.id ? null : expert.id)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  
-                  {openDropdownId === expert.id && (
-                    <div className="absolute right-0 top-8 z-50 w-48 bg-white border border-gray-200 rounded-md shadow-lg py-1">
-                      <div className="px-1 py-1 text-sm text-gray-700">
-                        <div 
-                          className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded"
-                          onClick={() => handleEditProfile(expert)}
-                        >
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit Profile
-                        </div>
-                        <div 
-                          className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded"
-                          onClick={() => handleViewProfile(expert)}
-                        >
-                          <Eye className="mr-2 h-4 w-4" />
-                          View Profile
-                        </div>
-                        <div className="border-t border-gray-100 my-1"></div>
-                        <div 
-                          className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded"
-                          onClick={() => handleChangeDP(expert)}
-                        >
-                          <User className="mr-2 h-4 w-4" />
-                          Change D.P
-                        </div>
-                        <div 
-                          className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded"
-                          onClick={() => handleChangeVideo(expert)}
-                        >
-                          <Video className="mr-2 h-4 w-4" />
-                          Change Video
-                        </div>
-                        <div 
-                          className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded"
-                          onClick={() => handleChangeTimings(expert)}
-                        >
-                          <Calendar className="mr-2 h-4 w-4" />
-                          Change Timings
-                        </div>
-                        <div className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded">
-                          <CalendarDays className="mr-2 h-4 w-4" />
-                          <Link href={`/experts/${expert.id}/booking-details`} className="w-full">
-                            Booking Details
-                          </Link>
-                        </div>
-                        <div className="border-t border-gray-100 my-1"></div>
-                        <div 
-                          className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded"
-                          onClick={() => handleToggleProfileStatus(expert)}
-                        >
-                          {expert.status === 'hidden' ? (
-                            <>
-                              <Eye className="mr-2 h-4 w-4" />
-                              Show Profile
-                            </>
-                          ) : (
-                            <>
-                              <Eye className="mr-2 h-4 w-4" />
-                              Hide Profile
-                            </>
-                          )}
-                        </div>
-                        <div 
-                          className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded text-red-600"
-                          onClick={() => handleDisconnectExpert(expert)}
-                        >
-                          <Ban className="mr-2 h-4 w-4" />
-                          Disconnect Expert
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Profile Image Section */}
-              <div className="flex flex-col items-center mb-6">
-                <Avatar className="h-20 w-20">
-                  <AvatarImage src={expert.avatar} alt={expert.name} />
-                  <AvatarFallback className="text-lg">
-                    {expert.name.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-              </div>
-
-              {/* Timings Section */}
-              <div className="space-y-3">
+      <div className="flex flex-wrap gap-4 min-h-[400px]">
+        {isLoading ? (
+          // Skeleton Cards
+          Array.from({ length: 4 }).map((_, i) => (
+            <Card key={`skeleton-${i}`} className="w-[280px] shadow-sm border-gray-100 overflow-hidden">
+              <CardContent className="p-6 space-y-6">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2 text-sm font-medium text-gray-700">
-                    <Clock className="h-4 w-4" />
-                    <span>Timings</span>
+                  <div className="space-y-2">
+                    <Skeleton className="h-5 w-24" />
+                    <Skeleton className="h-4 w-16" />
                   </div>
-                  <ChevronDown className="h-4 w-4 text-gray-400" />
+                  <Skeleton className="h-8 w-8 rounded-md" />
                 </div>
-                
-                <div className="bg-gray-50 rounded-lg p-3">
-                  {expert.timings.length > 0 ? (
-                    <div className="space-y-2">
-                      {expert.timings.map((timing, index) => (
-                        <div key={index} className="text-sm text-gray-600">
-                          {timing.day} – {timing.time}
-                        </div>
-                      ))}
+                <div className="flex flex-col items-center">
+                  <Skeleton className="h-20 w-20 rounded-full" />
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Skeleton className="h-4 w-4" />
+                      <Skeleton className="h-4 w-16" />
                     </div>
-                  ) : (
-                    <div className="text-sm text-gray-500">No timings added</div>
-                  )}
+                  </div>
+                  <Skeleton className="h-12 w-full rounded-lg" />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <>
+            {filteredExperts.map((expert) => (
+              <Card key={expert.id} className="w-[280px] shadow-sm border-gray-100 animate-in fade-in duration-500">
+                <CardContent className="p-6">
+                  {/* Name and Username Section */}
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h3 className="font-bold text-lg text-gray-900">{expert.name}</h3>
+                      <p className="text-sm text-gray-500 mt-1">{expert.username}</p>
+                    </div>
+                    <div className="relative">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => setOpenDropdownId(openDropdownId === expert.id ? null : expert.id)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      
+                      {openDropdownId === expert.id && (
+                        <div className="absolute right-0 top-8 z-50 w-48 bg-white border border-gray-200 rounded-md shadow-lg py-1">
+                          <div className="px-1 py-1 text-sm text-gray-700">
+                            <div 
+                              className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded"
+                              onClick={() => handleEditProfile(expert)}
+                            >
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit Profile
+                            </div>
+                            <div 
+                              className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded"
+                              onClick={() => handleViewProfile(expert)}
+                            >
+                              <Eye className="mr-2 h-4 w-4" />
+                              View Profile
+                            </div>
+                            <div className="border-t border-gray-100 my-1"></div>
+                            <div 
+                              className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded"
+                              onClick={() => handleChangeDP(expert)}
+                            >
+                              <User className="mr-2 h-4 w-4" />
+                              Change D.P
+                            </div>
+                            <div 
+                              className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded"
+                              onClick={() => handleChangeVideo(expert)}
+                            >
+                              <Video className="mr-2 h-4 w-4" />
+                              Change Video
+                            </div>
+                            <div 
+                              className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded"
+                              onClick={() => handleChangeTimings(expert)}
+                            >
+                              <Calendar className="mr-2 h-4 w-4" />
+                              Change Timings
+                            </div>
+                            <div className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded">
+                              <CalendarDays className="mr-2 h-4 w-4" />
+                              <Link href={`/experts/${expert.id}/booking-details`} className="w-full">
+                                Booking Details
+                              </Link>
+                            </div>
+                            <div className="border-t border-gray-100 my-1"></div>
+                            <div 
+                              className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded"
+                              onClick={() => handleToggleProfileStatus(expert)}
+                            >
+                              {expert.status === 'hidden' ? (
+                                <>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  Show Profile
+                                </>
+                              ) : (
+                                <>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  Hide Profile
+                                </>
+                              )}
+                            </div>
+                            <div 
+                              className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded text-red-600"
+                              onClick={() => handleDisconnectExpert(expert)}
+                            >
+                              <Ban className="mr-2 h-4 w-4" />
+                              Disconnect Expert
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
 
-        <Card 
-          className="w-[280px] border-dashed border-2 hover:border-primary/50 transition-colors cursor-pointer shadow-sm border-gray-100"
-          onClick={() => setChoiceModalOpen(true)}
-        >
-          <CardContent className="p-6 flex flex-col items-center justify-center h-full min-h-[280px]">
-            <div className="bg-primary/10 rounded-full p-4 mb-4">
-              <Plus className="h-6 w-6 text-primary" />
-            </div>
-            <h3 className="font-bold text-lg text-gray-900">Add New Expert</h3>
-            <p className="text-sm text-gray-500 text-center mt-2">
-              Invite an expert to join your organization
-            </p>
-          </CardContent>
-        </Card>
+                  {/* Profile Image Section */}
+                  <div className="flex flex-col items-center mb-6">
+                    <Avatar className="h-20 w-20">
+                      <AvatarImage src={expert.avatar} alt={expert.name} />
+                      <AvatarFallback className="text-lg">
+                        {expert.name.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
+
+                  {/* Timings Section */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2 text-sm font-medium text-gray-700">
+                        <Clock className="h-4 w-4" />
+                        <span>Timings</span>
+                      </div>
+                      <ChevronDown className="h-4 w-4 text-gray-400" />
+                    </div>
+                    
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      {expert.timings.length > 0 ? (
+                        <div className="space-y-2">
+                          {expert.timings.map((timing, index) => (
+                            <div key={index} className="text-sm text-gray-600">
+                              {timing.day} – {timing.time}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-500">No timings added</div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+
+            <Card 
+              className="w-[280px] border-dashed border-2 hover:border-primary/50 transition-all cursor-pointer shadow-sm border-gray-100 animate-in fade-in duration-500"
+              onClick={() => setChoiceModalOpen(true)}
+            >
+              <CardContent className="p-6 flex flex-col items-center justify-center h-full min-h-[280px]">
+                <div className="bg-primary/10 rounded-full p-4 mb-4 group-hover:scale-110 transition-transform">
+                  <Plus className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="font-bold text-lg text-gray-900">Add New Expert</h3>
+                <p className="text-sm text-gray-500 text-center mt-2">
+                  Invite an expert to join your organization
+                </p>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
       {/* Choice Modal */}

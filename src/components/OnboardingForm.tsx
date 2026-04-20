@@ -357,44 +357,53 @@ export default function OnboardingForm({ initialData, onComplete }: OnboardingFo
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label>Logo</Label>
-                  <div className="flex items-center gap-3">
-                    <div className="w-16 h-16 rounded border flex items-center justify-center overflow-hidden">
-                      {formData.logo ? <img src={formData.logo} className="object-cover" /> : <Building2 className="w-8 h-8 opacity-20" />}
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-16 h-16 rounded border flex items-center justify-center overflow-hidden">
+                        {formData.logo ? <img src={formData.logo} className="object-cover" /> : <Building2 className="w-8 h-8 opacity-20" />}
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => logoInputRef.current?.click()} disabled={isUploadingLogo}>
+                        <Upload className="w-3 h-3 mr-2" /> {isUploadingLogo ? "..." : "Upload"}
+                      </Button>
+                      <input type="file" ref={logoInputRef} className="hidden" accept="image/*" onChange={handleLogoUpload} />
                     </div>
-                    <Button variant="outline" size="sm" onClick={() => logoInputRef.current?.click()} disabled={isUploadingLogo}>
-                      <Upload className="w-3 h-3 mr-2" /> {isUploadingLogo ? "..." : "Upload"}
-                    </Button>
-                    <input type="file" ref={logoInputRef} className="hidden" accept="image/*" onChange={handleLogoUpload} />
+                    <p className="text-[10px] text-muted-foreground">Maximum size: 2MB</p>
                   </div>
                 </div>
                 <div className="grid gap-2">
                   <Label>Cover Image</Label>
-                  <div className="flex items-center gap-3">
-                    <div className="w-16 h-16 rounded border flex items-center justify-center overflow-hidden">
-                      {formData.coverImageUrl ? <img src={formData.coverImageUrl} className="object-cover" /> : <Globe className="w-8 h-8 opacity-20" />}
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-16 h-16 rounded border flex items-center justify-center overflow-hidden">
+                        {formData.coverImageUrl ? <img src={formData.coverImageUrl} className="object-cover" /> : <Globe className="w-8 h-8 opacity-20" />}
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => coverInputRef.current?.click()} disabled={isUploadingCover}>
+                        <Upload className="w-3 h-3 mr-2" /> {isUploadingCover ? "..." : "Upload"}
+                      </Button>
+                      <input type="file" ref={coverInputRef} className="hidden" accept="image/*" onChange={handleCoverUpload} />
                     </div>
-                    <Button variant="outline" size="sm" onClick={() => coverInputRef.current?.click()} disabled={isUploadingCover}>
-                      <Upload className="w-3 h-3 mr-2" /> {isUploadingCover ? "..." : "Upload"}
-                    </Button>
-                    <input type="file" ref={coverInputRef} className="hidden" accept="image/*" onChange={handleCoverUpload} />
+                    <p className="text-[10px] text-muted-foreground">Maximum size: 5MB</p>
                   </div>
                 </div>
               </div>
 
               <div className="grid gap-2">
                 <Label>Intro Video</Label>
-                <div className="flex items-center gap-3">
-                  <div className="w-full h-24 rounded border flex items-center justify-center overflow-hidden bg-muted/20">
-                    {formData.introVideo ? (
-                      <video src={formData.introVideo} className="h-full" />
-                    ) : (
-                      <Video className="w-8 h-8 opacity-20" />
-                    )}
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-full h-24 rounded border flex items-center justify-center overflow-hidden bg-muted/20">
+                      {formData.introVideo ? (
+                        <video src={formData.introVideo} className="h-full" />
+                      ) : (
+                        <Video className="w-8 h-8 opacity-20" />
+                      )}
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => videoInputRef.current?.click()} disabled={isUploadingVideo}>
+                      <Upload className="w-3 h-3 mr-2" /> {isUploadingVideo ? "Uploading..." : "Upload Video"}
+                    </Button>
+                    <input type="file" ref={videoInputRef} className="hidden" accept="video/*" onChange={handleVideoUpload} />
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => videoInputRef.current?.click()} disabled={isUploadingVideo}>
-                    <Upload className="w-3 h-3 mr-2" /> {isUploadingVideo ? "Uploading..." : "Upload Video"}
-                  </Button>
-                  <input type="file" ref={videoInputRef} className="hidden" accept="video/*" onChange={handleVideoUpload} />
+                  <p className="text-[10px] text-muted-foreground">Maximum size: 50MB</p>
                 </div>
               </div>
             </div>
@@ -615,6 +624,7 @@ export default function OnboardingForm({ initialData, onComplete }: OnboardingFo
                   <Button variant="outline" className="w-full" onClick={() => docInputRef.current?.click()} disabled={isUploadingDoc}>
                     <FileText className="w-4 h-4 mr-2" /> {isUploadingDoc ? "Uploading..." : "Click to Upload"}
                   </Button>
+                  <p className="text-[10px] text-muted-foreground">Maximum size: 10MB (PDF, PNG, JPG)</p>
                   <input type="file" ref={docInputRef} className="hidden" onChange={handleDocumentUpload} />
                   
                   {formData.documents && formData.documents.length > 0 && (
