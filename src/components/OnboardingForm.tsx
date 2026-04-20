@@ -500,33 +500,41 @@ export default function OnboardingForm({ initialData, onComplete }: OnboardingFo
                 </div>
               </div>
 
-              {formData.isPhysicalOffice && (
-                <>
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 border-b pb-2">
+                  <MapPin className="w-4 h-4 text-primary" />
+                  <h3 className="text-sm font-semibold">
+                    {formData.isPhysicalOffice ? "Physical Office Address" : "Home Address"}
+                  </h3>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="address">
+                    {formData.isPhysicalOffice ? "Address Line 1" : "Home Address Line 1"}
+                  </Label>
+                  <Input 
+                    id="address" 
+                    placeholder={formData.isPhysicalOffice ? "Street address, Suite, etc." : "Your residential address"} 
+                    value={formData.addressLine1}
+                    onChange={(e) => handleInputChange("addressLine1", e.target.value)}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-3 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="address">Address Line 1</Label>
-                    <Input 
-                      id="address" 
-                      placeholder="Street address, Suite, etc." 
-                      value={formData.addressLine1}
-                      onChange={(e) => handleInputChange("addressLine1", e.target.value)}
-                    />
+                    <Label htmlFor="city">City</Label>
+                    <Input id="city" value={formData.city} onChange={(e) => handleInputChange("city", e.target.value)} />
                   </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="city">City</Label>
-                      <Input id="city" value={formData.city} onChange={(e) => handleInputChange("city", e.target.value)} />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="state">State</Label>
-                      <Input id="state" value={formData.state} onChange={(e) => handleInputChange("state", e.target.value)} />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="zip">Zip Code</Label>
-                      <Input id="zip" value={formData.zipCode} onChange={(e) => handleInputChange("zipCode", e.target.value)} />
-                    </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="state">State</Label>
+                    <Input id="state" value={formData.state} onChange={(e) => handleInputChange("state", e.target.value)} />
                   </div>
-                </>
-              )}
+                  <div className="grid gap-2">
+                    <Label htmlFor="zip">Zip Code</Label>
+                    <Input id="zip" value={formData.zipCode} onChange={(e) => handleInputChange("zipCode", e.target.value)} />
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

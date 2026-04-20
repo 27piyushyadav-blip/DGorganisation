@@ -58,7 +58,7 @@ interface Message {
 import { apiClient } from '@/client/api/api-client';
 import { useRouter } from 'next/navigation';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL!;
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 export default function MessagesPage() {
   const router = useRouter();
@@ -140,7 +140,7 @@ export default function MessagesPage() {
 
       setMessageInput('');
       // Refresh messages immediately
-      const response = await apiClient<any>(`http://localhost:3000/organizations/conversations/${selectedChat}/messages`);
+      const response = await apiClient<any>(`${API_BASE}/organizations/conversations/${selectedChat}/messages`);
       setMessages(response.messages || []);
     } catch (error) {
       console.error("Failed to send message:", error);
