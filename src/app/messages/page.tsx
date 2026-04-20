@@ -58,6 +58,8 @@ interface Message {
 import { apiClient } from '@/client/api/api-client';
 import { useRouter } from 'next/navigation';
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL!;
+
 export default function MessagesPage() {
   const router = useRouter();
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
@@ -77,11 +79,11 @@ export default function MessagesPage() {
       try {
         setIsLoading(true);
         // Fetch experts
-        const expertsRes = await apiClient<any>('http://localhost:3000/organizations/experts');
+        const expertsRes = await apiClient<any>(`${API_BASE}/organizations/experts`);
         setOrganizationExperts(expertsRes.experts || []);
         
         // Fetch conversations
-        const conversationsRes = await apiClient<any>('http://localhost:3000/organizations/conversations');
+        const conversationsRes = await apiClient<any>(`${API_BASE}/organizations/conversations`);
         setAllConversations(conversationsRes.conversations || []);
       } catch (error) {
         console.error("Failed to load page data:", error);
@@ -98,7 +100,7 @@ export default function MessagesPage() {
 
     const fetchMessages = async () => {
       try {
-        const response = await apiClient<any>(`http://localhost:3000/organizations/conversations/${selectedChat}/messages`);
+        const response = await apiClient<any>(`${API_BASE}/organizations/conversations/${selectedChat}/messages`);
         setMessages(response.messages || []);
       } catch (error) {
         console.error("Failed to fetch messages:", error);
@@ -131,7 +133,7 @@ export default function MessagesPage() {
         recipientType: 'client'
       };
 
-      await apiClient<any>(`http://localhost:3000/chat/${selectedChat}/send`, {
+      await apiClient<any>(`${API_BASE}/chat/${selectedChat}/send`, {
         method: 'POST',
         body: JSON.stringify(payload)
       });

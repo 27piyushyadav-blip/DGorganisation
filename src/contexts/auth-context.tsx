@@ -11,6 +11,9 @@ import {
 } from "@/client/api/auth";
 import { apiClient } from "@/client/api/api-client";
 
+
+const PROFILE_BASE = process.env.NEXT_PUBLIC_PROFILE_BASE_URL!;
+
 type User = {
   id?: string;
   name?: string;
@@ -39,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const checkAuth = async () => {
     try {
       if (isAuthenticated()) {
-        const profile: any = await apiClient("http://localhost:3000/organizations/profile");
+        const profile: any = await apiClient(PROFILE_BASE);
         setUser({ 
           id: profile.userId, 
           email: profile.email,
@@ -67,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await loginUserApi({ identifier, password });
       
       // Fetch profile immediately after login to get status
-      const profile: any = await apiClient("http://localhost:3000/organizations/profile");
+      const profile: any = await apiClient(PROFILE_BASE);
       setUser({ 
         id: profile.userId, 
         email: profile.email,

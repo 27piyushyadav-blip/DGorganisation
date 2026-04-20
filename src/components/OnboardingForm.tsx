@@ -26,6 +26,8 @@ import {
 import { cn } from "@/lib/utils";
 import { apiClient } from "@/client/api/api-client";
 
+const PROFILE_BASE = process.env.NEXT_PUBLIC_PROFILE_BASE_URL!;
+
 type OperatingHour = {
   day: string;
   open: string;
@@ -146,7 +148,7 @@ export default function OnboardingForm({ initialData, onComplete }: OnboardingFo
     body.append("file", file);
 
     try {
-      const res: any = await apiClient("http://localhost:3000/organizations/profile/logo", {
+      const res: any = await await apiClient(`${PROFILE_BASE}/logo`, {
         method: "POST",
         body,
       });
@@ -167,7 +169,7 @@ export default function OnboardingForm({ initialData, onComplete }: OnboardingFo
     body.append("file", file);
 
     try {
-      const res: any = await apiClient("http://localhost:3000/organizations/profile/cover-image", {
+      const res: any = await apiClient(`${PROFILE_BASE}/cover-image`, {
         method: "POST",
         body,
       });
@@ -193,7 +195,7 @@ export default function OnboardingForm({ initialData, onComplete }: OnboardingFo
     body.append("category", "Verification");
 
     try {
-      const res: any = await apiClient("http://localhost:3000/organizations/profile/documents", {
+      const res: any = await apiClient(`${PROFILE_BASE}/documents`, {
         method: "POST",
         body,
       });
@@ -218,7 +220,7 @@ export default function OnboardingForm({ initialData, onComplete }: OnboardingFo
     body.append("file", file);
 
     try {
-      const res: any = await apiClient("http://localhost:3000/organizations/profile/intro-video", {
+      const res: any = await apiClient(`${PROFILE_BASE}/intro-video`, {
         method: "POST",
         body,
       });
@@ -233,7 +235,7 @@ export default function OnboardingForm({ initialData, onComplete }: OnboardingFo
   const handleSubmit = async () => {
     setIsLoading(true);
     try {
-      await apiClient("http://localhost:3000/organizations/profile", {
+      await apiClient(PROFILE_BASE, {
         method: "PUT",
         body: JSON.stringify({
           ...formData,
