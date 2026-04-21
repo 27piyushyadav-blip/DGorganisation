@@ -71,7 +71,7 @@ export default function ProfilePage() {
     cancellationWindowHours: 24,
     taxIdNumber: "",
     businessLicenseUrl: "",
-    bankDetails: { accountName: "", accountNumber: "", ifscCode: "" },
+    bankDetails: { bankName: "", accountName: "", accountNumber: "", bsbCode: "" },
     logo: "",
     coverImageUrl: "",
     profileVideo: "",
@@ -126,7 +126,7 @@ export default function ProfilePage() {
         cancellationWindowHours: data.cancellationWindowHours || 24,
         taxIdNumber: data.taxIdNumber || data.licenseNumber || "",
         businessLicenseUrl: data.businessLicenseUrl || "",
-        bankDetails: data.bankDetails || { accountName: "", accountNumber: "", ifscCode: "" },
+        bankDetails: data.bankDetails || { bankName: "", accountName: "", accountNumber: "", bsbCode: "" },
         logo: data.logo || "",
         coverImageUrl: data.coverImageUrl || "",
         profileVideo: data.introVideo || "",
@@ -789,8 +789,8 @@ export default function ProfilePage() {
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Tax ID Number</Label>
-                      {isEditing ? <Input value={formData.taxIdNumber} onChange={(e) => handleInputChange('taxIdNumber', e.target.value)} /> : <p className="text-sm">{formData.taxIdNumber}</p>}
+                      <Label>ABN Number</Label>
+                      {isEditing ? <Input value={formData.taxIdNumber} onChange={(e) => handleInputChange('taxIdNumber', e.target.value)} placeholder="00 000 000 000" /> : <p className="text-sm">{formData.taxIdNumber || "N/A"}</p>}
                     </div>
                     <div className="space-y-2">
                       <Label>Business License</Label>
@@ -814,18 +814,24 @@ export default function ProfilePage() {
                   <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 space-y-4">
                     <Label className="text-sm font-semibold text-primary">Settlement Bank Details</Label>
                     <div className="grid gap-4">
-                      <div className="space-y-2">
-                        <Label className="text-xs">Account Name</Label>
-                        {isEditing ? <Input value={formData.bankDetails.accountName} onChange={(e) => setFormData(prev => ({...prev, bankDetails: {...prev.bankDetails, accountName: e.target.value}}))} /> : <p className="text-sm">{formData.bankDetails.accountName}</p>}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-xs">Bank Name</Label>
+                          {isEditing ? <Input value={formData.bankDetails.bankName} onChange={(e) => setFormData(prev => ({...prev, bankDetails: {...prev.bankDetails, bankName: e.target.value}}))} /> : <p className="text-sm">{formData.bankDetails.bankName || "N/A"}</p>}
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs">Account Name</Label>
+                          {isEditing ? <Input value={formData.bankDetails.accountName} onChange={(e) => setFormData(prev => ({...prev, bankDetails: {...prev.bankDetails, accountName: e.target.value}}))} /> : <p className="text-sm">{formData.bankDetails.accountName || "N/A"}</p>}
+                        </div>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label className="text-xs">Account Number</Label>
-                          {isEditing ? <Input value={formData.bankDetails.accountNumber} onChange={(e) => setFormData(prev => ({...prev, bankDetails: {...prev.bankDetails, accountNumber: e.target.value}}))} /> : <p className="text-sm">{formData.bankDetails.accountNumber}</p>}
+                          {isEditing ? <Input value={formData.bankDetails.accountNumber} onChange={(e) => setFormData(prev => ({...prev, bankDetails: {...prev.bankDetails, accountNumber: e.target.value}}))} /> : <p className="text-sm">{formData.bankDetails.accountNumber || "N/A"}</p>}
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-xs">IFSC Code</Label>
-                          {isEditing ? <Input value={formData.bankDetails.ifscCode} onChange={(e) => setFormData(prev => ({...prev, bankDetails: {...prev.bankDetails, ifscCode: e.target.value}}))} /> : <p className="text-sm">{formData.bankDetails.ifscCode}</p>}
+                          <Label className="text-xs">BSB Code</Label>
+                          {isEditing ? <Input value={formData.bankDetails.bsbCode} onChange={(e) => setFormData(prev => ({...prev, bankDetails: {...prev.bankDetails, bsbCode: e.target.value}}))} /> : <p className="text-sm">{formData.bankDetails.bsbCode || "N/A"}</p>}
                         </div>
                       </div>
                     </div>

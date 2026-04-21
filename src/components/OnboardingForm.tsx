@@ -73,7 +73,7 @@ export default function OnboardingForm({ initialData, onComplete }: OnboardingFo
     cancellationWindowHours: initialData.cancellationWindowHours || 24,
     taxIdNumber: initialData.taxIdNumber || initialData.licenseNumber || "",
     businessLicenseUrl: initialData.businessLicenseUrl || "",
-    bankDetails: initialData.bankDetails || { accountName: "", accountNumber: "", ifscCode: "" },
+    bankDetails: initialData.bankDetails || { bankName: "", accountName: "", accountNumber: "", bsbCode: "" },
     logo: initialData.logo || "",
     coverImageUrl: initialData.coverImageUrl || "",
     introVideo: initialData.introVideo || "",
@@ -621,10 +621,10 @@ export default function OnboardingForm({ initialData, onComplete }: OnboardingFo
             <div className="grid gap-6 animate-in fade-in slide-in-from-right-4 duration-500">
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="taxId">Tax ID Number (GST/PAN)</Label>
+                  <Label htmlFor="taxId">ABN NUMBER</Label>
                   <Input 
                     id="taxId" 
-                    placeholder="TAX-ID-123456" 
+                    placeholder="00 000 000 000" 
                     value={formData.taxIdNumber}
                     onChange={(e) => handleInputChange("taxIdNumber", e.target.value)}
                   />
@@ -668,29 +668,39 @@ export default function OnboardingForm({ initialData, onComplete }: OnboardingFo
               <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 space-y-4">
                 <Label className="text-sm font-semibold text-primary">Settlement Bank Details</Label>
                 <div className="grid gap-4">
-                  <div className="grid gap-2">
-                    <Label className="text-xs">Account Name</Label>
-                    <Input 
-                      placeholder="Account Holder Name" 
-                      value={formData.bankDetails.accountName}
-                      onChange={(e) => handleBankChange("accountName", e.target.value)}
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                       <Label className="text-xs">Bank Name</Label>
+                       <Input 
+                         placeholder="e.g. Commonwealth Bank" 
+                         value={formData.bankDetails.bankName}
+                         onChange={(e) => handleBankChange("bankName", e.target.value)}
+                       />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label className="text-xs">Account Name</Label>
+                      <Input 
+                        placeholder="Account Holder Name" 
+                        value={formData.bankDetails.accountName}
+                        onChange={(e) => handleBankChange("accountName", e.target.value)}
+                      />
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label className="text-xs">Account Number</Label>
                       <Input 
-                        placeholder="0000000000" 
+                        placeholder="00000000" 
                         value={formData.bankDetails.accountNumber}
                         onChange={(e) => handleBankChange("accountNumber", e.target.value)}
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label className="text-xs">IFSC Code</Label>
+                      <Label className="text-xs">BSB CODE</Label>
                       <Input 
-                        placeholder="IFSC000123" 
-                        value={formData.bankDetails.ifscCode}
-                        onChange={(e) => handleBankChange("ifscCode", e.target.value)}
+                        placeholder="000-000" 
+                        value={formData.bankDetails.bsbCode}
+                        onChange={(e) => handleBankChange("bsbCode", e.target.value)}
                       />
                     </div>
                   </div>

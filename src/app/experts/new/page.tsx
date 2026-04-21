@@ -27,6 +27,8 @@ import {
   X,
   Sparkles,
   DollarSign,
+  ChevronRight,
+  ChevronLeft,
 } from 'lucide-react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -47,6 +49,25 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL!;
 export default function NewExpertPage() {
   const router = useRouter();
   const [isAdding, setIsAdding] = useState(false);
+  const [activeTab, setActiveTab] = useState('basic');
+
+  const TABS = ['basic', 'professional', 'career', 'schedule', 'services', 'social', 'documents'];
+
+  const handleNext = () => {
+    const currentIndex = TABS.indexOf(activeTab);
+    if (currentIndex < TABS.length - 1) {
+      setActiveTab(TABS[currentIndex + 1]);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleBack = () => {
+    const currentIndex = TABS.indexOf(activeTab);
+    if (currentIndex > 0) {
+      setActiveTab(TABS[currentIndex - 1]);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   const [manualForm, setManualForm] = useState({
     name: '',
@@ -184,7 +205,7 @@ export default function NewExpertPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="basic" className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* LEFT COLUMN: NAVIGATION TABS */}
         <div className="lg:col-span-1">
           <Card className="sticky top-24">
@@ -314,6 +335,15 @@ export default function NewExpertPage() {
                   </div>
                 </CardContent>
               </Card>
+
+              <div className="flex justify-end pt-4">
+                <Button 
+                  onClick={handleNext}
+                  className="bg-zinc-900 hover:bg-zinc-800 text-white px-6 rounded-xl flex items-center gap-2"
+                >
+                  Next Section <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </TabsContent>
 
             <TabsContent value="professional" className="mt-0 space-y-6">
@@ -347,6 +377,22 @@ export default function NewExpertPage() {
                   </div>
                 </CardContent>
               </Card>
+
+              <div className="flex justify-between pt-4">
+                <Button 
+                  variant="outline"
+                  onClick={handleBack}
+                  className="rounded-xl flex items-center gap-2"
+                >
+                  <ChevronLeft className="h-4 w-4" /> Back
+                </Button>
+                <Button 
+                  onClick={handleNext}
+                  className="bg-zinc-900 hover:bg-zinc-800 text-white px-6 rounded-xl flex items-center gap-2"
+                >
+                  Next Section <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </TabsContent>
 
             <TabsContent value="career" className="mt-0 space-y-6">
@@ -461,6 +507,22 @@ export default function NewExpertPage() {
                   ))}
                 </CardContent>
               </Card>
+
+              <div className="flex justify-between pt-4">
+                <Button 
+                  variant="outline"
+                  onClick={handleBack}
+                  className="rounded-xl flex items-center gap-2"
+                >
+                  <ChevronLeft className="h-4 w-4" /> Back
+                </Button>
+                <Button 
+                  onClick={handleNext}
+                  className="bg-zinc-900 hover:bg-zinc-800 text-white px-6 rounded-xl flex items-center gap-2"
+                >
+                  Next Section <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </TabsContent>
 
             <TabsContent value="schedule" className="mt-0 space-y-6">
@@ -538,6 +600,22 @@ export default function NewExpertPage() {
                   </div>
                 </CardContent>
               </Card>
+
+              <div className="flex justify-between pt-4">
+                <Button 
+                  variant="outline"
+                  onClick={handleBack}
+                  className="rounded-xl flex items-center gap-2"
+                >
+                  <ChevronLeft className="h-4 w-4" /> Back
+                </Button>
+                <Button 
+                  onClick={handleNext}
+                  className="bg-zinc-900 hover:bg-zinc-800 text-white px-6 rounded-xl flex items-center gap-2"
+                >
+                  Next Section <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </TabsContent>
 
             <TabsContent value="services" className="mt-0 space-y-6">
@@ -642,6 +720,22 @@ export default function NewExpertPage() {
                   ))}
                 </CardContent>
               </Card>
+
+              <div className="flex justify-between pt-4">
+                <Button 
+                  variant="outline"
+                  onClick={handleBack}
+                  className="rounded-xl flex items-center gap-2"
+                >
+                  <ChevronLeft className="h-4 w-4" /> Back
+                </Button>
+                <Button 
+                  onClick={handleNext}
+                  className="bg-zinc-900 hover:bg-zinc-800 text-white px-6 rounded-xl flex items-center gap-2"
+                >
+                  Next Section <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </TabsContent>
 
             <TabsContent value="social" className="mt-0 space-y-6">
@@ -756,6 +850,22 @@ export default function NewExpertPage() {
                   </div>
                 </CardContent>
               </Card>
+
+              <div className="flex justify-between pt-4">
+                <Button 
+                  variant="outline"
+                  onClick={handleBack}
+                  className="rounded-xl flex items-center gap-2"
+                >
+                  <ChevronLeft className="h-4 w-4" /> Back
+                </Button>
+                <Button 
+                  onClick={handleNext}
+                  className="bg-zinc-900 hover:bg-zinc-800 text-white px-6 rounded-xl flex items-center gap-2"
+                >
+                  Next Section <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </TabsContent>
 
             <TabsContent value="documents" className="mt-0 space-y-6">
@@ -812,6 +922,7 @@ export default function NewExpertPage() {
                       </Button>
                     </div>
                   ))}
+
                   <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100 flex items-start gap-3 mt-4">
                     <ShieldCheck className="h-5 w-5 text-indigo-600 mt-0.5" />
                     <p className="text-xs text-indigo-900 leading-relaxed">
@@ -820,6 +931,32 @@ export default function NewExpertPage() {
                   </div>
                 </CardContent>
               </Card>
+
+              <div className="flex justify-between pt-4">
+                <Button 
+                  variant="outline"
+                  onClick={handleBack}
+                  className="rounded-xl flex items-center gap-2"
+                >
+                  <ChevronLeft className="h-4 w-4" /> Back
+                </Button>
+                <Button 
+                  onClick={handleAddExpert}
+                  disabled={isSubmitting}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 rounded-xl flex items-center gap-2 shadow-lg shadow-indigo-100"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4" /> Finalize & Create Profile
+                    </>
+                  )}
+                </Button>
+              </div>
             </TabsContent>
           </div>
         </Tabs>
