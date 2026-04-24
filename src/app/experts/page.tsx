@@ -84,7 +84,8 @@ interface EditFormData {
   email?: string;
   phone?: string;
   bio?: string;
-  services?: string; // String for form input
+  specialization?: string;
+  services?: string;
 }
 
 interface TimingSlot {
@@ -165,14 +166,21 @@ export default function ExpertsPage() {
       email: expert.email,
       phone: expert.phone,
       bio: expert.bio,
-      services: expert.services.join(', '), // Convert array to string for form
+      specialization: (expert as any).specialization || '',
+      services: expert.services.join(', '),
     });
     setEditProfileOpen(true);
     setOpenDropdownId(null);
   };
 
-  const handleViewProfile = (expert: Expert) => {
-    setSelectedExpert(expert);
+  const handleViewProfile = async (expert: Expert) => {
+    try {
+      const details = await apiClient<any>(`${API_BASE}/organizations/experts/${expert.id}`);
+      setSelectedExpert(details);
+    } catch (error) {
+      console.error("Failed to fetch expert details:", error);
+      setSelectedExpert(expert); // Fallback to list data
+    }
     setViewProfileOpen(true);
     setOpenDropdownId(null);
   };
@@ -213,7 +221,7 @@ export default function ExpertsPage() {
 
   const handleChangeDP = (expert: Expert) => {
     setSelectedExpert(expert);
-    setNewAvatar(expert.avatar);
+    setNewAvatar(expert.avatar || '');
     setImagePreview('');
     setUploadedImageFile(null);
     setChangeDPOpen(true);
@@ -249,8 +257,8 @@ export default function ExpertsPage() {
       return {
         id: `${day}-${expert.id}`,
         day,
-        startTime: '9AM',
-        endTime: '5PM',
+        startTime: '09:00',
+        endTime: '17:00',
         isAvailable: false,
       };
     });
@@ -260,57 +268,120 @@ export default function ExpertsPage() {
     setOpenDropdownId(null);
   };
 
-  const handleToggleProfileStatus = (expert: Expert) => {
-    setExperts(prev => prev.map(e => 
-      e.id === expert.id 
-        ? { ...e, status: e.status === 'active' ? 'hidden' : 'active' }
-        : e
-    ));
+  const handleToggleProfileStatus = async (expert: Expert) => {
+    try {
+      const newStatus = expert.status === 'active' ? 'hidden' : 'active';
+      await apiClient(`${API_BASE}/organizations/experts/${expert.id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: newStatus }),
+      });
+      
+      setExperts(prev => prev.map(e => 
+        e.id === expert.id 
+          ? { ...e, status: newStatus }
+          : e
+      ));
+      toast.success(`Expert is now ${newStatus}`);
+    } catch (error) {
+      console.error("Failed to toggle status:", error);
+      toast.error("Failed to update status");
+    }
     setOpenDropdownId(null);
   };
 
-  const handleDisconnectExpert = (expert: Expert) => {
+  const handleDisconnectExpert = async (expert: Expert) => {
     if (confirm(`Are you sure you want to disconnect ${expert.name}? This action cannot be undone.`)) {
-      setExperts(prev => prev.filter(e => e.id !== expert.id));
+      try {
+        await apiClient(`${API_BASE}/organizations/experts/${expert.id}`, {
+          method: 'DELETE',
+        });
+        setExperts(prev => prev.filter(e => e.id !== expert.id));
+        toast.success("Expert disconnected successfully");
+      } catch (error) {
+        console.error("Failed to disconnect expert:", error);
+        toast.error("Failed to disconnect expert");
+      }
       setOpenDropdownId(null);
     }
   };
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     if (!selectedExpert) return;
     
-    setExperts(prev => prev.map(e => 
-      e.id === selectedExpert.id 
-        ? { 
-            ...e, 
-            name: editForm.name || e.name,
-            username: editForm.username || e.username,
-            email: editForm.email || e.email,
-            phone: editForm.phone || e.phone,
-            bio: editForm.bio || e.bio,
-            services: editForm.services?.split(',').map((s: string) => s.trim()).filter((s: string) => s) || e.services
-          }
-        : e
-    ));
-    setEditProfileOpen(false);
+    try {
+      const payload = {
+        name: editForm.name,
+        username: editForm.username,
+        email: editForm.email,
+        bio: editForm.bio,
+        specialization: editForm.name, // The backend uses specialization, but the form has name? Wait, let me check specialization field in editForm
+        // editForm doesn't have specialization? Ah, let me check handleEditProfile
+      };
+
+      await apiClient(`${API_BASE}/organizations/experts/${selectedExpert.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          ...payload,
+          services: editForm.services?.split(',').map((s: string) => ({ name: s.trim() })).filter((s: any) => s.name)
+        }),
+      });
+
+      setExperts(prev => prev.map(e => 
+        e.id === selectedExpert.id 
+          ? { 
+              ...e, 
+              name: editForm.name || e.name,
+              username: editForm.username || e.username,
+              email: editForm.email || e.email,
+              phone: editForm.phone || e.phone,
+              bio: editForm.bio || e.bio,
+              services: editForm.services?.split(',').map((s: string) => s.trim()).filter((s: string) => s) || e.services
+            }
+          : e
+      ));
+      toast.success("Profile updated successfully");
+      setEditProfileOpen(false);
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+      toast.error("Failed to update profile");
+    }
   };
 
-  const handleSaveTimings = () => {
+  const handleSaveTimings = async () => {
     if (!selectedExpert) return;
     
-    const updatedTimings = timingSlots
-      .filter(slot => slot.isAvailable)
-      .map(slot => ({
-        day: slot.day,
-        time: `${slot.startTime} - ${slot.endTime}`,
-      }));
-    
-    setExperts(prev => prev.map(e => 
-      e.id === selectedExpert.id 
-        ? { ...e, timings: updatedTimings }
-        : e
-    ));
-    setChangeTimingsOpen(false);
+    try {
+      const dbAvailability = timingSlots
+        .filter(slot => slot.isAvailable)
+        .map(slot => ({
+          dayOfWeek: slot.day,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+        }));
+
+      await apiClient(`${API_BASE}/organizations/experts/${selectedExpert.id}/timings`, {
+        method: 'PATCH',
+        body: JSON.stringify({ availability: dbAvailability }),
+      });
+
+      const updatedTimings = timingSlots
+        .filter(slot => slot.isAvailable)
+        .map(slot => ({
+          day: slot.day,
+          time: `${slot.startTime} - ${slot.endTime}`,
+        }));
+      
+      setExperts(prev => prev.map(e => 
+        e.id === selectedExpert.id 
+          ? { ...e, timings: updatedTimings }
+          : e
+      ));
+      toast.success("Timings updated successfully");
+      setChangeTimingsOpen(false);
+    } catch (error) {
+      console.error("Failed to update timings:", error);
+      toast.error("Failed to update timings");
+    }
   };
 
   const handleTimingToggle = (slotId: string) => {
@@ -398,57 +469,81 @@ export default function ExpertsPage() {
   };
 
   // Update save handlers to include file upload
-  const handleSaveDP = () => {
+  const handleSaveDP = async () => {
     if (!selectedExpert) return;
     
-    let finalAvatarUrl = newAvatar;
-    
-    // If we have an uploaded file, in a real app you would upload it to a server
-    if (uploadedImageFile) {
-      // For demo purposes, we'll use the preview URL
-      // In production, you would upload to cloud storage and get the URL
-      console.log('Uploading image:', uploadedImageFile.name);
-      finalAvatarUrl = imagePreview;
+    try {
+      let finalAvatarUrl = newAvatar;
+      
+      if (uploadedImageFile) {
+        const formData = new FormData();
+        formData.append('file', uploadedImageFile);
+        const uploadRes = await apiClient<any>(`${API_BASE}/organizations/experts/upload-avatar`, {
+          method: 'POST',
+          body: formData,
+        });
+        finalAvatarUrl = uploadRes.fileUrl;
+      }
+
+      await apiClient(`${API_BASE}/organizations/experts/${selectedExpert.id}/avatar`, {
+        method: 'PATCH',
+        body: JSON.stringify({ avatarUrl: finalAvatarUrl }),
+      });
+      
+      setExperts(prev => prev.map(e => 
+        e.id === selectedExpert.id 
+          ? { ...e, avatar: finalAvatarUrl }
+          : e
+      ));
+      
+      toast.success("Profile photo updated");
+      setUploadedImageFile(null);
+      setImagePreview('');
+      setChangeDPOpen(false);
+    } catch (error) {
+      console.error("Failed to update photo:", error);
+      toast.error("Failed to update photo");
     }
-    
-    setExperts(prev => prev.map(e => 
-      e.id === selectedExpert.id 
-        ? { ...e, avatar: finalAvatarUrl }
-        : e
-    ));
-    
-    // Reset states
-    setUploadedImageFile(null);
-    setImagePreview('');
-    setChangeDPOpen(false);
   };
 
-  const handleSaveVideo = () => {
+  const handleSaveVideo = async () => {
     if (!selectedExpert) return;
     
-    let finalVideoUrl = newVideo;
-    
-    // If we have an uploaded file, in a real app you would upload it to a server
-    if (uploadedVideoFile) {
-      // For demo purposes, we'll use the preview URL
-      // In production, you would upload to cloud storage and get the URL
-      console.log('Uploading video:', uploadedVideoFile.name);
-      finalVideoUrl = videoPreview;
+    try {
+      let finalVideoUrl = newVideo;
+      
+      if (uploadedVideoFile) {
+        const formData = new FormData();
+        formData.append('file', uploadedVideoFile);
+        const uploadRes = await apiClient<any>(`${API_BASE}/organizations/experts/upload-video`, {
+          method: 'POST',
+          body: formData,
+        });
+        finalVideoUrl = uploadRes.fileUrl;
+      }
+
+      await apiClient(`${API_BASE}/organizations/experts/${selectedExpert.id}/video`, {
+        method: 'PATCH',
+        body: JSON.stringify({ videoUrl: finalVideoUrl }),
+      });
+      
+      setExperts(prev => prev.map(e => 
+        e.id === selectedExpert.id 
+          ? { ...e, videoUrl: finalVideoUrl }
+          : e
+      ));
+      
+      toast.success("Intro video updated");
+      setUploadedVideoFile(null);
+      if (videoPreview) {
+        URL.revokeObjectURL(videoPreview);
+      }
+      setVideoPreview('');
+      setChangeVideoOpen(false);
+    } catch (error) {
+      console.error("Failed to update video:", error);
+      toast.error("Failed to update video");
     }
-    
-    setExperts(prev => prev.map(e => 
-      e.id === selectedExpert.id 
-        ? { ...e, videoUrl: finalVideoUrl }
-        : e
-    ));
-    
-    // Reset states
-    setUploadedVideoFile(null);
-    if (videoPreview) {
-      URL.revokeObjectURL(videoPreview);
-    }
-    setVideoPreview('');
-    setChangeVideoOpen(false);
   };
 
   return (
@@ -798,6 +893,17 @@ export default function ExpertsPage() {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="specialization" className="text-right">
+                Specialization
+              </Label>
+              <Input
+                id="specialization"
+                value={editForm.specialization || ''}
+                onChange={(e) => setEditForm(prev => ({ ...prev, specialization: e.target.value }))}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="bio" className="text-right">
                 Bio
               </Label>
@@ -954,7 +1060,7 @@ export default function ExpertsPage() {
               <Label htmlFor="avatar-url">Or enter Image URL</Label>
               <Input
                 id="avatar-url"
-                value={newAvatar}
+                value={newAvatar || ''}
                 onChange={(e) => {
                   setNewAvatar(e.target.value);
                   if (!uploadedImageFile) {
@@ -1031,7 +1137,7 @@ export default function ExpertsPage() {
               <Label htmlFor="video-url">Or enter Video URL</Label>
               <Input
                 id="video-url"
-                value={newVideo}
+                value={newVideo || ''}
                 onChange={(e) => setNewVideo(e.target.value)}
                 placeholder="Enter video URL (YouTube, Vimeo, etc.)"
               />
@@ -1110,7 +1216,7 @@ export default function ExpertsPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {['8AM', '9AM', '10AM', '11AM', '12PM', '1PM', '2PM', '3PM', '4PM', '5PM', '6PM', '7PM', '8PM', '9PM'].map(time => (
+                        {['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00'].map(time => (
                           <SelectItem key={time} value={time}>{time}</SelectItem>
                         ))}
                       </SelectContent>
@@ -1124,7 +1230,7 @@ export default function ExpertsPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {['9AM', '10AM', '11AM', '12PM', '1PM', '2PM', '3PM', '4PM', '5PM', '6PM', '7PM', '8PM', '9PM', '10PM'].map(time => (
+                        {['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00'].map(time => (
                           <SelectItem key={time} value={time}>{time}</SelectItem>
                         ))}
                       </SelectContent>

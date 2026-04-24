@@ -130,7 +130,41 @@ export default function NewExpertPage() {
     try {
       setIsSubmitting(true);
       
-      // 1. Calculate base consultation fee from services if provided
+      // 1. Upload Avatar if present
+      let avatarUrl = manualForm.avatar;
+      if (avatarFile) {
+        const avatarFormData = new FormData();
+        avatarFormData.append('file', avatarFile);
+        try {
+          const uploadRes = await apiClient<any>(`${API_BASE}/organizations/experts/upload-avatar`, {
+            method: 'POST',
+            body: avatarFormData,
+          });
+          avatarUrl = uploadRes.fileUrl;
+        } catch (uploadError) {
+          console.error("Avatar upload failed:", uploadError);
+          toast.error("Failed to upload profile photo");
+        }
+      }
+
+      // 2. Upload Intro Video if present
+      let introVideoUrl = manualForm.introVideo;
+      if (videoFile) {
+        const videoFormData = new FormData();
+        videoFormData.append('file', videoFile);
+        try {
+          const uploadRes = await apiClient<any>(`${API_BASE}/organizations/experts/upload-video`, {
+            method: 'POST',
+            body: videoFormData,
+          });
+          introVideoUrl = uploadRes.fileUrl;
+        } catch (uploadError) {
+          console.error("Video upload failed:", uploadError);
+          toast.error("Failed to upload intro video");
+        }
+      }
+      
+      // 3. Calculate base consultation fee from services if provided
       let baseFee = manualForm.consultationFee;
       if (manualForm.services.length > 0) {
         const prices = manualForm.services
@@ -141,9 +175,11 @@ export default function NewExpertPage() {
         }
       }
 
-      // 2. Map payload to DB Schema
+      // 4. Map payload to DB Schema
       const payload = {
         ...manualForm,
+        avatar: avatarUrl,
+        introVideo: introVideoUrl,
         languages: manualForm.languages.split(',').map(l => l.trim()).filter(Boolean),
         tags: manualForm.tags.split(',').map(t => t.trim()).filter(Boolean),
         consultationFee: baseFee || "0",

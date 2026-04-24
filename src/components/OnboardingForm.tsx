@@ -35,6 +35,28 @@ type OperatingHour = {
   is_closed: boolean;
 };
 
+const DEFAULT_OPERATING_HOURS: OperatingHour[] = [
+  { day: "Monday", open: "09:00", close: "18:00", is_closed: false },
+  { day: "Tuesday", open: "09:00", close: "18:00", is_closed: false },
+  { day: "Wednesday", open: "09:00", close: "18:00", is_closed: false },
+  { day: "Thursday", open: "09:00", close: "18:00", is_closed: false },
+  { day: "Friday", open: "09:00", close: "18:00", is_closed: false },
+  { day: "Saturday", open: "09:00", close: "12:00", is_closed: true },
+  { day: "Sunday", open: "09:00", close: "12:00", is_closed: true },
+];
+
+function getInitialOperatingHours(initialData: any): OperatingHour[] {
+  const hours = initialData?.operatingHours as OperatingHour[] | undefined | null;
+  if (!Array.isArray(hours) || hours.length === 0) return DEFAULT_OPERATING_HOURS;
+  return hours;
+}
+
+function getInitialServiceTypes(initialData: any): string[] {
+  const serviceTypes = initialData?.offeredServiceTypes as string[] | undefined | null;
+  if (!Array.isArray(serviceTypes) || serviceTypes.length === 0) return ["Video Call"];
+  return serviceTypes;
+}
+
 type OnboardingFormProps = {
   initialData: any;
   onComplete: () => void;
@@ -59,16 +81,8 @@ export default function OnboardingForm({ initialData, onComplete }: OnboardingFo
     state: initialData.state || "",
     zipCode: initialData.zipCode || "",
     coordinates: initialData.coordinates || { lat: 0, lng: 0 },
-    offeredServiceTypes: (initialData.offeredServiceTypes as string[]) || ["Video Call"],
-    operatingHours: (initialData.operatingHours as OperatingHour[]) || [
-      { day: "Monday", open: "09:00", close: "18:00", is_closed: false },
-      { day: "Tuesday", open: "09:00", close: "18:00", is_closed: false },
-      { day: "Wednesday", open: "09:00", close: "18:00", is_closed: false },
-      { day: "Thursday", open: "09:00", close: "18:00", is_closed: false },
-      { day: "Friday", open: "09:00", close: "18:00", is_closed: false },
-      { day: "Saturday", open: "09:00", close: "12:00", is_closed: true },
-      { day: "Sunday", open: "09:00", close: "12:00", is_closed: true },
-    ],
+    offeredServiceTypes: getInitialServiceTypes(initialData),
+    operatingHours: getInitialOperatingHours(initialData),
     bookingPolicy: initialData.bookingPolicy || "",
     cancellationWindowHours: initialData.cancellationWindowHours || 24,
     taxIdNumber: initialData.taxIdNumber || initialData.licenseNumber || "",
