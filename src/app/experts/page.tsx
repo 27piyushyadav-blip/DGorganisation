@@ -25,6 +25,8 @@ import {
   Upload,
   Camera,
   Trash2,
+  menu,
+  Menu,
 } from 'lucide-react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -49,6 +51,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import AddExpertModal from '@/components/expert/AddExpertModal';
 
 interface Expert {
   id: number;
@@ -179,6 +183,7 @@ export default function ExpertsPage() {
   const [uploadedVideoFile, setUploadedVideoFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
   const [videoPreview, setVideoPreview] = useState<string>('');
+  const [addExpertModalOpen, setAddExpertModalOpen] = useState(false);
 
   const filteredExperts = experts.filter((expert) => {
     const matchesSearch =
@@ -191,6 +196,33 @@ export default function ExpertsPage() {
     
     return matchesSearch && matchesView;
   });
+
+
+  // Add this new handler for adding experts
+  const handleAddExpert = async (expertData: any) => {
+    // Transform the form data to match your Expert interface
+    const newExpert: Expert = {
+      id: experts.length + 1,
+      name: expertData.name,
+      username: expertData.username,
+      avatar: '/avatars/default.jpg', // Default avatar
+      status: 'active',
+      rating: 0, // Will be updated later
+      timings: expertData.availability.map((avail: any) => ({
+        day: avail.dayOfWeek.slice(0, 3), // Convert "Monday" to "Mon"
+        time: `${avail.startTime} - ${avail.endTime}`
+      })),
+      totalBookings: 0,
+      revenue: 0,
+      services: expertData.services.map((service: any) => service.name),
+      email: expertData.email,
+      phone: '', // Not in form, can be added later
+      bio: expertData.bio,
+    };
+    
+    setExperts(prev => [...prev, newExpert]);
+    console.log('New expert added:', expertData);
+  };
 
   // Handler functions
   const handleEditProfile = (expert: Expert) => {
@@ -480,12 +512,19 @@ export default function ExpertsPage() {
               <SelectItem value="hidden">Hidden</SelectItem>
             </SelectContent>
           </Select>
+          <button className="w-full px-4 py-2.5 border bg-card text-card-foreground font-semibold rounded-xl hover:bg-gray-100 transition-all duration-300 cursor-pointer max-w-[10rem] flex bg-gradient-to-r from-[var(--primary-start)] to-[var(--primary-end)] text-white"
+          onClick={() => setAddExpertModalOpen(true)}
+          >
+            <Plus className="h-6 w-6 text-white" />
+                      Add Expert
+                    </button>
         </div>
+        
       </div>
 
       <div className="flex flex-wrap gap-4">
         {filteredExperts.map((expert) => (
-          <Card key={expert.id} className="w-[280px] shadow-sm border-gray-100">
+          <Card key={expert.id} className="w-[280px] shadow-sm border-[#f79a4e] bg-[var(--card-bg)]">
             <CardContent className="p-6">
               {/* Name and Username Section */}
               <div className="flex items-center justify-between mb-6">
@@ -497,10 +536,10 @@ export default function ExpertsPage() {
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    className="h-8 w-8 p-0"
+                    className="h-8 w-8 p-0 bg-gradient-to-r from-[var(--primary-start)] to-[var(--primary-end)] cursor-pointer"
                     onClick={() => setOpenDropdownId(openDropdownId === expert.id ? null : expert.id)}
                   >
-                    <Edit className="h-4 w-4" />
+                    <Menu className="h-4 w-4 cursor-pointer text-white" />
                   </Button>
                   
                   {openDropdownId === expert.id && (
@@ -579,14 +618,53 @@ export default function ExpertsPage() {
               </div>
 
               {/* Profile Image Section */}
-              <div className="flex flex-col items-center mb-6">
-                <Avatar className="h-20 w-20">
+              <div className="flex flex-col items-center mb-6 ">
+                <Avatar className="h-20 w-20 ">
                   <AvatarImage src={expert.avatar} alt={expert.name} />
-                  <AvatarFallback className="text-lg">
+                  <AvatarFallback className="text-lg bg-gradient-to-r from-[var(--primary-start)] to-[var(--primary-end)] text-white">
                     {expert.name.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
               </div>
+
+              {/*Edit Section */}
+              {/* <div className="space-y-3 mb-5">
+                <div className="flex items-center">
+                  <div className="flex justify-between w-full text-2xl font-medium text-gray-700">
+                    <Edit className="h-5 w-5 cursor-pointer" />
+                    <Eye className="h-5 w-5 cursor-pointer" />
+                    <User className="h-5 w-5 cursor-pointer" />
+                    <Video className="h-5 w-5 cursor-pointer" />
+                    <Calendar className="h-5 w-5 cursor-pointer" />
+                    <CalendarDays className="h-5 w-5 cursor-pointer" />
+                  </div>
+                </div>
+              </div> */}
+
+              <div className="space-y-3 mb-5">
+  <div className="flex items-center">
+    <div className="flex justify-between w-full text-gray-700">
+
+      {[
+        { icon: Edit, label: "Edit",onClick: () => handleEditProfile(expert) },
+        { icon: Eye, label: "View",onClick: () => handleViewProfile(expert)  },
+        { icon: User, label: "Image" ,onClick: () => handleChangeDP(expert) },
+        { icon: Video, label: "Video",onClick: () => handleChangeVideo(expert)  },
+        { icon: Calendar, label: "Timing",onClick: () => handleChangeTimings(expert)  },
+        { icon: CalendarDays, label: "Details",onClick: () => redirect(`/experts/${expert.id}/booking-details`)  },
+      ].map(({ icon: Icon, label,onClick }) => (
+        <div key={label} className="relative group flex flex-col items-center">
+          <Icon className="h-5 w-5 cursor-pointer" onClick={onClick}/>
+
+          <span className="absolute bottom-8 scale-0 group-hover:scale-100 transition bg-gradient-to-r from-[var(--primary-start)] to-[var(--primary-end)] text-white text-xs rounded px-2 py-1">
+            {label}
+          </span>
+        </div>
+      ))}
+
+    </div>
+  </div>
+</div>
 
               {/* Timings Section */}
               <div className="space-y-3">
@@ -598,12 +676,13 @@ export default function ExpertsPage() {
                   <ChevronDown className="h-4 w-4 text-gray-400" />
                 </div>
                 
+                <div className='bg-gradient-to-r from-[var(--primary-start)]  p-0.5 rounded-lg'>
                 <div className="bg-gray-50 rounded-lg p-3">
                   {expert.timings.length > 0 ? (
                     <div className="space-y-2">
                       {expert.timings.map((timing, index) => (
                         <div key={index} className="text-sm text-gray-600">
-                          {timing.day} – {timing.time}
+                          <span className='text-[var(--primary-end)]'>{timing.day}</span> – {timing.time}
                         </div>
                       ))}
                     </div>
@@ -611,12 +690,13 @@ export default function ExpertsPage() {
                     <div className="text-sm text-gray-500">No timings added</div>
                   )}
                 </div>
+                </div>
               </div>
             </CardContent>
           </Card>
         ))}
 
-        <Card className="w-[280px] border-dashed border-2 hover:border-primary/50 transition-colors cursor-pointer shadow-sm border-gray-100">
+        {/* <Card className="w-[280px] border-dashed border-2 hover:border-primary/50 transition-colors cursor-pointer shadow-sm border-gray-100">
           <CardContent className="p-6 flex flex-col items-center justify-center h-full min-h-[280px]">
             <div className="bg-primary/10 rounded-full p-4 mb-4">
               <Plus className="h-6 w-6 text-primary" />
@@ -626,7 +706,7 @@ export default function ExpertsPage() {
               Invite an expert to join your organization
             </p>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
 
       {/* Edit Profile Modal */}
@@ -1043,6 +1123,12 @@ export default function ExpertsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AddExpertModal
+        isOpen={addExpertModalOpen}
+        onClose={() => setAddExpertModalOpen(false)}
+        onAddExpert={handleAddExpert}
+      />
     </div>
   );
 }

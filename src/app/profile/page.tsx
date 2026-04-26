@@ -345,7 +345,7 @@ export default function ProfilePage() {
                 <AlertCircle className="h-4 w-4 text-yellow-500" />
                 <span className="text-sm">Profile Pending Review</span>
               </div>
-              <div className="pt-2 border-t">
+              <div className="pt-2 border-t border-[var(--primary-start)]">
                 <p className="text-xs text-muted-foreground">
                   Last updated: February 10, 2024
                 </p>
@@ -557,7 +557,7 @@ export default function ProfilePage() {
                     <label className="text-sm font-medium">Bio</label>
                     {isEditing ? (
                       <textarea
-                        className="w-full p-3 border rounded-md resize-none"
+                        className="w-full p-3 border border-[var(--primary-start)] rounded-md resize-none"
                         rows={4}
                         value={formData.description}
                         onChange={(e) => handleInputChange('description', e.target.value)}

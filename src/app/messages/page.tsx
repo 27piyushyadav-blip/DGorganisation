@@ -24,6 +24,8 @@ import {
   MessageSquare,
   Pause,
   Play,
+  Plus,
+  Minus,
 } from 'lucide-react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -39,6 +41,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import Modal from '@/components/modal/Modal';
+import { set } from 'zod';
 
 type MessageType = 'text' | 'pdf' | 'audio';
 
@@ -55,6 +59,8 @@ interface Message {
 }
 
 export default function MessagesPage() {
+  const [modalopen,setModalopen] = useState(false);
+  const [addservicemodalopen,setAddservicemodalopen] = useState(false);
   const [selectedChat, setSelectedChat] = useState<number | null>(null);
   const [selectedExpert, setSelectedExpert] = useState<string>('expert-1');
   const [messageInput, setMessageInput] = useState('');
@@ -230,57 +236,85 @@ export default function MessagesPage() {
     setSelectedChat(chatId);
   };
 
+  const openaddserviceModal = () => {
+    setAddservicemodalopen(true);
+    setModalopen(false);
+  };
+
   return (
-    <div className="flex-1 h-full">
-      <div className="flex h-full">
+    <div className="flex-1 h-full bg-[var(--card-bg-light)]">
+      <div className="flex h-full gap-3 p-3">
         {/* Left Panel - Expert List */}
-        <div className="w-80 border-r">
+        <div className="w-80 border rounded-2xl p-2 shadow-[2px_2px_4px_var(--primary-start)]  bg-[var(--card-bg-light)] ">
           <div className="p-4 border-b">
-            <h2 className="text-2xl font-bold mb-4">Experts</h2>
+            <h2 className="text-2xl font-bold mb-1">Customer</h2>
+            {/* <h3 className="text-lg font-semibold mb-2">
+              {organizationExperts.find(e => e.id === selectedExpert)?.name || 'Expert'} Chats
+            </h3> */}
             <div className="relative">
               <Search className="text-muted-foreground absolute top-2.5 left-2 h-4 w-4" />
               <Input
-                placeholder="Search experts..."
+                placeholder="Search chats..."
                 className="pl-8"
               />
             </div>
           </div>
           
-          <div className="overflow-y-auto">
-            {organizationExperts.map((expert) => (
-              <div
-                key={expert.id}
-                className={`p-4 border-b cursor-pointer hover:bg-accent transition-colors ${
-                  selectedExpert === expert.id ? 'bg-accent' : ''
-                }`}
-                onClick={() => handleExpertSelect(expert.id)}
-              >
-                <div className="flex items-start space-x-3">
-                  <Avatar className="h-12 w-12">
-                    <AvatarFallback>
-                      {expert.name.split(' ').map((n: string) => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium">{expert.name}</p>
-                    <p className="text-sm text-muted-foreground">{expert.specialty}</p>
-                    <div className="flex items-center justify-between mt-1">
-                      <p className="text-sm text-muted-foreground">
-                        {conversations.filter(c => c.expertId === expert.id).length} conversations
+          <div className="overflow-y-scroll scrollbar-hide">
+            {expertConversations.length > 0 ? (
+              expertConversations.map((conversation) => (
+                <div
+                  key={conversation.id}
+                  className={`p-4 border-b cursor-pointer hover:bg-[var(--card-bg)] transition-colors ${
+                    selectedChat === conversation.id ? 'bg-[var(--card-bg)]' : ''
+                  }`}
+                  onClick={() => handleChatSelect(conversation.id)}
+                >
+                  <div className="flex items-start space-x-3">
+                    <div className="relative">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={conversation.avatar} alt={conversation.name} />
+                        <AvatarFallback>
+                          {conversation.name.split(' ').map((n: string) => n[0]).join('')}
+                        </AvatarFallback>
+                      </Avatar>
+                      {conversation.status === 'online' && (
+                        <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border-2 border-background"></div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="font-medium truncate">{conversation.name}</p>
+                        <span className="text-xs text-muted-foreground">{conversation.time}</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {conversation.lastMessage}
                       </p>
-                      <Badge variant="secondary" className="ml-2">
-                        Active
-                      </Badge>
+                      <div className="flex items-center justify-between mt-1">
+                        <p className="text-xs text-muted-foreground">
+                          {conversation.status}
+                        </p>
+                        {conversation.unread > 0 && (
+                          <Badge variant="destructive" className="ml-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                            {conversation.unread}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
+              ))
+            ) : (
+              <div className="p-4 text-center text-muted-foreground">
+                <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>No chats found for this expert</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
 
         {/* Middle Section - Chat Conversation */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col border rounded-2xl p-2 border-[var(--primary-start)] bg-[var(--card-bg)]">
           {currentChat ? (
             <>
               {/* Chat Header */}
@@ -301,12 +335,12 @@ export default function MessagesPage() {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Button size="sm" variant="outline">
+                    {/* <Button size="sm" variant="outline">
                       <Phone className="h-4 w-4" />
                     </Button>
                     <Button size="sm" variant="outline">
                       <Video className="h-4 w-4" />
-                    </Button>
+                    </Button> */}
                     <div className="relative">
                       <Button 
                         size="sm" 
@@ -349,7 +383,7 @@ export default function MessagesPage() {
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[var(--card-bg-light)]">
                 {messages.map((message) => (
                   <div
                     key={message.id}
@@ -367,8 +401,8 @@ export default function MessagesPage() {
                       <div
                         className={`px-4 py-2 rounded-lg ${
                           message.sender === 'organization'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted'
+                            ? 'bg-[var(--primary-end)] text-primary-foreground'
+                            : 'bg-[var(--card-bg)]'
                         }`}
                       >
                         {/* Text message */}
@@ -433,8 +467,9 @@ export default function MessagesPage() {
               </div>
 
               {/* Message Input */}
-              <div className="p-4 border-t space-y-3">
+              <div className="p-4 border-t space-y-3 bg-[var(--card-bg)]">
                 {/* Organization Reply Toggle */}
+                <div className='flex justify-between'>
                 <div className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg">
                   <div className="flex items-center space-x-2">
                     <input
@@ -444,13 +479,15 @@ export default function MessagesPage() {
                       onChange={(e) => setIsOrganizationReply(e.target.checked)}
                       className="rounded border-gray-300"
                     />
+                    
                     <label htmlFor="org-reply" className="text-sm font-medium flex items-center space-x-2">
                       <Building2 className="h-4 w-4" />
                       <span>Reply as Organization</span>
                     </label>
                   </div>
                   
-                  {isOrganizationReply && (
+                  
+                  {/* {isOrganizationReply && (
                     <div className="flex items-center space-x-2 flex-1">
                       <span className="text-sm text-muted-foreground">on behalf of:</span>
                       <Select value={selectedExpert} onValueChange={setSelectedExpert}>
@@ -469,8 +506,31 @@ export default function MessagesPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                  )}
+                  )} */}
                 </div>
+
+
+                    <div className='flex gap-2'>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={()=>setModalopen(true)}
+                      >
+                        <Plus/>
+                        Give Offer
+                      </Button>
+
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+      
+
+                      >
+                        <Minus/>
+                        Cancel Offer
+                      </Button>
+                    </div>
+                  </div>
                 
                 {/* Attachment Preview */}
                 {(attachedPdf || audioBlob) && (
@@ -558,73 +618,155 @@ export default function MessagesPage() {
         </div>
 
         {/* Right Panel - Expert Chats */}
-        <div className="w-80 border-l">
+
+        <div className="w-80 border rounded-2xl p-2 shadow-[-2px_2px_4px_var(--primary-start)] bg-[var(--card-bg-light)] ">
           <div className="p-4 border-b">
-            <h3 className="text-lg font-semibold mb-2">
-              {organizationExperts.find(e => e.id === selectedExpert)?.name || 'Expert'} Chats
-            </h3>
+            <h2 className="text-2xl font-bold mb-4">Experts</h2>
             <div className="relative">
               <Search className="text-muted-foreground absolute top-2.5 left-2 h-4 w-4" />
               <Input
-                placeholder="Search chats..."
+                placeholder="Search experts..."
                 className="pl-8"
               />
             </div>
           </div>
           
-          <div className="overflow-y-auto">
-            {expertConversations.length > 0 ? (
-              expertConversations.map((conversation) => (
-                <div
-                  key={conversation.id}
-                  className={`p-4 border-b cursor-pointer hover:bg-accent transition-colors ${
-                    selectedChat === conversation.id ? 'bg-accent' : ''
-                  }`}
-                  onClick={() => handleChatSelect(conversation.id)}
-                >
-                  <div className="flex items-start space-x-3">
-                    <div className="relative">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={conversation.avatar} alt={conversation.name} />
-                        <AvatarFallback>
-                          {conversation.name.split(' ').map((n: string) => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                      {conversation.status === 'online' && (
-                        <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border-2 border-background"></div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <p className="font-medium truncate">{conversation.name}</p>
-                        <span className="text-xs text-muted-foreground">{conversation.time}</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {conversation.lastMessage}
+          <div className="overflow-y-scroll scrollbar-hide">
+            {organizationExperts.map((expert) => (
+              <div
+                key={expert.id}
+                className={`p-4 border-b cursor-pointer hover:bg-[var(--card-bg)] transition-colors ${
+                  selectedExpert === expert.id ? 'bg-[var(--card-bg)]' : ''
+                }`}
+                onClick={() => handleExpertSelect(expert.id)}
+              >
+                <div className="flex items-start space-x-3">
+                  <Avatar className="h-12 w-12">
+                    <AvatarFallback>
+                      {expert.name.split(' ').map((n: string) => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium">{expert.name}</p>
+                    <p className="text-sm text-muted-foreground">{expert.specialty}</p>
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-sm text-muted-foreground">
+                        {conversations.filter(c => c.expertId === expert.id).length} conversations
                       </p>
-                      <div className="flex items-center justify-between mt-1">
-                        <p className="text-xs text-muted-foreground">
-                          {conversation.status}
-                        </p>
-                        {conversation.unread > 0 && (
-                          <Badge variant="destructive" className="ml-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
-                            {conversation.unread}
-                          </Badge>
-                        )}
-                      </div>
+                      <Badge variant="secondary" className="ml-2">
+                        Active
+                      </Badge>
                     </div>
                   </div>
                 </div>
-              ))
-            ) : (
-              <div className="p-4 text-center text-muted-foreground">
-                <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>No chats found for this expert</p>
               </div>
-            )}
+            ))}
           </div>
         </div>
       </div>
+      <Modal 
+        isOpen={modalopen} 
+        onClose={() => setModalopen(false)} 
+        title="Expert Details"
+        cancelButtonText="Cancel"
+        confirmButtonText="Confirm Offer"
+        onCancel={() => {
+          // Optional: custom cancel logic (default is just close)
+          setModalopen(false);
+        }}
+        onConfirm={() => {
+          // Handle confirm offer logic here
+          console.log('Offer confirmed');
+          setModalopen(false);
+        }}
+      >
+        <div className="space-y-4">
+          {/* Select Services Section */}
+          <div>
+            <h4 className="font-medium mb-3">Select services for the offer</h4>
+            <div className="space-y-2 max-h-[10rem] overflow-y-scroll">
+              {[
+                { id: 1, name: 'Manicure', price: 20, image: '/images/manicure.jpg' },
+                { id: 2, name: 'Haircut', price: 100, image: '/images/haircut.jpg' },
+                { id: 3, name: 'Shaving', price: 7, image: '/images/shaving.jpg' }
+              ].map((service) => (
+                <div key={service.id} className="flex items-center justify-between p-3 bg-[var(--card-bg)] rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <img 
+                      src={service.image} 
+                      alt={service.name} 
+                      className="w-10 h-10 rounded-lg object-cover"
+                    />
+                    <div>
+                      <p className="font-medium">{service.name}</p>
+                      <p className="text-sm text-muted-foreground">${service.price}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+                      <Minus className="h-3 w-3" />
+                    </Button>
+                    <span className="text-sm font-medium">1</span>
+                    <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Create New Service Link */}
+            <div className='flex justify-end mt-2'>
+                             <Button
+                              variant="outline" className="flex-1 max-w-[10rem]"
+                              onClick={()=>openaddserviceModal()}
+                            >
+                              Create New Service
+                            </Button>
+                            </div>
+          </div>
+
+          {/* Total */}
+          <div className="border-t pt-4">
+            <div className="flex justify-between items-center">
+              <span className="font-semibold">Total</span>
+              <span className="text-xl font-bold">$127</span>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+
+
+      <Modal 
+        isOpen={addservicemodalopen} 
+        onClose={() => { setAddservicemodalopen(false); setModalopen(true)}} 
+        title="Expert Details"
+        cancelButtonText="Cancel"
+        confirmButtonText="Add"
+        onCancel={() => {
+          // Optional: custom cancel logic (default is just close)
+          setAddservicemodalopen(false);
+          setModalopen(true);
+        }}
+        onConfirm={() => {
+          setAddservicemodalopen(false);
+          setModalopen(true);
+        }}
+      >
+        <div className="space-y-4">
+          <input
+            type="text"
+            placeholder="Service Name"
+            className="w-full px-4 py-2 border border-[var(--primary-start)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary-start)] focus:border-[var(--primary-start)]"
+          />
+          <input
+            type="number"
+            placeholder="Price"
+            className="w-full px-4 py-2 border border-[var(--primary-start)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary-start)] focus:border-[var(--primary-start)]"
+          />
+        </div>
+      </Modal>
     </div>
   );
 }

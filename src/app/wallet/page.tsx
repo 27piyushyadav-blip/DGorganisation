@@ -110,7 +110,7 @@ export default function WalletPage() {
   };
 
   return (
-    <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
+    <div className="flex-1 space-y-6 p-4 pt-6 md:p-8 bg-[var(--card-bg-light)]">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -232,7 +232,7 @@ export default function WalletPage() {
         <CardContent>
           <div className="space-y-3">
             {recentTransactions.map((transaction) => (
-              <div key={transaction.id} className="flex items-center justify-between p-3 border rounded-lg">
+              <div key={transaction.id} className="flex items-center justify-between p-3 border border-[var(--primary-start)] rounded-lg">
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-1">
                     {getTransactionBadge(transaction.type, transaction.status)}

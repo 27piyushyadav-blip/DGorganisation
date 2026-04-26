@@ -122,7 +122,7 @@ export default function BankHistory() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 pt-6 md:p-8 bg-[var(--card-bg-light)]">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Bank Details History</h1>
         <div className="flex space-x-3">
@@ -174,7 +174,7 @@ export default function BankHistory() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b">
+                <tr className="border-b border-[var(--primary-start)]">
                   <th className="text-left p-3">Date & Time</th>
                   <th className="text-left p-3">Action</th>
                   <th className="text-left p-3">Account No</th>
@@ -187,7 +187,7 @@ export default function BankHistory() {
               </thead>
               <tbody>
                 {filteredHistory.map((entry) => (
-                  <tr key={entry.id} className="border-b hover:bg-gray-50">
+                  <tr key={entry.id} className="border-b border-[var(--primary-start)] hover:bg-[var(--card-bg-light)]">
                     <td className="p-3">
                       <div>
                         <div className="font-medium">{entry.date}</div>

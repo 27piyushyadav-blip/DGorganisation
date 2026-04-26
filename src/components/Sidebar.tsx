@@ -195,7 +195,7 @@ export default function Sidebar({ currentPage }: SidebarProps) {
   return (
     <>
       {/* Mobile menu button */}
-      <div className="fixed top-4 left-4 z-50 lg:hidden">
+      <div className="fixed top-4 left-4 z-50 lg:hidden ">
         <Button
           variant="outline"
           size="icon"
@@ -211,13 +211,13 @@ export default function Sidebar({ currentPage }: SidebarProps) {
 
       {/* Sidebar */}
       <div
-        className={`bg-card border-border fixed inset-y-0 left-0 z-40 transform border-r transition-all duration-300 ease-in-out lg:relative lg:translate-x-0 ${
+        className={`bg-[var(--card-bg)] border-border fixed inset-y-0 left-0 z-40 transform border-r transition-all duration-300 ease-in-out lg:relative lg:translate-x-0 ${
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
         } ${isCollapsed ? 'w-16' : 'w-64'} `}
       >
         <div className="flex h-full flex-col">
           {/* User info */}
-          <div className={`border-border border-b ${isCollapsed ? 'p-3' : 'p-6'}`}>
+          <div className={` border-b  border-[var(--primary-start)] ${isCollapsed ? 'p-3' : 'p-6'}`}>
             <div className="flex items-center justify-center">
               <Avatar className="h-10 w-10">
                 <AvatarImage
@@ -246,7 +246,7 @@ export default function Sidebar({ currentPage }: SidebarProps) {
           </div>
 
           {/* Navigation */}
-          <nav className={`flex-1 ${isCollapsed ? 'p-2' : 'p-4'}`}>
+          <nav className={`flex-1 ${isCollapsed ? 'p-2' : 'p-4'} max-h-[calc(100vh-8rem)] overflow-y-auto scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300`}>
             {menuItems.map((item) => {
               if (item.hasSubmenu) {
                 const isActive = 
@@ -259,8 +259,8 @@ export default function Sidebar({ currentPage }: SidebarProps) {
                     <button
                       className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} rounded-lg px-3 py-3 text-sm transition-colors w-full ${
                         isActive
-                          ? 'bg-primary text-primary-foreground'
-                          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                          ? 'bg-gradient-to-r from-[var(--primary-start)] to-[var(--primary-end)] text-primary-foreground'
+                          : 'text-accent-foreground hover:bg-[var(--card-bg-light)] hover:text-accent-foreground'
                       } `}
                       onClick={() => {
                         if (item.title === 'Communication') {
@@ -332,8 +332,8 @@ export default function Sidebar({ currentPage }: SidebarProps) {
                               href={subItem.href}
                               className={`flex items-center space-x-3 rounded-lg px-3 py-2 text-sm transition-colors ${
                                 isSubActive
-                                  ? 'bg-primary text-primary-foreground'
-                                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                                  ? 'bg-gradient-to-r from-[var(--primary-start)] to-[var(--primary-end)] text-primary-foreground'
+                                  : 'text-accent-foreground hover:bg-[var(--card-bg-light)] hover:text-accent-foreground'
                               } `}
                               onClick={() => setIsMobileMenuOpen(false)}
                             >
@@ -354,8 +354,8 @@ export default function Sidebar({ currentPage }: SidebarProps) {
                     href={item.href}
                     className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} rounded-lg px-3 py-3 text-sm transition-colors ${
                       isActive
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                        ? 'bg-gradient-to-r from-[var(--primary-start)] to-[var(--primary-end)] text-primary-foreground'
+                        : 'text-accent-foreground hover:bg-[var(--card-bg-light)] hover:text-accent-foreground'
                     } `}
                     onClick={() => setIsMobileMenuOpen(false)}
                     title={isCollapsed ? item.title : undefined}
@@ -371,7 +371,7 @@ export default function Sidebar({ currentPage }: SidebarProps) {
           </nav>
 
           {/* Footer */}
-          <div className={`border-border border-t ${isCollapsed ? 'p-2' : 'p-4'}`}>
+          <div className={` border-[var(--primary-start)] border-t ${isCollapsed ? 'p-2' : 'p-4'}`}>
             <Button 
               variant="ghost" 
               className={`${isCollapsed ? 'w-full justify-center' : 'w-full justify-start'}`}

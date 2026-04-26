@@ -294,7 +294,7 @@ export default function RefundsPage() {
   };
 
   return (
-    <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
+    <div className="flex-1 space-y-6 p-4 pt-6 md:p-8 bg-[var(--card-bg-light)]">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -366,7 +366,7 @@ export default function RefundsPage() {
         <CardContent>
           <div className="space-y-4">
             {bookings.map((booking) => (
-              <div key={booking.id} className="border rounded-lg p-4 space-y-3">
+              <div key={booking.id} className="border border-[var(--primary-start)] rounded-lg p-4 space-y-3">
                 {/* Auto Refund Timeline */}
                 {booking.autoRefunded && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
