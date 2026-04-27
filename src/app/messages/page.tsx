@@ -87,6 +87,7 @@ export default function MessagesPage() {
       discountType?: 'percent' | 'fixed' | null;
       discountValue?: number | null;
       quantity: number;
+      durationMinutes?: number;
     }>
   >([]);
   const [offerCurrency, setOfferCurrency] = useState('USD');
@@ -98,6 +99,17 @@ export default function MessagesPage() {
   const [recordingTime, setRecordingTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  
+  const getCurrencySymbol = (code: string) => {
+    switch (code) {
+      case 'AUD': return '$';
+      case 'USD': return '$';
+      case 'INR': return '₹';
+      case 'EUR': return '€';
+      case 'GBP': return '£';
+      default: return '$';
+    }
+  };
   const timerRef = useRef<any>(null);
   
   // File Upload Refs
@@ -207,6 +219,16 @@ export default function MessagesPage() {
                 }
                 return msg;
               }));
+            }
+          });
+          
+          socket.on('offer-updated', (data: any) => {
+            if (data.conversationId === selectedChatRef.current) {
+              setMessages(prev => prev.map(msg => 
+                msg.contentType === 'offer' && msg.payload?.id === data.offerId
+                  ? { ...msg, payload: { ...msg.payload, status: data.status } }
+                  : msg
+              ));
             }
           });
 
@@ -333,7 +355,8 @@ export default function MessagesPage() {
         next[idx] = { ...next[idx], quantity: next[idx].quantity + 1 };
         return next;
       }
-      return [...prev, { serviceId, quantity: 1 }];
+      const svc = menuServices.find((s: any) => s.id === serviceId);
+      return [...prev, { serviceId, quantity: 1, durationMinutes: svc?.durationMinutes || 0 }];
     });
   };
 
@@ -352,7 +375,7 @@ export default function MessagesPage() {
   };
 
   const addCustomItem = () => {
-    setOfferItems((prev) => [...prev, { name: '', basePrice: 0, discountType: null, discountValue: null, quantity: 1 }]);
+    setOfferItems((prev) => [...prev, { name: '', basePrice: 0, discountType: null, discountValue: null, quantity: 1, durationMinutes: 30 }]);
   };
 
   const updateCustomItem = (
@@ -364,6 +387,7 @@ export default function MessagesPage() {
       discountType?: 'percent' | 'fixed' | null;
       discountValue?: number | null;
       quantity: number;
+      durationMinutes?: number;
     }>,
   ) => {
     setOfferItems((prev) => prev.map((it, i) => (i === index ? { ...it, ...patch } : it)));
@@ -373,7 +397,7 @@ export default function MessagesPage() {
     if (!selectedChat) return;
     const items = offerItems
       .map((it) => {
-        if (it.serviceId) return { serviceId: it.serviceId, quantity: it.quantity };
+        if (it.serviceId) return { serviceId: it.serviceId, quantity: it.quantity, durationMinutes: it.durationMinutes };
         if (!it.name) return null;
         return {
           name: it.name,
@@ -381,6 +405,7 @@ export default function MessagesPage() {
           discountType: it.discountType || null,
           discountValue: it.discountValue === null || it.discountValue === undefined ? null : Number(it.discountValue),
           quantity: it.quantity,
+          durationMinutes: it.durationMinutes || 0,
         };
       })
       .filter(Boolean);
@@ -946,7 +971,7 @@ export default function MessagesPage() {
                       <div key={svc.id} className="flex items-center justify-between gap-3 p-3 border-b last:border-b-0">
                         <div className="min-w-0">
                           <p className="text-sm font-medium truncate">{svc.name}</p>
-                          <p className="text-xs text-muted-foreground">${Number(svc.basePrice || 0).toFixed(2)}</p>
+                          <p className="text-xs text-muted-foreground">{getCurrencySymbol(offerCurrency)}{Number(svc.basePrice || 0).toFixed(2)} {svc.durationMinutes ? `• ${svc.durationMinutes}m` : ''}</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <Button size="sm" variant="outline" onClick={() => removeServiceFromOffer(svc.id)} disabled={!selected}>
@@ -981,7 +1006,7 @@ export default function MessagesPage() {
                         <div key={`${it.serviceId}_${idx}`} className="flex items-center justify-between gap-3">
                           <div className="min-w-0">
                             <p className="text-sm font-medium truncate">{svc?.name || 'Service'}</p>
-                            <p className="text-xs text-muted-foreground">Qty {it.quantity}</p>
+                            <p className="text-xs text-muted-foreground">Qty {it.quantity} • {it.durationMinutes}m</p>
                           </div>
                           <div className="flex items-center gap-2">
                             <Button size="sm" variant="outline" onClick={() => removeServiceFromOffer(it.serviceId!)}>
@@ -996,14 +1021,29 @@ export default function MessagesPage() {
                     }
 
                     return (
-                      <div key={`custom_${idx}`} className="border rounded-lg p-3 space-y-2">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="space-y-1">
+                      <div key={`custom_${idx}`} className="border rounded-lg p-4 space-y-4 bg-muted/30">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 space-y-1">
                             <Label className="text-xs">Service name</Label>
-                            <Input value={it.name || ''} onChange={(e) => updateCustomItem(idx, { name: e.target.value })} />
+                            <Input 
+                                value={it.name || ''} 
+                                onChange={(e) => updateCustomItem(idx, { name: e.target.value })} 
+                                placeholder="Custom service name"
+                            />
                           </div>
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            onClick={() => setOfferItems(prev => prev.filter((_, i) => i !== idx))} 
+                            className="mt-6 h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-3">
                           <div className="space-y-1">
-                            <Label className="text-xs">Price</Label>
+                            <Label className="text-xs">Price ({getCurrencySymbol(offerCurrency)})</Label>
                             <Input
                               type="number"
                               step="0.01"
@@ -1011,22 +1051,38 @@ export default function MessagesPage() {
                               onChange={(e) => updateCustomItem(idx, { basePrice: Number(e.target.value) })}
                             />
                           </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Duration (min)</Label>
+                            <Input
+                              type="number"
+                              value={it.durationMinutes ?? 30}
+                              onChange={(e) => updateCustomItem(idx, { durationMinutes: Number(e.target.value) })}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Quantity</Label>
+                            <Input
+                              type="number"
+                              value={it.quantity}
+                              onChange={(e) => updateCustomItem(idx, { quantity: Math.max(1, Number(e.target.value || 1)) })}
+                            />
+                          </div>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-2 items-end">
+                        <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1">
                             <Label className="text-xs">Discount type</Label>
                             <Select
                               value={it.discountType || 'none'}
                               onValueChange={(v) => updateCustomItem(idx, { discountType: v === 'none' ? null : (v as any) })}
                             >
-                              <SelectTrigger className="h-9">
+                              <SelectTrigger>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="none">None</SelectItem>
-                                <SelectItem value="percent">%</SelectItem>
-                                <SelectItem value="fixed">Fixed</SelectItem>
+                                <SelectItem value="percent">Percentage (%)</SelectItem>
+                                <SelectItem value="fixed">Fixed Amount</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -1038,14 +1094,6 @@ export default function MessagesPage() {
                               value={it.discountValue ?? ''}
                               onChange={(e) => updateCustomItem(idx, { discountValue: e.target.value === '' ? null : Number(e.target.value) })}
                               disabled={!it.discountType}
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">Qty</Label>
-                            <Input
-                              type="number"
-                              value={it.quantity}
-                              onChange={(e) => updateCustomItem(idx, { quantity: Math.max(1, Number(e.target.value || 1)) })}
                             />
                           </div>
                         </div>
