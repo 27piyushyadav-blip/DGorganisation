@@ -64,11 +64,12 @@ const addExpertSchema = z.object({
 });
 
 type AddExpertFormData = z.infer<typeof addExpertSchema>;
+export type { AddExpertFormData };
 
 interface AddExpertModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddExpert: (data: AddExpertFormData) => void;
+  onAddExpert: (data: AddExpertFormData) => Promise<void>;
 }
 
 const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -80,6 +81,12 @@ const timeSlots = Array.from({ length: 24 }, (_, i) => {
 export default function AddExpertModal({ isOpen, onClose, onAddExpert }: AddExpertModalProps) {
   const [languageInput, setLanguageInput] = useState('');
   const [tagInput, setTagInput] = useState('');
+  const [submitError, setSubmitError] = useState('');
+
+  const handleModalClose = () => {
+    setSubmitError('');
+    onClose();
+  };
 
   const {
     register,
@@ -155,9 +162,16 @@ export default function AddExpertModal({ isOpen, onClose, onAddExpert }: AddExpe
   };
 
   const onSubmit = async (data: AddExpertFormData) => {
-    await onAddExpert(data);
-    reset();
-    onClose();
+    setSubmitError('');
+
+    try {
+      await onAddExpert(data);
+      reset();
+      handleModalClose();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to add expert';
+      setSubmitError(message);
+    }
   };
 
   if (!isOpen) return null;
@@ -165,17 +179,22 @@ export default function AddExpertModal({ isOpen, onClose, onAddExpert }: AddExpe
 return (
   <Modal
     isOpen={isOpen}
-    onClose={onClose}
+    onClose={handleModalClose}
     title="Add New Expert"
     size="xl"
     showCloseButton={true}
     confirmButtonText="Add Expert"
     cancelButtonText="Cancel"
     onConfirm={handleSubmit(onSubmit)}
-    onCancel={onClose}
+    onCancel={handleModalClose}
     isConfirmLoading={isSubmitting}
   >
     <form id="add-expert-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-[var(--card-bg-light)]">
+      {submitError && (
+        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          {submitError}
+        </div>
+      )}
       {/* Basic Information */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-900 border-b border-[var(--primary-start)] pb-2">Basic Information</h3>

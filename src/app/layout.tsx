@@ -5,6 +5,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { AuthProvider } from '@/contexts/auth-context';
 
 import './globals.css';
+import { Toaster } from 'sonner';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -23,6 +24,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <AuthProvider>
           <DashboardLayout>{children}</DashboardLayout>
+          <Toaster position="top-right" richColors closeButton />
         </AuthProvider>
       </body>
     </html>

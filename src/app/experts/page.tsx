@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import {Toaster , toast } from 'sonner';
 
 import {
   CheckCircle,
@@ -25,7 +26,6 @@ import {
   Upload,
   Camera,
   Trash2,
-  menu,
   Menu,
 } from 'lucide-react';
 
@@ -53,9 +53,14 @@ import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import AddExpertModal from '@/components/expert/AddExpertModal';
+import ChangeExpertTimingsModal from '@/components/expert/ChangeExpertTimingsModal';
+import type { AddExpertFormData } from '@/components/expert/AddExpertModal';
+import { createExpertApi, deleteExpertApi, updateExpertTimingsApi, uploadExpertAvatarApi } from '@/client/api/experts';
+import { showConfirmDialog } from '@/components/ui/confirm-dialog';
+import Swal from 'sweetalert2';
 
 interface Expert {
-  id: number;
+  id: number | string;
   name: string;
   username: string;
   avatar: string;
@@ -80,18 +85,11 @@ interface EditFormData {
   services?: string; // String for form input
 }
 
-interface TimingSlot {
-  id: string;
-  day: string;
-  startTime: string;
-  endTime: string;
-  isAvailable: boolean;
-}
-
 export default function ExpertsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('all');
-  const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
+  const [openDropdownId, setOpenDropdownId] = useState<number | string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [experts, setExperts] = useState<Expert[]>([
     {
       id: 1,
@@ -120,6 +118,7 @@ export default function ExpertsPage() {
       status: 'active',
       rating: 4.6,
       timings: [
+        { day: 'Mon', time: '10AM - 6PM' },
         { day: 'Tue', time: '10AM - 6PM' },
         { day: 'Thu', time: '10AM - 6PM' },
         { day: 'Sat', time: '10AM - 2PM' },
@@ -176,7 +175,6 @@ export default function ExpertsPage() {
   
   // Form states
   const [editForm, setEditForm] = useState<EditFormData>({});
-  const [timingSlots, setTimingSlots] = useState<TimingSlot[]>([]);
   const [newAvatar, setNewAvatar] = useState<string>('');
   const [newVideo, setNewVideo] = useState<string>('');
   const [uploadedImageFile, setUploadedImageFile] = useState<File | null>(null);
@@ -197,31 +195,48 @@ export default function ExpertsPage() {
     return matchesSearch && matchesView;
   });
 
+  const formatUsername = (username: string) =>
+    username.startsWith('@') ? username : `@${username}`;
+
+  const getNextExpertId = () =>
+    experts.reduce((maxId, expert) => {
+      const numericId =
+        typeof expert.id === 'number' ? expert.id : Number.parseInt(expert.id, 10);
+
+      return Number.isNaN(numericId) ? maxId : Math.max(maxId, numericId);
+    }, 0) + 1;
 
   // Add this new handler for adding experts
-  const handleAddExpert = async (expertData: any) => {
-    // Transform the form data to match your Expert interface
-    const newExpert: Expert = {
-      id: experts.length + 1,
-      name: expertData.name,
-      username: expertData.username,
-      avatar: '/avatars/default.jpg', // Default avatar
-      status: 'active',
-      rating: 0, // Will be updated later
-      timings: expertData.availability.map((avail: any) => ({
-        day: avail.dayOfWeek.slice(0, 3), // Convert "Monday" to "Mon"
-        time: `${avail.startTime} - ${avail.endTime}`
-      })),
-      totalBookings: 0,
-      revenue: 0,
-      services: expertData.services.map((service: any) => service.name),
-      email: expertData.email,
-      phone: '', // Not in form, can be added later
-      bio: expertData.bio,
-    };
-    
-    setExperts(prev => [...prev, newExpert]);
-    console.log('New expert added:', expertData);
+  const handleAddExpert = async (expertData: AddExpertFormData) => {
+    try {
+      const createdExpert = await createExpertApi(expertData);
+
+      const newExpert: Expert = {
+        id: createdExpert.id ?? getNextExpertId(),
+        name: expertData.name,
+        username: formatUsername(expertData.username),
+        avatar: '/avatars/default.jpg', // Default avatar
+        status: 'active',
+        rating: 0, // Will be updated later
+        timings: expertData.availability.map((avail) => ({
+          day: avail.dayOfWeek.slice(0, 3), // Convert "Monday" to "Mon"
+          time: `${avail.startTime} - ${avail.endTime}`
+        })),
+        totalBookings: 0,
+        revenue: 0,
+        services: expertData.services.map((service) => service.name),
+        email: expertData.email,
+        phone: '', // Not in form, can be added later
+        bio: expertData.bio,
+      };
+
+      setExperts(prev => [...prev, newExpert]);
+      toast.success('Expert created successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to create expert';
+      toast.error(message);
+      throw error;
+    }
   };
 
   // Handler functions
@@ -265,31 +280,6 @@ export default function ExpertsPage() {
 
   const handleChangeTimings = (expert: Expert) => {
     setSelectedExpert(expert);
-    
-    // Convert existing timings to timing slots format
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const slots: TimingSlot[] = days.map(day => {
-      const existingTiming = expert.timings.find(t => t.day === day);
-      if (existingTiming) {
-        const [start, end] = existingTiming.time.split(' - ');
-        return {
-          id: `${day}-${expert.id}`,
-          day,
-          startTime: start,
-          endTime: end,
-          isAvailable: true,
-        };
-      }
-      return {
-        id: `${day}-${expert.id}`,
-        day,
-        startTime: '9AM',
-        endTime: '5PM',
-        isAvailable: false,
-      };
-    });
-    
-    setTimingSlots(slots);
     setChangeTimingsOpen(true);
     setOpenDropdownId(null);
   };
@@ -303,12 +293,43 @@ export default function ExpertsPage() {
     setOpenDropdownId(null);
   };
 
-  const handleDisconnectExpert = (expert: Expert) => {
-    if (confirm(`Are you sure you want to disconnect ${expert.name}? This action cannot be undone.`)) {
-      setExperts(prev => prev.filter(e => e.id !== expert.id));
-      setOpenDropdownId(null);
-    }
-  };
+    const handleDisconnectExpert = async (expert: Expert) => {
+      const confirmed = await showConfirmDialog({
+        title: 'Delete Expert',
+        text: `Are you sure you want to delete ${expert.name}? This action cannot be undone.`,
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'Cancel',
+        icon: 'warning'
+      });
+
+      if (confirmed) {
+        // Show loading
+        Swal.fire({
+          title: 'Deleting...',
+          text: 'Please wait',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+
+        try {
+          await deleteExpertApi(expert.id);
+          
+          // Remove from local state
+          setExperts(prev => prev.filter(e => e.id !== expert.id));
+          
+          // Close loading and show success
+          Swal.close();
+          toast.success(`${expert.name} has been deleted successfully`);
+          setOpenDropdownId(null);
+        } catch (error) {
+          Swal.close();
+          const message = error instanceof Error ? error.message : 'Failed to delete expert';
+          toast.error(message);
+        }
+      }
+    };
 
   const handleSaveProfile = () => {
     if (!selectedExpert) return;
@@ -329,92 +350,90 @@ export default function ExpertsPage() {
     setEditProfileOpen(false);
   };
 
-  const handleSaveTimings = () => {
+  const handleSaveTimings = async (
+    availability: { dayOfWeek: string; startTime: string; endTime: string }[]
+  ) => {
     if (!selectedExpert) return;
-    
-    const updatedTimings = timingSlots
-      .filter(slot => slot.isAvailable)
-      .map(slot => ({
-        day: slot.day,
+
+    try {
+      await updateExpertTimingsApi(selectedExpert.id, { availability });
+
+      const updatedTimings = availability.map((slot) => ({
+        day: slot.dayOfWeek.slice(0, 3),
         time: `${slot.startTime} - ${slot.endTime}`,
       }));
-    
-    setExperts(prev => prev.map(e => 
-      e.id === selectedExpert.id 
-        ? { ...e, timings: updatedTimings }
-        : e
-    ));
-    setChangeTimingsOpen(false);
-  };
 
-  const handleTimingToggle = (slotId: string) => {
-    setTimingSlots(prev => prev.map(slot => 
-      slot.id === slotId 
-        ? { ...slot, isAvailable: !slot.isAvailable }
-        : slot
-    ));
-  };
-
-  const handleTimingTimeChange = (slotId: string, field: 'startTime' | 'endTime', value: string) => {
-    setTimingSlots(prev => prev.map(slot => 
-      slot.id === slotId 
-        ? { ...slot, [field]: value }
-        : slot
-    ));
+      setExperts((prev) =>
+        prev.map((expert) =>
+          expert.id === selectedExpert.id
+            ? { ...expert, timings: updatedTimings }
+            : expert
+        )
+      );
+      setChangeTimingsOpen(false);
+      toast.success('Expert timings updated successfully');
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to update expert timings';
+      toast.error(message);
+      throw error;
+    }
   };
 
   // File upload handlers
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        alert('Please select an image file');
-        return;
-      }
-      
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        alert('Image file size should be less than 5MB');
-        return;
-      }
-      
-      setUploadedImageFile(file);
-      
-      // Create preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setImagePreview(result);
-        setNewAvatar(result);
-      };
-      reader.readAsDataURL(file);
+  const file = event.target.files?.[0];
+  if (file) {
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Please select a valid image file (JPEG, PNG, GIF, WEBP)');
+      return;
     }
-  };
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image file size should be less than 5MB');
+      return;
+    }
+    
+    setUploadedImageFile(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      setImagePreview(result);
+      setNewAvatar(result);
+    };
+    reader.readAsDataURL(file);
+  }
+};
 
   const handleVideoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith('video/')) {
-        alert('Please select a video file');
-        return;
-      }
-      
-      // Validate file size (max 50MB)
-      if (file.size > 50 * 1024 * 1024) {
-        alert('Video file size should be less than 50MB');
-        return;
-      }
-      
-      setUploadedVideoFile(file);
-      
-      // Create preview URL
-      const videoUrl = URL.createObjectURL(file);
-      setVideoPreview(videoUrl);
-      setNewVideo(videoUrl);
+  const file = event.target.files?.[0];
+  if (file) {
+    // Validate file type
+    const allowedTypes = ['video/mp4', 'video/webm', 'video/ogg'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Please select a valid video file (MP4, WEBM, OGG)');
+      return;
     }
-  };
+    
+    // Validate file size (max 50MB)
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error('Video file size should be less than 50MB');
+      return;
+    }
+    
+    setUploadedVideoFile(file);
+    
+    // Create preview URL
+    const videoUrl = URL.createObjectURL(file);
+    setVideoPreview(videoUrl);
+    setNewVideo(videoUrl);
+  }
+};  
 
   const handleImageRemove = () => {
     setUploadedImageFile(null);
@@ -431,45 +450,69 @@ export default function ExpertsPage() {
     setNewVideo(selectedExpert?.videoUrl || '');
   };
 
-  // Update save handlers to include file upload
-  const handleSaveDP = () => {
-    if (!selectedExpert) return;
-    
-    let finalAvatarUrl = newAvatar;
-    
-    // If we have an uploaded file, in a real app you would upload it to a server
-    if (uploadedImageFile) {
-      // For demo purposes, we'll use the preview URL
-      // In production, you would upload to cloud storage and get the URL
-      console.log('Uploading image:', uploadedImageFile.name);
-      finalAvatarUrl = imagePreview;
-    }
-    
-    setExperts(prev => prev.map(e => 
-      e.id === selectedExpert.id 
-        ? { ...e, avatar: finalAvatarUrl }
-        : e
-    ));
-    
-    // Reset states
-    setUploadedImageFile(null);
-    setImagePreview('');
-    setChangeDPOpen(false);
-  };
+  // Update the handleSaveDP function with loading state
+    const handleSaveDP = async () => {
+      if (!selectedExpert) return;
+      
+      setIsUploading(true);
+      
+      try {
+        let finalAvatarUrl = newAvatar;
+        
+        // If we have an uploaded file, upload it to the server
+        if (uploadedImageFile) {
+          const response = await uploadExpertAvatarApi(uploadedImageFile);
+          
+          if (response.avatarUrl) {
+            finalAvatarUrl = response.avatarUrl;
+          } else {
+            toast.error('Failed to upload image');
+            return;
+          }
+        }
+        
+        // Update expert with new avatar URL
+        setExperts(prev => prev.map(e => 
+          e.id === selectedExpert.id 
+            ? { ...e, avatar: finalAvatarUrl }
+            : e
+        ));
+        
+        // Reset states
+        setUploadedImageFile(null);
+        setImagePreview('');
+        setChangeDPOpen(false);
+        toast.success('Profile picture updated successfully');
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to upload image';
+        toast.error(message);
+      } finally {
+        setIsUploading(false);
+      }
+    };
 
-  const handleSaveVideo = () => {
-    if (!selectedExpert) return;
-    
+  // Update the handleSaveVideo function with loading state
+const handleSaveVideo = async () => {
+  if (!selectedExpert) return;
+  
+  setIsUploading(true);
+  
+  try {
     let finalVideoUrl = newVideo;
     
-    // If we have an uploaded file, in a real app you would upload it to a server
+    // If we have an uploaded file, upload it to the server
     if (uploadedVideoFile) {
-      // For demo purposes, we'll use the preview URL
-      // In production, you would upload to cloud storage and get the URL
-      console.log('Uploading video:', uploadedVideoFile.name);
-      finalVideoUrl = videoPreview;
+      const response = await uploadExpertVideoApi(uploadedVideoFile);
+      
+      if (response.videoUrl) {
+        finalVideoUrl = response.videoUrl;
+      } else {
+        toast.error('Failed to upload video');
+        return;
+      }
     }
     
+    // Update expert with new video URL
     setExperts(prev => prev.map(e => 
       e.id === selectedExpert.id 
         ? { ...e, videoUrl: finalVideoUrl }
@@ -483,7 +526,14 @@ export default function ExpertsPage() {
     }
     setVideoPreview('');
     setChangeVideoOpen(false);
-  };
+    toast.success('Video updated successfully');
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to upload video';
+    toast.error(message);
+  } finally {
+    setIsUploading(false);
+  }
+};
 
   return (
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
@@ -642,29 +692,29 @@ export default function ExpertsPage() {
               </div> */}
 
               <div className="space-y-3 mb-5">
-  <div className="flex items-center">
-    <div className="flex justify-between w-full text-gray-700">
+                <div className="flex items-center">
+                  <div className="flex justify-between w-full text-gray-700">
 
-      {[
-        { icon: Edit, label: "Edit",onClick: () => handleEditProfile(expert) },
-        { icon: Eye, label: "View",onClick: () => handleViewProfile(expert)  },
-        { icon: User, label: "Image" ,onClick: () => handleChangeDP(expert) },
-        { icon: Video, label: "Video",onClick: () => handleChangeVideo(expert)  },
-        { icon: Calendar, label: "Timing",onClick: () => handleChangeTimings(expert)  },
-        { icon: CalendarDays, label: "Details",onClick: () => redirect(`/experts/${expert.id}/booking-details`)  },
-      ].map(({ icon: Icon, label,onClick }) => (
-        <div key={label} className="relative group flex flex-col items-center">
-          <Icon className="h-5 w-5 cursor-pointer" onClick={onClick}/>
+                    {[
+                      { icon: Edit, label: "Edit",onClick: () => handleEditProfile(expert) },
+                      { icon: Eye, label: "View",onClick: () => handleViewProfile(expert)  },
+                      { icon: User, label: "Image" ,onClick: () => handleChangeDP(expert) },
+                      { icon: Video, label: "Video",onClick: () => handleChangeVideo(expert)  },
+                      { icon: Calendar, label: "Timing",onClick: () => handleChangeTimings(expert)  },
+                      { icon: CalendarDays, label: "Details",onClick: () => redirect(`/experts/${expert.id}/booking-details`)  },
+                    ].map(({ icon: Icon, label,onClick }) => (
+                      <div key={label} className="relative group flex flex-col items-center">
+                        <Icon className="h-5 w-5 cursor-pointer" onClick={onClick}/>
 
-          <span className="absolute bottom-8 scale-0 group-hover:scale-100 transition bg-gradient-to-r from-[var(--primary-start)] to-[var(--primary-end)] text-white text-xs rounded px-2 py-1">
-            {label}
-          </span>
-        </div>
-      ))}
+                        <span className="absolute bottom-8 scale-0 group-hover:scale-100 transition bg-gradient-to-r from-[var(--primary-start)] to-[var(--primary-end)] text-white text-xs rounded px-2 py-1">
+                          {label}
+                        </span>
+                      </div>
+                    ))}
 
-    </div>
-  </div>
-</div>
+                  </div>
+                </div>
+              </div>
 
               {/* Timings Section */}
               <div className="space-y-3">
@@ -677,7 +727,7 @@ export default function ExpertsPage() {
                 </div>
                 
                 <div className='bg-gradient-to-r from-[var(--primary-start)]  p-0.5 rounded-lg'>
-                <div className="bg-gray-50 rounded-lg p-3">
+                <div className="bg-gray-50 rounded-lg p-3 overflow-y-scroll scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-red-800" style={{height:'6rem'}}>
                   {expert.timings.length > 0 ? (
                     <div className="space-y-2">
                       {expert.timings.map((timing, index) => (
@@ -787,7 +837,7 @@ export default function ExpertsPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button type="submit" onClick={handleSaveProfile}>
+            <Button type="submit" onClick={handleSaveProfile} >
               Save Changes
             </Button>
           </DialogFooter>
@@ -866,7 +916,7 @@ export default function ExpertsPage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-sm text-gray-500">No timings added</div>
+                    <div className="text-sm text-gray-500 ">No timings added</div>
                   )}
                 </div>
               </div>
@@ -952,8 +1002,8 @@ export default function ExpertsPage() {
             }}>
               Cancel
             </Button>
-            <Button onClick={handleSaveDP}>
-              Save Changes
+            <Button onClick={handleSaveDP} disabled={isUploading}>
+              {isUploading ? 'Uploading...' : 'Save Changes'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1051,74 +1101,8 @@ export default function ExpertsPage() {
             }}>
               Cancel
             </Button>
-            <Button onClick={handleSaveVideo}>
-              Save Changes
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Change Timings Modal */}
-      <Dialog open={changeTimingsOpen} onOpenChange={setChangeTimingsOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Manage Expert Timings</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            {timingSlots.map((slot) => (
-              <div key={slot.id} className="flex items-center space-x-4 p-4 border rounded-lg">
-                <div className="flex items-center space-x-2 flex-1">
-                  <input
-                    type="checkbox"
-                    checked={slot.isAvailable}
-                    onChange={() => handleTimingToggle(slot.id)}
-                    className="h-4 w-4"
-                  />
-                  <Label className="font-medium w-12">{slot.day}</Label>
-                </div>
-                {slot.isAvailable && (
-                  <>
-                    <Select
-                      value={slot.startTime}
-                      onValueChange={(value) => handleTimingTimeChange(slot.id, 'startTime', value)}
-                    >
-                      <SelectTrigger className="w-24">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {['8AM', '9AM', '10AM', '11AM', '12PM', '1PM', '2PM', '3PM', '4PM', '5PM', '6PM', '7PM', '8PM', '9PM'].map(time => (
-                          <SelectItem key={time} value={time}>{time}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <span className="text-sm text-gray-500">to</span>
-                    <Select
-                      value={slot.endTime}
-                      onValueChange={(value) => handleTimingTimeChange(slot.id, 'endTime', value)}
-                    >
-                      <SelectTrigger className="w-24">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {['9AM', '10AM', '11AM', '12PM', '1PM', '2PM', '3PM', '4PM', '5PM', '6PM', '7PM', '8PM', '9PM', '10PM'].map(time => (
-                          <SelectItem key={time} value={time}>{time}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </>
-                )}
-                {!slot.isAvailable && (
-                  <span className="text-sm text-gray-500 italic">Not Available</span>
-                )}
-              </div>
-            ))}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setChangeTimingsOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSaveTimings}>
-              Save Timings
+            <Button onClick={handleSaveVideo} disabled={isUploading}>
+             {isUploading ? 'Uploading...' : 'Save Changes'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1128,6 +1112,14 @@ export default function ExpertsPage() {
         isOpen={addExpertModalOpen}
         onClose={() => setAddExpertModalOpen(false)}
         onAddExpert={handleAddExpert}
+      />
+
+      <ChangeExpertTimingsModal
+        isOpen={changeTimingsOpen}
+        expertName={selectedExpert?.name}
+        timings={selectedExpert?.timings ?? []}
+        onClose={() => setChangeTimingsOpen(false)}
+        onSave={handleSaveTimings}
       />
     </div>
   );
