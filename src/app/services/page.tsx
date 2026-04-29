@@ -274,7 +274,7 @@ export default function ServicesPage() {
               <div className="p-4 border-b border-gray-100 bg-[var(--card-bg)]">
                 <h3 className="font-semibold text-gray-900">Categories</h3>
               </div>
-              <div className="p-2 max-h-[13rem] overflow-y-auto">
+              <div className="p-2 max-h-[13rem] min-h-[13rem] overflow-y-auto">
                 {categories.map((category) => (
                   <button
                     key={category.id}
