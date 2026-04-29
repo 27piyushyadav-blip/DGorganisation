@@ -55,7 +55,7 @@ import { redirect } from 'next/navigation';
 import AddExpertModal from '@/components/expert/AddExpertModal';
 import ChangeExpertTimingsModal from '@/components/expert/ChangeExpertTimingsModal';
 import type { AddExpertFormData } from '@/components/expert/AddExpertModal';
-import { createExpertApi, deleteExpertApi, updateExpertTimingsApi, uploadExpertAvatarApi } from '@/client/api/experts';
+import { createExpertApi, deleteExpertApi, updateExpertTimingsApi, uploadExpertAvatarApi, uploadExpertVideoApi } from '@/client/api/experts';
 import { showConfirmDialog } from '@/components/ui/confirm-dialog';
 import Swal from 'sweetalert2';
 
