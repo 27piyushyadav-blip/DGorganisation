@@ -85,7 +85,18 @@ interface EditFormData {
   phone?: string;
   bio?: string;
   specialization?: string;
-  services?: string;
+  experience?: string;
+  consultationFee?: string;
+  languages?: string;
+  tags?: string;
+  education?: any[];
+  workHistory?: any[];
+  services?: any[];
+  availability?: any[];
+  socialLinks?: Record<string, string>;
+  location?: string;
+  gender?: string;
+  timezone?: string;
 }
 
 interface TimingSlot {
@@ -158,17 +169,42 @@ export default function ExpertsPage() {
   });
 
   // Handler functions
-  const handleEditProfile = (expert: Expert) => {
-    setSelectedExpert(expert);
-    setEditForm({
-      name: expert.name,
-      username: expert.username,
-      email: expert.email,
-      phone: expert.phone,
-      bio: expert.bio,
-      specialization: (expert as any).specialization || '',
-      services: expert.services.join(', '),
-    });
+  const handleEditProfile = async (expert: Expert) => {
+    try {
+      const details = await apiClient<any>(`${API_BASE}/organizations/experts/${expert.id}`);
+      setSelectedExpert(details);
+      setEditForm({
+        name: details.name,
+        username: details.username,
+        email: details.email,
+        phone: details.phone,
+        bio: details.bio,
+        specialization: details.specialization,
+        experience: String(details.experience || '0'),
+        consultationFee: String(details.consultationFee || '0'),
+        languages: (details.languages || []).join(', '),
+        tags: (details.tags || []).join(', '),
+        education: details.education || [],
+        workHistory: details.workHistory || [],
+        services: details.services || [],
+        availability: details.availability || [],
+        socialLinks: details.socialLinks || {},
+        location: details.location || '',
+        gender: details.gender || '',
+        timezone: details.timezone || 'UTC',
+      });
+    } catch (error) {
+      console.error("Failed to fetch expert details for edit:", error);
+      setSelectedExpert(expert);
+      setEditForm({
+        name: expert.name,
+        username: expert.username,
+        email: expert.email,
+        phone: expert.phone,
+        bio: expert.bio,
+        services: expert.services.map(s => ({ name: s })),
+      });
+    }
     setEditProfileOpen(true);
     setOpenDropdownId(null);
   };
@@ -310,35 +346,21 @@ export default function ExpertsPage() {
     
     try {
       const payload = {
-        name: editForm.name,
-        username: editForm.username,
-        email: editForm.email,
-        bio: editForm.bio,
-        specialization: editForm.name, // The backend uses specialization, but the form has name? Wait, let me check specialization field in editForm
-        // editForm doesn't have specialization? Ah, let me check handleEditProfile
+        ...editForm,
+        experience: Number(editForm.experience) || 0,
+        languages: editForm.languages?.split(',').map((l: string) => l.trim()).filter(Boolean) || [],
+        tags: editForm.tags?.split(',').map((t: string) => t.trim()).filter(Boolean) || [],
       };
 
       await apiClient(`${API_BASE}/organizations/experts/${selectedExpert.id}`, {
         method: 'PUT',
-        body: JSON.stringify({
-          ...payload,
-          services: editForm.services?.split(',').map((s: string) => ({ name: s.trim() })).filter((s: any) => s.name)
-        }),
+        body: JSON.stringify(payload),
       });
 
-      setExperts(prev => prev.map(e => 
-        e.id === selectedExpert.id 
-          ? { 
-              ...e, 
-              name: editForm.name || e.name,
-              username: editForm.username || e.username,
-              email: editForm.email || e.email,
-              phone: editForm.phone || e.phone,
-              bio: editForm.bio || e.bio,
-              services: editForm.services?.split(',').map((s: string) => s.trim()).filter((s: string) => s) || e.services
-            }
-          : e
-      ));
+      // Refresh experts list to show updated data
+      const response = await apiClient<any>(`${API_BASE}/organizations/experts`);
+      setExperts(response.experts || []);
+      
       toast.success("Profile updated successfully");
       setEditProfileOpen(false);
     } catch (error) {
@@ -478,6 +500,7 @@ export default function ExpertsPage() {
       if (uploadedImageFile) {
         const formData = new FormData();
         formData.append('file', uploadedImageFile);
+        formData.append('expertId', String(selectedExpert.id));
         const uploadRes = await apiClient<any>(`${API_BASE}/organizations/experts/upload-avatar`, {
           method: 'POST',
           body: formData,
@@ -515,6 +538,7 @@ export default function ExpertsPage() {
       if (uploadedVideoFile) {
         const formData = new FormData();
         formData.append('file', uploadedVideoFile);
+        formData.append('expertId', String(selectedExpert.id));
         const uploadRes = await apiClient<any>(`${API_BASE}/organizations/experts/upload-video`, {
           method: 'POST',
           body: formData,
@@ -830,95 +854,259 @@ export default function ExpertsPage() {
 
       {/* Edit Profile Modal */}
       <Dialog open={editProfileOpen} onOpenChange={setEditProfileOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Expert Profile</DialogTitle>
+            <DialogDescription>Update all details for this expert profile.</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                Name
-              </Label>
-              <Input
-                id="name"
-                value={editForm.name || ''}
-                onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="username" className="text-right">
-                Username
-              </Label>
-              <Input
-                id="username"
-                value={editForm.username || ''}
-                onChange={(e) => setEditForm(prev => ({ ...prev, username: e.target.value }))}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right">
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={editForm.email || ''}
-                onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="phone" className="text-right">
-                Phone
-              </Label>
-              <Input
-                id="phone"
-                value={editForm.phone || ''}
-                onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="services" className="text-right">
-                Services
-              </Label>
-              <Input
-                id="services"
-                value={editForm.services || ''}
-                onChange={(e) => setEditForm(prev => ({ ...prev, services: e.target.value }))}
-                placeholder="Comma separated"
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="specialization" className="text-right">
-                Specialization
-              </Label>
-              <Input
-                id="specialization"
-                value={editForm.specialization || ''}
-                onChange={(e) => setEditForm(prev => ({ ...prev, specialization: e.target.value }))}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="bio" className="text-right">
-                Bio
-              </Label>
-              <Textarea
-                id="bio"
-                value={editForm.bio || ''}
-                onChange={(e) => setEditForm(prev => ({ ...prev, bio: e.target.value }))}
-                className="col-span-3"
-                rows={3}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button type="submit" onClick={handleSaveProfile}>
-              Save Changes
+          
+          <Tabs defaultValue="basic" className="w-full">
+            <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7 mb-4">
+              <TabsTrigger value="basic">Basic</TabsTrigger>
+              <TabsTrigger value="pro">Pro</TabsTrigger>
+              <TabsTrigger value="career">Career</TabsTrigger>
+              <TabsTrigger value="services">Services</TabsTrigger>
+              <TabsTrigger value="schedule">Schedule</TabsTrigger>
+              <TabsTrigger value="social">Social</TabsTrigger>
+              <TabsTrigger value="docs">Docs</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="basic" className="space-y-4 py-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-name">Full Name</Label>
+                  <Input id="edit-name" value={editForm.name || ''} onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-username">Username</Label>
+                  <Input id="edit-username" value={editForm.username || ''} onChange={(e) => setEditForm(prev => ({ ...prev, username: e.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-email">Email</Label>
+                  <Input id="edit-email" type="email" value={editForm.email || ''} onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-phone">Phone</Label>
+                  <Input id="edit-phone" value={editForm.phone || ''} onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-location">Location</Label>
+                  <Input id="edit-location" value={editForm.location || ''} onChange={(e) => setEditForm(prev => ({ ...prev, location: e.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-gender">Gender</Label>
+                  <Select value={editForm.gender} onValueChange={v => setEditForm(prev => ({...prev, gender: v}))}>
+                    <SelectTrigger><SelectValue placeholder="Select Gender" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-languages">Languages (comma separated)</Label>
+                <Input id="edit-languages" value={editForm.languages || ''} onChange={(e) => setEditForm(prev => ({ ...prev, languages: e.target.value }))} />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="pro" className="space-y-4 py-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-spec">Specialization</Label>
+                  <Input id="edit-spec" value={editForm.specialization || ''} onChange={(e) => setEditForm(prev => ({ ...prev, specialization: e.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-exp">Experience (Years)</Label>
+                  <Input id="edit-exp" type="number" value={editForm.experience || ''} onChange={(e) => setEditForm(prev => ({ ...prev, experience: e.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-fee">Consultation Fee</Label>
+                  <Input id="edit-fee" type="number" value={editForm.consultationFee || ''} onChange={(e) => setEditForm(prev => ({ ...prev, consultationFee: e.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-tags">Tags (comma separated)</Label>
+                  <Input id="edit-tags" value={editForm.tags || ''} onChange={(e) => setEditForm(prev => ({ ...prev, tags: e.target.value }))} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-bio">Bio</Label>
+                <Textarea id="edit-bio" value={editForm.bio || ''} onChange={(e) => setEditForm(prev => ({ ...prev, bio: e.target.value }))} rows={4} />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="career" className="space-y-6 py-2">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-bold">Education</Label>
+                  <Button variant="outline" size="sm" onClick={() => setEditForm(prev => ({
+                    ...prev, 
+                    education: [...(prev.education || []), { institution: '', degree: '', year: '' }]
+                  }))}>Add</Button>
+                </div>
+                {editForm.education?.map((edu, idx) => (
+                  <div key={idx} className="grid grid-cols-3 gap-2 p-3 border rounded relative bg-zinc-50">
+                    <Input placeholder="Institution" value={edu.institution} onChange={e => {
+                      const newEdu = [...(editForm.education || [])];
+                      newEdu[idx].institution = e.target.value;
+                      setEditForm(prev => ({...prev, education: newEdu}));
+                    }} />
+                    <Input placeholder="Degree" value={edu.degree} onChange={e => {
+                      const newEdu = [...(editForm.education || [])];
+                      newEdu[idx].degree = e.target.value;
+                      setEditForm(prev => ({...prev, education: newEdu}));
+                    }} />
+                    <Input placeholder="Year" value={edu.year} onChange={e => {
+                      const newEdu = [...(editForm.education || [])];
+                      newEdu[idx].year = e.target.value;
+                      setEditForm(prev => ({...prev, education: newEdu}));
+                    }} />
+                    <Button variant="ghost" size="sm" className="absolute -top-2 -right-2 h-6 w-6 p-0 rounded-full bg-white border text-red-500" onClick={() => {
+                      setEditForm(prev => ({...prev, education: prev.education?.filter((_, i) => i !== idx)}));
+                    }}><X className="h-3 w-3" /></Button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-bold">Work History</Label>
+                  <Button variant="outline" size="sm" onClick={() => setEditForm(prev => ({
+                    ...prev, 
+                    workHistory: [...(prev.workHistory || []), { company: '', role: '', duration: '' }]
+                  }))}>Add</Button>
+                </div>
+                {editForm.workHistory?.map((work, idx) => (
+                  <div key={idx} className="grid grid-cols-3 gap-2 p-3 border rounded relative bg-zinc-50">
+                    <Input placeholder="Company" value={work.company} onChange={e => {
+                      const newWork = [...(editForm.workHistory || [])];
+                      newWork[idx].company = e.target.value;
+                      setEditForm(prev => ({...prev, workHistory: newWork}));
+                    }} />
+                    <Input placeholder="Role" value={work.role} onChange={e => {
+                      const newWork = [...(editForm.workHistory || [])];
+                      newWork[idx].role = e.target.value;
+                      setEditForm(prev => ({...prev, workHistory: newWork}));
+                    }} />
+                    <Input placeholder="Duration" value={work.duration} onChange={e => {
+                      const newWork = [...(editForm.workHistory || [])];
+                      newWork[idx].duration = e.target.value;
+                      setEditForm(prev => ({...prev, workHistory: newWork}));
+                    }} />
+                    <Button variant="ghost" size="sm" className="absolute -top-2 -right-2 h-6 w-6 p-0 rounded-full bg-white border text-red-500" onClick={() => {
+                      setEditForm(prev => ({...prev, workHistory: prev.workHistory?.filter((_, i) => i !== idx)}));
+                    }}><X className="h-3 w-3" /></Button>
+                  </div>
+                ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="services" className="space-y-4 py-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-bold">Consultation Services</Label>
+                <Button variant="outline" size="sm" onClick={() => setEditForm(prev => ({
+                  ...prev, 
+                  services: [...(prev.services || []), { name: '', duration: 60, videoPrice: '', clinicPrice: '', currency: 'INR', description: '' }]
+                }))}>Add Service</Button>
+              </div>
+              {editForm.services?.map((service, idx) => (
+                <div key={idx} className="space-y-3 p-4 border rounded bg-zinc-50 relative">
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input placeholder="Service Name" value={service.name} onChange={e => {
+                      const newS = [...(editForm.services || [])];
+                      newS[idx].name = e.target.value;
+                      setEditForm(prev => ({...prev, services: newS}));
+                    }} />
+                    <Input type="number" placeholder="Duration (min)" value={service.duration} onChange={e => {
+                      const newS = [...(editForm.services || [])];
+                      newS[idx].duration = Number(e.target.value);
+                      setEditForm(prev => ({...prev, services: newS}));
+                    }} />
+                    <Input type="number" placeholder="Video Price" value={service.videoPrice} onChange={e => {
+                      const newS = [...(editForm.services || [])];
+                      newS[idx].videoPrice = e.target.value;
+                      setEditForm(prev => ({...prev, services: newS}));
+                    }} />
+                    <Input type="number" placeholder="Clinic Price" value={service.clinicPrice} onChange={e => {
+                      const newS = [...(editForm.services || [])];
+                      newS[idx].clinicPrice = e.target.value;
+                      setEditForm(prev => ({...prev, services: newS}));
+                    }} />
+                  </div>
+                  <Button variant="ghost" size="sm" className="absolute -top-2 -right-2 h-6 w-6 p-0 rounded-full bg-white border text-red-500" onClick={() => {
+                    setEditForm(prev => ({...prev, services: prev.services?.filter((_, i) => i !== idx)}));
+                  }}><X className="h-3 w-3" /></Button>
+                </div>
+              ))}
+            </TabsContent>
+
+            <TabsContent value="schedule" className="space-y-4 py-2">
+              <div className="grid gap-2">
+                {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => {
+                  const daySlot = editForm.availability?.find(s => s.dayOfWeek === day);
+                  const isActive = !!daySlot;
+                  return (
+                    <div key={day} className="flex items-center justify-between p-3 border rounded">
+                      <div className="flex items-center gap-3">
+                        <Switch checked={isActive} onCheckedChange={(checked) => {
+                          if (checked) {
+                            setEditForm(prev => ({ ...prev, availability: [...(prev.availability || []), { dayOfWeek: day, startTime: '09:00', endTime: '17:00' }] }));
+                          } else {
+                            setEditForm(prev => ({ ...prev, availability: prev.availability?.filter(s => s.dayOfWeek !== day) }));
+                          }
+                        }} />
+                        <span className="font-medium text-sm">{day}</span>
+                      </div>
+                      {isActive && (
+                        <div className="flex items-center gap-2">
+                          <Input type="time" className="h-8 w-28" value={daySlot.startTime} onChange={e => {
+                            const newA = editForm.availability?.map(s => s.dayOfWeek === day ? { ...s, startTime: e.target.value } : s);
+                            setEditForm(prev => ({ ...prev, availability: newA }));
+                          }} />
+                          <span className="text-xs">to</span>
+                          <Input type="time" className="h-8 w-28" value={daySlot.endTime} onChange={e => {
+                            const newA = editForm.availability?.map(s => s.dayOfWeek === day ? { ...s, endTime: e.target.value } : s);
+                            setEditForm(prev => ({ ...prev, availability: newA }));
+                          }} />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="social" className="space-y-4 py-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>LinkedIn</Label>
+                  <Input value={editForm.socialLinks?.linkedin || ''} onChange={e => setEditForm(prev => ({ ...prev, socialLinks: { ...prev.socialLinks, linkedin: e.target.value } }))} placeholder="https://linkedin.com/in/..." />
+                </div>
+                <div className="space-y-2">
+                  <Label>Twitter</Label>
+                  <Input value={editForm.socialLinks?.twitter || ''} onChange={e => setEditForm(prev => ({ ...prev, socialLinks: { ...prev.socialLinks, twitter: e.target.value } }))} placeholder="https://twitter.com/..." />
+                </div>
+                <div className="space-y-2">
+                  <Label>Instagram</Label>
+                  <Input value={editForm.socialLinks?.instagram || ''} onChange={e => setEditForm(prev => ({ ...prev, socialLinks: { ...prev.socialLinks, instagram: e.target.value } }))} placeholder="https://instagram.com/..." />
+                </div>
+                <div className="space-y-2">
+                  <Label>Website</Label>
+                  <Input value={editForm.socialLinks?.website || ''} onChange={e => setEditForm(prev => ({ ...prev, socialLinks: { ...prev.socialLinks, website: e.target.value } }))} placeholder="https://..." />
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="docs" className="space-y-4 py-2">
+              <p className="text-sm text-zinc-500">Documents are managed separately. Please use the verification section for document updates.</p>
+            </TabsContent>
+          </Tabs>
+
+          <DialogFooter className="mt-6">
+            <Button variant="outline" onClick={() => setEditProfileOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveProfile} className="bg-indigo-600 hover:bg-indigo-700">
+              Save Expert Profile
             </Button>
           </DialogFooter>
         </DialogContent>
