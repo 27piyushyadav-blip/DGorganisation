@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+import { useRouter, redirect } from 'next/navigation';
+import { Toaster, toast } from 'sonner';
+import Swal from 'sweetalert2';
 
 import {
   CheckCircle,
@@ -36,6 +37,7 @@ import {
   Languages,
   Mail,
   UserPlus,
+  Menu,
 } from 'lucide-react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -55,14 +57,20 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
-import { apiClient } from '@/client/api/api-client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
+
+import { apiClient } from '@/client/api/api-client';
+import AddExpertModal from '@/components/expert/AddExpertModal';
+import ChangeExpertTimingsModal from '@/components/expert/ChangeExpertTimingsModal';
+import type { AddExpertFormData } from '@/components/expert/AddExpertModal';
+import { createExpertApi, deleteExpertApi, updateExpertTimingsApi, uploadExpertAvatarApi, uploadExpertVideoApi } from '@/client/api/experts';
+import { showConfirmDialog } from '@/components/ui/confirm-dialog';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL!;
 
 interface Expert {
-  id: number;
+  id: number | string;
   name: string;
   username: string;
   avatar: string;
@@ -99,20 +107,13 @@ interface EditFormData {
   timezone?: string;
 }
 
-interface TimingSlot {
-  id: string;
-  day: string;
-  startTime: string;
-  endTime: string;
-  isAvailable: boolean;
-}
-
 export default function ExpertsPage() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('all');
-  const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
+  const [openDropdownId, setOpenDropdownId] = useState<number | string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
   const [experts, setExperts] = useState<Expert[]>([]);
 
   useEffect(() => {
@@ -140,15 +141,14 @@ export default function ExpertsPage() {
   const [changeTimingsOpen, setChangeTimingsOpen] = useState(false);
   const [inviteExpertOpen, setInviteExpertOpen] = useState(false);
   const [choiceModalOpen, setChoiceModalOpen] = useState(false);
+  const [addExpertModalOpen, setAddExpertModalOpen] = useState(false);
+
   const [inviteEmail, setInviteEmail] = useState('');
   const [isInviting, setIsInviting] = useState(false);
   const [selectedExpert, setSelectedExpert] = useState<Expert | null>(null);
-  
 
-
-  // Form states
+  // Form & File states
   const [editForm, setEditForm] = useState<EditFormData>({});
-  const [timingSlots, setTimingSlots] = useState<TimingSlot[]>([]);
   const [newAvatar, setNewAvatar] = useState<string>('');
   const [newVideo, setNewVideo] = useState<string>('');
   const [uploadedImageFile, setUploadedImageFile] = useState<File | null>(null);
@@ -160,15 +160,90 @@ export default function ExpertsPage() {
     const matchesSearch =
       expert.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       expert.username.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesView = viewMode === 'all' || 
+
+    const matchesView = viewMode === 'all' ||
       (viewMode === 'active' && expert.status === 'active') ||
       (viewMode === 'hidden' && expert.status === 'hidden');
-    
+
     return matchesSearch && matchesView;
   });
 
-  // Handler functions
+  const formatUsername = (username: string) =>
+    username.startsWith('@') ? username : `@${username}`;
+
+  const getNextExpertId = () =>
+    experts.reduce((maxId, expert) => {
+      const numericId = typeof expert.id === 'number' ? expert.id : Number.parseInt(expert.id as string, 10);
+      return Number.isNaN(numericId) ? maxId : Math.max(maxId, numericId);
+    }, 0) + 1;
+
+  // Add Expert Handler
+  const handleAddExpert = async (expertData: AddExpertFormData) => {
+    try {
+      const createdExpert = await createExpertApi(expertData);
+
+      const newExpert: Expert = {
+        id: createdExpert.id ?? getNextExpertId(),
+        name: expertData.name,
+        username: formatUsername(expertData.username),
+        avatar: '/avatars/default.jpg',
+        status: 'active',
+        rating: 0,
+        timings: expertData.availability.map((avail) => ({
+          day: avail.dayOfWeek.slice(0, 3),
+          time: `${avail.startTime} - ${avail.endTime}`
+        })),
+        totalBookings: 0,
+        revenue: 0,
+        services: expertData.services.map((service) => service.name),
+        email: expertData.email,
+        phone: '',
+        bio: expertData.bio,
+      };
+
+      setExperts(prev => [...prev, newExpert]);
+      toast.success('Expert created successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to create expert';
+      toast.error(message);
+      throw error;
+    }
+  };
+
+  const handleInviteExpert = async () => {
+    if (!inviteEmail) return;
+    setIsInviting(true);
+    try {
+      await apiClient(`${API_BASE}/organizations/invite-expert`, {
+        method: "POST",
+        body: JSON.stringify({ email: inviteEmail }),
+      });
+
+      const newExpert: Expert = {
+        id: Date.now(),
+        name: inviteEmail.split('@')[0],
+        username: `@${inviteEmail.split('@')[0]}`,
+        avatar: '',
+        status: 'hidden',
+        rating: 0,
+        timings: [],
+        totalBookings: 0,
+        revenue: 0,
+        services: [],
+        email: inviteEmail,
+      };
+      setExperts([...experts, newExpert]);
+      setInviteExpertOpen(false);
+      setInviteEmail('');
+      toast.success("Expert invited successfully!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to invite expert");
+    } finally {
+      setIsInviting(false);
+    }
+  };
+
   const handleEditProfile = async (expert: Expert) => {
     try {
       const details = await apiClient<any>(`${API_BASE}/organizations/experts/${expert.id}`);
@@ -215,44 +290,10 @@ export default function ExpertsPage() {
       setSelectedExpert(details);
     } catch (error) {
       console.error("Failed to fetch expert details:", error);
-      setSelectedExpert(expert); // Fallback to list data
+      setSelectedExpert(expert);
     }
     setViewProfileOpen(true);
     setOpenDropdownId(null);
-  };
-
-  const handleInviteExpert = async () => {
-    if (!inviteEmail) return;
-    setIsInviting(true);
-    try {
-      await apiClient(`${API_BASE}/organizations/invite-expert`, {
-        method: "POST",
-        body: JSON.stringify({ email: inviteEmail }),
-      });
-      // Add a mock expert to the list just for UI response
-      const newExpert: Expert = {
-        id: Date.now(),
-        name: inviteEmail.split('@')[0],
-        username: `@${inviteEmail.split('@')[0]}`,
-        avatar: '',
-        status: 'hidden',
-        rating: 0,
-        timings: [],
-        totalBookings: 0,
-        revenue: 0,
-        services: [],
-        email: inviteEmail,
-      };
-      setExperts([...experts, newExpert]);
-      setInviteExpertOpen(false);
-      setInviteEmail('');
-      alert("Expert invited successfully!");
-    } catch (err) {
-      console.error(err);
-      alert("Failed to invite expert");
-    } finally {
-      setIsInviting(false);
-    }
   };
 
   const handleChangeDP = (expert: Expert) => {
@@ -275,31 +316,6 @@ export default function ExpertsPage() {
 
   const handleChangeTimings = (expert: Expert) => {
     setSelectedExpert(expert);
-    
-    // Convert existing timings to timing slots format
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const slots: TimingSlot[] = days.map(day => {
-      const existingTiming = expert.timings.find(t => t.day === day);
-      if (existingTiming) {
-        const [start, end] = existingTiming.time.split(' - ');
-        return {
-          id: `${day}-${expert.id}`,
-          day,
-          startTime: start,
-          endTime: end,
-          isAvailable: true,
-        };
-      }
-      return {
-        id: `${day}-${expert.id}`,
-        day,
-        startTime: '09:00',
-        endTime: '17:00',
-        isAvailable: false,
-      };
-    });
-    
-    setTimingSlots(slots);
     setChangeTimingsOpen(true);
     setOpenDropdownId(null);
   };
@@ -311,9 +327,9 @@ export default function ExpertsPage() {
         method: 'PATCH',
         body: JSON.stringify({ status: newStatus }),
       });
-      
-      setExperts(prev => prev.map(e => 
-        e.id === expert.id 
+
+      setExperts(prev => prev.map(e =>
+        e.id === expert.id
           ? { ...e, status: newStatus }
           : e
       ));
@@ -326,24 +342,42 @@ export default function ExpertsPage() {
   };
 
   const handleDisconnectExpert = async (expert: Expert) => {
-    if (confirm(`Are you sure you want to disconnect ${expert.name}? This action cannot be undone.`)) {
+    const confirmed = await showConfirmDialog({
+      title: 'Delete Expert',
+      text: `Are you sure you want to delete ${expert.name}? This action cannot be undone.`,
+      confirmButtonText: 'Yes, delete it!',
+      cancelButtonText: 'Cancel',
+      icon: 'warning'
+    });
+
+    if (confirmed) {
+      Swal.fire({
+        title: 'Deleting...',
+        text: 'Please wait',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
       try {
-        await apiClient(`${API_BASE}/organizations/experts/${expert.id}`, {
-          method: 'DELETE',
-        });
+        await deleteExpertApi(expert.id);
         setExperts(prev => prev.filter(e => e.id !== expert.id));
-        toast.success("Expert disconnected successfully");
+
+        Swal.close();
+        toast.success(`${expert.name} has been deleted successfully`);
+        setOpenDropdownId(null);
       } catch (error) {
-        console.error("Failed to disconnect expert:", error);
-        toast.error("Failed to disconnect expert");
+        Swal.close();
+        const message = error instanceof Error ? error.message : 'Failed to delete expert';
+        toast.error(message);
       }
-      setOpenDropdownId(null);
     }
   };
 
   const handleSaveProfile = async () => {
     if (!selectedExpert) return;
-    
+
     try {
       const payload = {
         ...editForm,
@@ -357,10 +391,9 @@ export default function ExpertsPage() {
         body: JSON.stringify(payload),
       });
 
-      // Refresh experts list to show updated data
       const response = await apiClient<any>(`${API_BASE}/organizations/experts`);
       setExperts(response.experts || []);
-      
+
       toast.success("Profile updated successfully");
       setEditProfileOpen(false);
     } catch (error) {
@@ -369,78 +402,53 @@ export default function ExpertsPage() {
     }
   };
 
-  const handleSaveTimings = async () => {
+  const handleSaveTimings = async (
+    availability: { dayOfWeek: string; startTime: string; endTime: string }[]
+  ) => {
     if (!selectedExpert) return;
-    
+
     try {
-      const dbAvailability = timingSlots
-        .filter(slot => slot.isAvailable)
-        .map(slot => ({
-          dayOfWeek: slot.day,
-          startTime: slot.startTime,
-          endTime: slot.endTime,
-        }));
+      await updateExpertTimingsApi(selectedExpert.id, { availability });
 
-      await apiClient(`${API_BASE}/organizations/experts/${selectedExpert.id}/timings`, {
-        method: 'PATCH',
-        body: JSON.stringify({ availability: dbAvailability }),
-      });
+      const updatedTimings = availability.map((slot) => ({
+        day: slot.dayOfWeek.slice(0, 3),
+        time: `${slot.startTime} - ${slot.endTime}`,
+      }));
 
-      const updatedTimings = timingSlots
-        .filter(slot => slot.isAvailable)
-        .map(slot => ({
-          day: slot.day,
-          time: `${slot.startTime} - ${slot.endTime}`,
-        }));
-      
-      setExperts(prev => prev.map(e => 
-        e.id === selectedExpert.id 
-          ? { ...e, timings: updatedTimings }
-          : e
-      ));
-      toast.success("Timings updated successfully");
+      setExperts((prev) =>
+        prev.map((expert) =>
+          expert.id === selectedExpert.id
+            ? { ...expert, timings: updatedTimings }
+            : expert
+        )
+      );
       setChangeTimingsOpen(false);
+      toast.success('Expert timings updated successfully');
     } catch (error) {
-      console.error("Failed to update timings:", error);
-      toast.error("Failed to update timings");
+      const message =
+        error instanceof Error ? error.message : 'Failed to update expert timings';
+      toast.error(message);
+      throw error;
     }
   };
 
-  const handleTimingToggle = (slotId: string) => {
-    setTimingSlots(prev => prev.map(slot => 
-      slot.id === slotId 
-        ? { ...slot, isAvailable: !slot.isAvailable }
-        : slot
-    ));
-  };
-
-  const handleTimingTimeChange = (slotId: string, field: 'startTime' | 'endTime', value: string) => {
-    setTimingSlots(prev => prev.map(slot => 
-      slot.id === slotId 
-        ? { ...slot, [field]: value }
-        : slot
-    ));
-  };
-
-  // File upload handlers
+  // File Upload Handling
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        alert('Please select an image file');
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error('Please select a valid image file (JPEG, PNG, GIF, WEBP)');
         return;
       }
-      
-      // Validate file size (max 5MB)
+
       if (file.size > 5 * 1024 * 1024) {
-        alert('Image file size should be less than 5MB');
+        toast.error('Image file size should be less than 5MB');
         return;
       }
-      
+
       setUploadedImageFile(file);
-      
-      // Create preview
+
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result as string;
@@ -454,21 +462,19 @@ export default function ExpertsPage() {
   const handleVideoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Validate file type
-      if (!file.type.startsWith('video/')) {
-        alert('Please select a video file');
+      const allowedTypes = ['video/mp4', 'video/webm', 'video/ogg'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error('Please select a valid video file (MP4, WEBM, OGG)');
         return;
       }
-      
-      // Validate file size (max 50MB)
+
       if (file.size > 50 * 1024 * 1024) {
-        alert('Video file size should be less than 50MB');
+        toast.error('Video file size should be less than 50MB');
         return;
       }
-      
+
       setUploadedVideoFile(file);
-      
-      // Create preview URL
+
       const videoUrl = URL.createObjectURL(file);
       setVideoPreview(videoUrl);
       setNewVideo(videoUrl);
@@ -490,88 +496,86 @@ export default function ExpertsPage() {
     setNewVideo(selectedExpert?.videoUrl || '');
   };
 
-  // Update save handlers to include file upload
   const handleSaveDP = async () => {
     if (!selectedExpert) return;
-    
+
+    setIsUploading(true);
+
     try {
       let finalAvatarUrl = newAvatar;
-      
+
       if (uploadedImageFile) {
-        const formData = new FormData();
-        formData.append('file', uploadedImageFile);
-        formData.append('expertId', String(selectedExpert.id));
-        const uploadRes = await apiClient<any>(`${API_BASE}/organizations/experts/upload-avatar`, {
-          method: 'POST',
-          body: formData,
-        });
-        finalAvatarUrl = uploadRes.fileUrl;
+        const response = await uploadExpertAvatarApi(uploadedImageFile);
+
+        if (response.avatarUrl) {
+          finalAvatarUrl = response.avatarUrl;
+        } else {
+          toast.error('Failed to upload image');
+          return;
+        }
       }
 
-      await apiClient(`${API_BASE}/organizations/experts/${selectedExpert.id}/avatar`, {
-        method: 'PATCH',
-        body: JSON.stringify({ avatarUrl: finalAvatarUrl }),
-      });
-      
-      setExperts(prev => prev.map(e => 
-        e.id === selectedExpert.id 
+      setExperts(prev => prev.map(e =>
+        e.id === selectedExpert.id
           ? { ...e, avatar: finalAvatarUrl }
           : e
       ));
-      
-      toast.success("Profile photo updated");
+
       setUploadedImageFile(null);
       setImagePreview('');
       setChangeDPOpen(false);
+      toast.success('Profile picture updated successfully');
     } catch (error) {
-      console.error("Failed to update photo:", error);
-      toast.error("Failed to update photo");
+      const message = error instanceof Error ? error.message : 'Failed to upload image';
+      toast.error(message);
+    } finally {
+      setIsUploading(false);
     }
   };
 
   const handleSaveVideo = async () => {
     if (!selectedExpert) return;
-    
+
+    setIsUploading(true);
+
     try {
       let finalVideoUrl = newVideo;
-      
+
       if (uploadedVideoFile) {
-        const formData = new FormData();
-        formData.append('file', uploadedVideoFile);
-        formData.append('expertId', String(selectedExpert.id));
-        const uploadRes = await apiClient<any>(`${API_BASE}/organizations/experts/upload-video`, {
-          method: 'POST',
-          body: formData,
-        });
-        finalVideoUrl = uploadRes.fileUrl;
+        const response = await uploadExpertVideoApi(uploadedVideoFile);
+
+        if (response.videoUrl) {
+          finalVideoUrl = response.videoUrl;
+        } else {
+          toast.error('Failed to upload video');
+          return;
+        }
       }
 
-      await apiClient(`${API_BASE}/organizations/experts/${selectedExpert.id}/video`, {
-        method: 'PATCH',
-        body: JSON.stringify({ videoUrl: finalVideoUrl }),
-      });
-      
-      setExperts(prev => prev.map(e => 
-        e.id === selectedExpert.id 
+      setExperts(prev => prev.map(e =>
+        e.id === selectedExpert.id
           ? { ...e, videoUrl: finalVideoUrl }
           : e
       ));
-      
-      toast.success("Intro video updated");
+
       setUploadedVideoFile(null);
       if (videoPreview) {
         URL.revokeObjectURL(videoPreview);
       }
       setVideoPreview('');
       setChangeVideoOpen(false);
+      toast.success('Video updated successfully');
     } catch (error) {
-      console.error("Failed to update video:", error);
-      toast.error("Failed to update video");
+      const message = error instanceof Error ? error.message : 'Failed to upload video';
+      toast.error(message);
+    } finally {
+      setIsUploading(false);
     }
   };
 
   return (
-    <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
+    <div className="flex-1 h-full space-y-6 p-4 pt-6 md:p-8 bg-[var(--card-bg-light)]">
+      <Toaster />
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Expert Management System</h2>
@@ -597,12 +601,17 @@ export default function ExpertsPage() {
               <SelectItem value="hidden">Hidden</SelectItem>
             </SelectContent>
           </Select>
+          <button className="w-full px-4 py-2.5 border bg-card text-card-foreground font-semibold rounded-xl hover:bg-gray-100 transition-all duration-300 cursor-pointer max-w-[10rem] flex bg-gradient-to-r from-[var(--primary-start)] to-[var(--primary-end)] text-white"
+            onClick={() => setChoiceModalOpen(true)}
+          >
+            <Plus className="h-6 w-6 text-white" />
+            Add Expert
+          </button>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-4 min-h-[400px]">
         {isLoading ? (
-          // Skeleton Cards
           Array.from({ length: 4 }).map((_, i) => (
             <Card key={`skeleton-${i}`} className="w-[280px] shadow-sm border-gray-100 overflow-hidden">
               <CardContent className="p-6 space-y-6">
@@ -631,7 +640,7 @@ export default function ExpertsPage() {
         ) : (
           <>
             {filteredExperts.map((expert) => (
-              <Card key={expert.id} className="w-[280px] shadow-sm border-gray-100 animate-in fade-in duration-500">
+              <Card key={expert.id} className="w-[280px] shadow-sm border-[#f79a4e] bg-[var(--card-bg)] animate-in fade-in duration-500">
                 <CardContent className="p-6">
                   {/* Name and Username Section */}
                   <div className="flex items-center justify-between mb-6">
@@ -640,26 +649,26 @@ export default function ExpertsPage() {
                       <p className="text-sm text-gray-500 mt-1">{expert.username}</p>
                     </div>
                     <div className="relative">
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="sm"
-                        className="h-8 w-8 p-0"
+                        className="h-8 w-8 p-0 bg-gradient-to-r from-[var(--primary-start)] to-[var(--primary-end)] cursor-pointer"
                         onClick={() => setOpenDropdownId(openDropdownId === expert.id ? null : expert.id)}
                       >
-                        <Edit className="h-4 w-4" />
+                        <Menu className="h-4 w-4 cursor-pointer text-white" />
                       </Button>
-                      
+
                       {openDropdownId === expert.id && (
                         <div className="absolute right-0 top-8 z-50 w-48 bg-white border border-gray-200 rounded-md shadow-lg py-1">
                           <div className="px-1 py-1 text-sm text-gray-700">
-                            <div 
+                            <div
                               className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded"
                               onClick={() => handleEditProfile(expert)}
                             >
                               <Edit className="mr-2 h-4 w-4" />
                               Edit Profile
                             </div>
-                            <div 
+                            <div
                               className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded"
                               onClick={() => handleViewProfile(expert)}
                             >
@@ -667,21 +676,21 @@ export default function ExpertsPage() {
                               View Profile
                             </div>
                             <div className="border-t border-gray-100 my-1"></div>
-                            <div 
+                            <div
                               className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded"
                               onClick={() => handleChangeDP(expert)}
                             >
                               <User className="mr-2 h-4 w-4" />
                               Change D.P
                             </div>
-                            <div 
+                            <div
                               className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded"
                               onClick={() => handleChangeVideo(expert)}
                             >
                               <Video className="mr-2 h-4 w-4" />
                               Change Video
                             </div>
-                            <div 
+                            <div
                               className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded"
                               onClick={() => handleChangeTimings(expert)}
                             >
@@ -695,7 +704,7 @@ export default function ExpertsPage() {
                               </Link>
                             </div>
                             <div className="border-t border-gray-100 my-1"></div>
-                            <div 
+                            <div
                               className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded"
                               onClick={() => handleToggleProfileStatus(expert)}
                             >
@@ -711,7 +720,7 @@ export default function ExpertsPage() {
                                 </>
                               )}
                             </div>
-                            <div 
+                            <div
                               className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded text-red-600"
                               onClick={() => handleDisconnectExpert(expert)}
                             >
@@ -728,10 +737,33 @@ export default function ExpertsPage() {
                   <div className="flex flex-col items-center mb-6">
                     <Avatar className="h-20 w-20">
                       <AvatarImage src={expert.avatar} alt={expert.name} />
-                      <AvatarFallback className="text-lg">
+                      <AvatarFallback className="text-lg bg-gradient-to-r from-[var(--primary-start)] to-[var(--primary-end)] text-white">
                         {expert.name.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
+                  </div>
+
+                  {/* Actions Inline Header */}
+                  <div className="space-y-3 mb-5">
+                    <div className="flex items-center">
+                      <div className="flex justify-between w-full text-gray-700">
+                        {[
+                          { icon: Edit, label: "Edit", onClick: () => handleEditProfile(expert) },
+                          { icon: Eye, label: "View", onClick: () => handleViewProfile(expert) },
+                          { icon: User, label: "Image", onClick: () => handleChangeDP(expert) },
+                          { icon: Video, label: "Video", onClick: () => handleChangeVideo(expert) },
+                          { icon: Calendar, label: "Timing", onClick: () => handleChangeTimings(expert) },
+                          { icon: CalendarDays, label: "Details", onClick: () => router.push(`/experts/${expert.id}/booking-details`) },
+                        ].map(({ icon: Icon, label, onClick }) => (
+                          <div key={label} className="relative group flex flex-col items-center">
+                            <Icon className="h-5 w-5 cursor-pointer" onClick={onClick} />
+                            <span className="absolute bottom-8 scale-0 group-hover:scale-100 transition bg-gradient-to-r from-[var(--primary-start)] to-[var(--primary-end)] text-white text-xs rounded px-2 py-1 z-10 whitespace-nowrap">
+                              {label}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
 
                   {/* Timings Section */}
@@ -743,26 +775,28 @@ export default function ExpertsPage() {
                       </div>
                       <ChevronDown className="h-4 w-4 text-gray-400" />
                     </div>
-                    
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      {expert.timings.length > 0 ? (
-                        <div className="space-y-2">
-                          {expert.timings.map((timing, index) => (
-                            <div key={index} className="text-sm text-gray-600">
-                              {timing.day} – {timing.time}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-sm text-gray-500">No timings added</div>
-                      )}
+
+                    <div className='bg-gradient-to-r from-[var(--primary-start)] p-0.5 rounded-lg'>
+                      <div className="bg-gray-50 rounded-lg p-3 overflow-y-auto scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-red-800" style={{ height: '6rem' }}>
+                        {expert.timings.length > 0 ? (
+                          <div className="space-y-2">
+                            {expert.timings.map((timing, index) => (
+                              <div key={index} className="text-sm text-gray-600">
+                                <span className='text-[var(--primary-end)]'>{timing.day}</span> – {timing.time}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-gray-500">No timings added</div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             ))}
 
-            <Card 
+            <Card
               className="w-[280px] border-dashed border-2 hover:border-primary/50 transition-all cursor-pointer shadow-sm border-gray-100 animate-in fade-in duration-500"
               onClick={() => setChoiceModalOpen(true)}
             >
@@ -790,8 +824,8 @@ export default function ExpertsPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="h-auto flex flex-col items-center gap-3 p-6 hover:bg-zinc-50 border-2"
               onClick={() => {
                 setChoiceModalOpen(false);
@@ -804,12 +838,12 @@ export default function ExpertsPage() {
                 <div className="text-xs text-zinc-500">Send an invitation link via email</div>
               </div>
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="h-auto flex flex-col items-center gap-3 p-6 hover:bg-zinc-50 border-2"
               onClick={() => {
                 setChoiceModalOpen(false);
-                router.push('/experts/new');
+                setAddExpertModalOpen(true);
               }}
             >
               <UserPlus className="h-8 w-8 text-indigo-600" />
@@ -859,7 +893,7 @@ export default function ExpertsPage() {
             <DialogTitle>Edit Expert Profile</DialogTitle>
             <DialogDescription>Update all details for this expert profile.</DialogDescription>
           </DialogHeader>
-          
+
           <Tabs defaultValue="basic" className="w-full">
             <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7 mb-4">
               <TabsTrigger value="basic">Basic</TabsTrigger>
@@ -895,7 +929,7 @@ export default function ExpertsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-gender">Gender</Label>
-                  <Select value={editForm.gender} onValueChange={v => setEditForm(prev => ({...prev, gender: v}))}>
+                  <Select value={editForm.gender} onValueChange={v => setEditForm(prev => ({ ...prev, gender: v }))}>
                     <SelectTrigger><SelectValue placeholder="Select Gender" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="male">Male</SelectItem>
@@ -941,7 +975,7 @@ export default function ExpertsPage() {
                 <div className="flex items-center justify-between">
                   <Label className="text-base font-bold">Education</Label>
                   <Button variant="outline" size="sm" onClick={() => setEditForm(prev => ({
-                    ...prev, 
+                    ...prev,
                     education: [...(prev.education || []), { institution: '', degree: '', year: '' }]
                   }))}>Add</Button>
                 </div>
@@ -950,20 +984,20 @@ export default function ExpertsPage() {
                     <Input placeholder="Institution" value={edu.institution} onChange={e => {
                       const newEdu = [...(editForm.education || [])];
                       newEdu[idx].institution = e.target.value;
-                      setEditForm(prev => ({...prev, education: newEdu}));
+                      setEditForm(prev => ({ ...prev, education: newEdu }));
                     }} />
                     <Input placeholder="Degree" value={edu.degree} onChange={e => {
                       const newEdu = [...(editForm.education || [])];
                       newEdu[idx].degree = e.target.value;
-                      setEditForm(prev => ({...prev, education: newEdu}));
+                      setEditForm(prev => ({ ...prev, education: newEdu }));
                     }} />
                     <Input placeholder="Year" value={edu.year} onChange={e => {
                       const newEdu = [...(editForm.education || [])];
                       newEdu[idx].year = e.target.value;
-                      setEditForm(prev => ({...prev, education: newEdu}));
+                      setEditForm(prev => ({ ...prev, education: newEdu }));
                     }} />
                     <Button variant="ghost" size="sm" className="absolute -top-2 -right-2 h-6 w-6 p-0 rounded-full bg-white border text-red-500" onClick={() => {
-                      setEditForm(prev => ({...prev, education: prev.education?.filter((_, i) => i !== idx)}));
+                      setEditForm(prev => ({ ...prev, education: prev.education?.filter((_, i) => i !== idx) }));
                     }}><X className="h-3 w-3" /></Button>
                   </div>
                 ))}
@@ -973,7 +1007,7 @@ export default function ExpertsPage() {
                 <div className="flex items-center justify-between">
                   <Label className="text-base font-bold">Work History</Label>
                   <Button variant="outline" size="sm" onClick={() => setEditForm(prev => ({
-                    ...prev, 
+                    ...prev,
                     workHistory: [...(prev.workHistory || []), { company: '', role: '', duration: '' }]
                   }))}>Add</Button>
                 </div>
@@ -982,20 +1016,20 @@ export default function ExpertsPage() {
                     <Input placeholder="Company" value={work.company} onChange={e => {
                       const newWork = [...(editForm.workHistory || [])];
                       newWork[idx].company = e.target.value;
-                      setEditForm(prev => ({...prev, workHistory: newWork}));
+                      setEditForm(prev => ({ ...prev, workHistory: newWork }));
                     }} />
                     <Input placeholder="Role" value={work.role} onChange={e => {
                       const newWork = [...(editForm.workHistory || [])];
                       newWork[idx].role = e.target.value;
-                      setEditForm(prev => ({...prev, workHistory: newWork}));
+                      setEditForm(prev => ({ ...prev, workHistory: newWork }));
                     }} />
                     <Input placeholder="Duration" value={work.duration} onChange={e => {
                       const newWork = [...(editForm.workHistory || [])];
                       newWork[idx].duration = e.target.value;
-                      setEditForm(prev => ({...prev, workHistory: newWork}));
+                      setEditForm(prev => ({ ...prev, workHistory: newWork }));
                     }} />
                     <Button variant="ghost" size="sm" className="absolute -top-2 -right-2 h-6 w-6 p-0 rounded-full bg-white border text-red-500" onClick={() => {
-                      setEditForm(prev => ({...prev, workHistory: prev.workHistory?.filter((_, i) => i !== idx)}));
+                      setEditForm(prev => ({ ...prev, workHistory: prev.workHistory?.filter((_, i) => i !== idx) }));
                     }}><X className="h-3 w-3" /></Button>
                   </div>
                 ))}
@@ -1006,7 +1040,7 @@ export default function ExpertsPage() {
               <div className="flex items-center justify-between">
                 <Label className="text-base font-bold">Consultation Services</Label>
                 <Button variant="outline" size="sm" onClick={() => setEditForm(prev => ({
-                  ...prev, 
+                  ...prev,
                   services: [...(prev.services || []), { name: '', duration: 60, videoPrice: '', clinicPrice: '', currency: 'INR', description: '' }]
                 }))}>Add Service</Button>
               </div>
@@ -1016,26 +1050,26 @@ export default function ExpertsPage() {
                     <Input placeholder="Service Name" value={service.name} onChange={e => {
                       const newS = [...(editForm.services || [])];
                       newS[idx].name = e.target.value;
-                      setEditForm(prev => ({...prev, services: newS}));
+                      setEditForm(prev => ({ ...prev, services: newS }));
                     }} />
                     <Input type="number" placeholder="Duration (min)" value={service.duration} onChange={e => {
                       const newS = [...(editForm.services || [])];
                       newS[idx].duration = Number(e.target.value);
-                      setEditForm(prev => ({...prev, services: newS}));
+                      setEditForm(prev => ({ ...prev, services: newS }));
                     }} />
                     <Input type="number" placeholder="Video Price" value={service.videoPrice} onChange={e => {
                       const newS = [...(editForm.services || [])];
                       newS[idx].videoPrice = e.target.value;
-                      setEditForm(prev => ({...prev, services: newS}));
+                      setEditForm(prev => ({ ...prev, services: newS }));
                     }} />
                     <Input type="number" placeholder="Clinic Price" value={service.clinicPrice} onChange={e => {
                       const newS = [...(editForm.services || [])];
                       newS[idx].clinicPrice = e.target.value;
-                      setEditForm(prev => ({...prev, services: newS}));
+                      setEditForm(prev => ({ ...prev, services: newS }));
                     }} />
                   </div>
                   <Button variant="ghost" size="sm" className="absolute -top-2 -right-2 h-6 w-6 p-0 rounded-full bg-white border text-red-500" onClick={() => {
-                    setEditForm(prev => ({...prev, services: prev.services?.filter((_, i) => i !== idx)}));
+                    setEditForm(prev => ({ ...prev, services: prev.services?.filter((_, i) => i !== idx) }));
                   }}><X className="h-3 w-3" /></Button>
                 </div>
               ))}
@@ -1133,7 +1167,7 @@ export default function ExpertsPage() {
                   </Badge>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-sm font-medium text-gray-500">Email</Label>
@@ -1155,7 +1189,7 @@ export default function ExpertsPage() {
                   <p className="text-sm">{selectedExpert.totalBookings}</p>
                 </div>
               </div>
-              
+
               <div>
                 <Label className="text-sm font-medium text-gray-500">Services</Label>
                 <div className="flex flex-wrap gap-2 mt-1">
@@ -1164,14 +1198,14 @@ export default function ExpertsPage() {
                   ))}
                 </div>
               </div>
-              
+
               {selectedExpert.bio && (
                 <div>
                   <Label className="text-sm font-medium text-gray-500">Bio</Label>
                   <p className="text-sm mt-1">{selectedExpert.bio}</p>
                 </div>
               )}
-              
+
               <div>
                 <Label className="text-sm font-medium text-gray-500">Available Timings</Label>
                 <div className="bg-gray-50 rounded-lg p-3 mt-1">
@@ -1184,7 +1218,7 @@ export default function ExpertsPage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-sm text-gray-500">No timings added</div>
+                    <div className="text-sm text-gray-500 ">No timings added</div>
                   )}
                 </div>
               </div>
@@ -1206,7 +1240,7 @@ export default function ExpertsPage() {
                 <AvatarFallback>Preview</AvatarFallback>
               </Avatar>
             </div>
-            
+
             {/* File Upload Section */}
             <div className="space-y-2">
               <Label htmlFor="image-upload">Upload Image</Label>
@@ -1218,8 +1252,8 @@ export default function ExpertsPage() {
                   onChange={handleImageUpload}
                   className="hidden"
                 />
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="flex-1"
                   onClick={() => document.getElementById('image-upload')?.click()}
                 >
@@ -1227,8 +1261,8 @@ export default function ExpertsPage() {
                   Choose Image
                 </Button>
                 {uploadedImageFile && (
-                  <Button 
-                    variant="destructive" 
+                  <Button
+                    variant="destructive"
                     size="sm"
                     onClick={handleImageRemove}
                   >
@@ -1242,7 +1276,7 @@ export default function ExpertsPage() {
                 </p>
               )}
             </div>
-            
+
             {/* URL Input Section */}
             <div className="space-y-2">
               <Label htmlFor="avatar-url">Or enter Image URL</Label>
@@ -1258,7 +1292,7 @@ export default function ExpertsPage() {
                 placeholder="Enter image URL"
               />
             </div>
-            
+
             <div className="text-xs text-gray-500">
               Supported formats: JPG, PNG, GIF, WebP (Max 5MB)
             </div>
@@ -1270,8 +1304,8 @@ export default function ExpertsPage() {
             }}>
               Cancel
             </Button>
-            <Button onClick={handleSaveDP}>
-              Save Changes
+            <Button onClick={handleSaveDP} disabled={isUploading}>
+              {isUploading ? 'Uploading...' : 'Save Changes'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1295,8 +1329,8 @@ export default function ExpertsPage() {
                   onChange={handleVideoUpload}
                   className="hidden"
                 />
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="flex-1"
                   onClick={() => document.getElementById('video-upload')?.click()}
                 >
@@ -1304,8 +1338,8 @@ export default function ExpertsPage() {
                   Choose Video
                 </Button>
                 {uploadedVideoFile && (
-                  <Button 
-                    variant="destructive" 
+                  <Button
+                    variant="destructive"
                     size="sm"
                     onClick={handleVideoRemove}
                   >
@@ -1319,7 +1353,7 @@ export default function ExpertsPage() {
                 </p>
               )}
             </div>
-            
+
             {/* URL Input Section */}
             <div className="space-y-2">
               <Label htmlFor="video-url">Or enter Video URL</Label>
@@ -1330,16 +1364,16 @@ export default function ExpertsPage() {
                 placeholder="Enter video URL (YouTube, Vimeo, etc.)"
               />
             </div>
-            
+
             {/* Video Preview */}
             {(videoPreview || newVideo) && (
               <div className="space-y-2">
                 <Label>Video Preview</Label>
                 <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
                   {videoPreview ? (
-                    <video 
-                      src={videoPreview} 
-                      controls 
+                    <video
+                      src={videoPreview}
+                      controls
                       className="w-full h-full object-cover"
                     />
                   ) : newVideo ? (
@@ -1357,7 +1391,7 @@ export default function ExpertsPage() {
                 </div>
               </div>
             )}
-            
+
             <div className="text-xs text-gray-500">
               Supported formats: MP4, WebM, OGG (Max 50MB)
             </div>
@@ -1369,78 +1403,26 @@ export default function ExpertsPage() {
             }}>
               Cancel
             </Button>
-            <Button onClick={handleSaveVideo}>
-              Save Changes
+            <Button onClick={handleSaveVideo} disabled={isUploading}>
+              {isUploading ? 'Uploading...' : 'Save Changes'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Change Timings Modal */}
-      <Dialog open={changeTimingsOpen} onOpenChange={setChangeTimingsOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Manage Expert Timings</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            {timingSlots.map((slot) => (
-              <div key={slot.id} className="flex items-center space-x-4 p-4 border rounded-lg">
-                <div className="flex items-center space-x-2 flex-1">
-                  <input
-                    type="checkbox"
-                    checked={slot.isAvailable}
-                    onChange={() => handleTimingToggle(slot.id)}
-                    className="h-4 w-4"
-                  />
-                  <Label className="font-medium w-12">{slot.day}</Label>
-                </div>
-                {slot.isAvailable && (
-                  <>
-                    <Select
-                      value={slot.startTime}
-                      onValueChange={(value) => handleTimingTimeChange(slot.id, 'startTime', value)}
-                    >
-                      <SelectTrigger className="w-24">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00'].map(time => (
-                          <SelectItem key={time} value={time}>{time}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <span className="text-sm text-gray-500">to</span>
-                    <Select
-                      value={slot.endTime}
-                      onValueChange={(value) => handleTimingTimeChange(slot.id, 'endTime', value)}
-                    >
-                      <SelectTrigger className="w-24">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00'].map(time => (
-                          <SelectItem key={time} value={time}>{time}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </>
-                )}
-                {!slot.isAvailable && (
-                  <span className="text-sm text-gray-500 italic">Not Available</span>
-                )}
-              </div>
-            ))}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setChangeTimingsOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSaveTimings}>
-              Save Timings
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AddExpertModal
+        isOpen={addExpertModalOpen}
+        onClose={() => setAddExpertModalOpen(false)}
+        onAddExpert={handleAddExpert}
+      />
+
+      <ChangeExpertTimingsModal
+        isOpen={changeTimingsOpen}
+        expertName={selectedExpert?.name}
+        timings={selectedExpert?.timings ?? []}
+        onClose={() => setChangeTimingsOpen(false)}
+        onSave={handleSaveTimings}
+      />
     </div>
   );
 }

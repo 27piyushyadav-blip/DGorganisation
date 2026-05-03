@@ -54,6 +54,7 @@ export default function ProfilePage() {
     tagline: "",
     aboutUs: "",
     category: "",
+    description: "",
     subdomain: "",
     officialEmail: "",
     phoneNumber: "",
@@ -109,6 +110,7 @@ export default function ProfilePage() {
         tagline: data.tagline || "",
         aboutUs: data.aboutUs || data.description || "",
         category: data.category || data.industry || "",
+        description: data.description || "",
         subdomain: data.subdomain || "",
         officialEmail: data.officialEmail || data.email || "",
         phoneNumber: data.phoneNumber || data.phone || "",
@@ -579,7 +581,7 @@ export default function ProfilePage() {
                   {status === "VERIFIED" ? "Profile Verified" : status === "REJECTED" ? "Profile Rejected" : "Profile Pending Review"}
                 </span>
               </div>
-              <div className="pt-2 border-t">
+              <div className="pt-2 border-t border-[var(--primary-start)]">
                 <p className="text-xs text-muted-foreground">
                   Last updated: February 10, 2024
                 </p>
@@ -654,7 +656,24 @@ export default function ProfilePage() {
                     {isEditing ? <Textarea value={formData.aboutUs} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange('aboutUs', e.target.value)} rows={4} /> : <p className="text-sm">{formData.aboutUs}</p>}
                   </div>
                   <div className="space-y-2">
-                    <Label>Tags</Label>
+                    <label className="text-sm font-medium">Bio</label>
+                    {isEditing ? (
+                      <textarea
+                        className="w-full p-3 border border-[var(--primary-start)] rounded-md resize-none"
+                        rows={4}
+                        value={formData.description}
+                        onChange={(e) => handleInputChange('description', e.target.value)}
+                      />
+                    ) : (
+                      <p className="text-sm">{formData.description}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium flex items-center space-x-2">
+                      <Tag className="h-4 w-4" />
+                      <span>Tags</span>
+                    </label>
                     <div className="flex flex-wrap gap-2">
                       {formData.tags.map((tag, i) => <Badge key={i} variant="secondary">{tag}</Badge>)}
                       {isEditing && (

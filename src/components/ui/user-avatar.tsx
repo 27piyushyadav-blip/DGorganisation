@@ -47,7 +47,7 @@ export function UserAvatar({
           />
         </div>
       ) : (
-        <AvatarFallback className="bg-zinc-900 text-white font-medium">
+        <AvatarFallback className="bg-gradient-to-r from-[var(--primary-start)] to-[var(--primary-end)]  text-white font-medium cursor-pointer">
           {initials}
         </AvatarFallback>
       )}
