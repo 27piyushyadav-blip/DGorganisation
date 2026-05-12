@@ -144,7 +144,7 @@ export default function ExpertRequestsPage() {
   };
 
   return (
-    <div className="flex-1 bg-gray-50 min-h-screen">
+    <div className="flex-1 bg-[var(--card-bg-light)] min-h-screen">
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-6">
@@ -180,7 +180,7 @@ export default function ExpertRequestsPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredExperts.map((expert) => (
-            <div key={expert.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow duration-200 w-[280px] mx-auto">
+            <div key={expert.id} className="bg-[var(--card-bg)] rounded-xl shadow-sm border border-[var(--primary-start)] overflow-hidden hover:shadow-lg transition-shadow duration-200 w-[280px] mx-auto">
               {/* Card Content */}
               <div className="p-6 flex flex-col">
                 {/* Header with Name and Menu */}

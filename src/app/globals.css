@@ -193,6 +193,11 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --primary-start: #f79a4e;
+  --primary-end: #4a2f21;
+  --background: #f3d0b3;
+  --card-bg:#f1e5dc;
+  --card-bg-light:#fffcfa;
 }
 
 .dark {

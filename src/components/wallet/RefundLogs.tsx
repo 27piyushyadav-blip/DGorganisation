@@ -154,7 +154,7 @@ export default function RefundLogs() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 pt-6 md:p-8 bg-[var(--card-bg-light)]">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Refund Logs</h1>
         <div className="flex space-x-3">
@@ -275,7 +275,7 @@ export default function RefundLogs() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b">
+                <tr className="border-b border-[var(--primary-start)]">
                   <th className="text-left p-3">Refund ID</th>
                   <th className="text-left p-3">Date & Time</th>
                   <th className="text-left p-3">Ticket</th>
@@ -292,7 +292,7 @@ export default function RefundLogs() {
               </thead>
               <tbody>
                 {filteredRefunds.map((refund) => (
-                  <tr key={refund.id} className="border-b hover:bg-gray-50">
+                  <tr key={refund.id} className="border-b border-[var(--primary-start)] hover:bg-gray-50">
                     <td className="p-3 font-medium">{refund.id}</td>
                     <td className="p-3">
                       <div>

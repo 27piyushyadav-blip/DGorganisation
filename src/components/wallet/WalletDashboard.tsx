@@ -52,7 +52,7 @@ export default function WalletDashboard() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 pt-6 md:p-8 bg-[var(--card-bg-light)]">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Wallet Overview</h1>
         <div className="flex space-x-3">
@@ -134,7 +134,7 @@ export default function WalletDashboard() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b">
+                <tr className="border-b border-[var(--primary-start)]">
                   <th className="text-left p-2">Date</th>
                   <th className="text-left p-2">Customer</th>
                   <th className="text-left p-2">Service</th>
@@ -145,7 +145,7 @@ export default function WalletDashboard() {
               </thead>
               <tbody>
                 {recentTransactions.map((transaction) => (
-                  <tr key={transaction.id} className="border-b hover:bg-gray-50">
+                  <tr key={transaction.id} className="border-b border-[var(--primary-start)] hover:bg-[var(--card-bg-light)]">
                     <td className="p-2">Today</td>
                     <td className="p-2">{transaction.customer}</td>
                     <td className="p-2">{transaction.service}</td>
