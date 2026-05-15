@@ -8,3 +8,5 @@ coverage
 .vscode
 .next
 .next/
+.next-app
+.next-app/

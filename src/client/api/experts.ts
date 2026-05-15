@@ -1,4 +1,5 @@
-const BASE_URL = "https://api.digitaloffices.com.au/organizations/experts";
+const BASE_URL = "http://localhost:3000/organizations/experts";
+// const BASE_URL = "https://api.digitaloffices.com.au/organizations/experts";
 
 export type EducationPayload = {
   degree: string;
@@ -29,6 +30,7 @@ export type CreateExpertPayload = {
   email: string;
   username: string;
   bio: string;
+  phone?: string;
   specialization: string;
   experience: number;
   consultationFee: number;
@@ -49,6 +51,8 @@ export type CreateExpertResponse = {
   [key: string]: unknown;
 };
 
+export type GetExpertsResponse = unknown;
+
 export type UpdateExpertTimingsPayload = {
   availability: AvailabilityPayload[];
 };
@@ -64,14 +68,39 @@ export type DeleteExpertResponse = {
 };
 
 export type UploadAvatarResponse = {
-  avatarUrl?: string;
+  fileUrl?: string;
   message?: string;
   [key: string]: unknown;
 };
 
 export type UploadVideoResponse = {
-  videoUrl?: string;
+  fileUrl?: string;
   message?: string;
+  [key: string]: unknown;
+};
+
+export type GetExpertDetailsResponse = {
+  id: string;
+  name: string;
+  email: string;
+  username: string;
+  phone?: string;
+  bio?: string;
+  specialization: string;
+  experience: number;
+  consultationFee: number;
+  languages: string[];
+  education: EducationPayload[];
+  workHistory: WorkHistoryPayload[];
+  socialLinks: { linkedin?: string };
+  tags: string[];
+  services: ServicePayload[];
+  availability: AvailabilityPayload[];
+  timezone?: string;
+  gender?: string;
+  location?: string;
+  avatarUrl?: string;
+  videoUrl?: string;
   [key: string]: unknown;
 };
 
@@ -131,6 +160,27 @@ export async function createExpertApi(
   return handleResponse<CreateExpertResponse>(response);
 }
 
+export async function getExpertsApi(): Promise<GetExpertsResponse> {
+  if (typeof window === "undefined") {
+    throw new ExpertApiError("Expert listing is only available in the browser", 500);
+  }
+
+  const accessToken = localStorage.getItem("access_token");
+
+  if (!accessToken) {
+    throw new ExpertApiError("No access token available", 401);
+  }
+
+  const response = await fetch(BASE_URL, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  return handleResponse<GetExpertsResponse>(response);
+}
+
 export async function updateExpertTimingsApi(
   expertId: number | string,
   payload: UpdateExpertTimingsPayload
@@ -178,7 +228,7 @@ export async function deleteExpertApi(expertId: number | string): Promise<Delete
   return handleResponse<DeleteExpertResponse>(response);
 }
 
-export async function uploadExpertAvatarApi(file: File): Promise<UploadAvatarResponse> {
+export async function uploadExpertAvatarApi(file: File, expertId: number | string): Promise<UploadAvatarResponse> {
   if (typeof window === "undefined") {
     throw new ExpertApiError("Avatar upload is only available in the browser", 500);
   }
@@ -191,6 +241,7 @@ export async function uploadExpertAvatarApi(file: File): Promise<UploadAvatarRes
 
   const formData = new FormData();
   formData.append("file", file);
+  formData.append("expertId", String(expertId));
 
   const response = await fetch(`${BASE_URL}/upload-avatar`, {
     method: "POST",
@@ -203,7 +254,7 @@ export async function uploadExpertAvatarApi(file: File): Promise<UploadAvatarRes
   return handleResponse<UploadAvatarResponse>(response);
 }
 
-export async function uploadExpertVideoApi(file: File): Promise<UploadVideoResponse> {
+export async function uploadExpertVideoApi(file: File, expertId: number | string): Promise<UploadVideoResponse> {
   if (typeof window === "undefined") {
     throw new ExpertApiError("Video upload is only available in the browser", 500);
   }
@@ -216,6 +267,7 @@ export async function uploadExpertVideoApi(file: File): Promise<UploadVideoRespo
 
   const formData = new FormData();
   formData.append("file", file);
+  formData.append("expertId", String(expertId));
 
   const response = await fetch(`${BASE_URL}/upload-video`, {
     method: "POST",
@@ -226,4 +278,51 @@ export async function uploadExpertVideoApi(file: File): Promise<UploadVideoRespo
   });
 
   return handleResponse<UploadVideoResponse>(response);
+}
+
+
+export async function updateExpertApi(
+  expertId: string,
+  payload: CreateExpertPayload
+): Promise<{ message: string }> {
+  if (typeof window === "undefined") {
+    throw new ExpertApiError("Expert update is only available in the browser", 500);
+  }
+
+  const accessToken = localStorage.getItem("access_token");
+
+  if (!accessToken) {
+    throw new ExpertApiError("No access token available", 401);
+  }
+
+  const response = await fetch(`${BASE_URL}/${expertId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return handleResponse<{ message: string }>(response);
+}
+export async function getExpertDetailsApi(expertId: string | number): Promise<GetExpertDetailsResponse> {
+  if (typeof window === "undefined") {
+    throw new ExpertApiError("Expert details are only available in the browser", 500);
+  }
+
+  const accessToken = localStorage.getItem("access_token");
+
+  if (!accessToken) {
+    throw new ExpertApiError("No access token available", 401);
+  }
+
+  const response = await fetch(`${BASE_URL}/${expertId}`, {
+    method: "GET",
+    headers: {
+      "Authorization": `Bearer ${accessToken}`,
+    },
+  });
+
+  return handleResponse<GetExpertDetailsResponse>(response);
 }

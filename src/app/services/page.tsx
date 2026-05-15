@@ -16,10 +16,13 @@ import {
   Users,
   Package,
   CreditCard,
-  Clock
+  Clock,
+  LayoutPanelLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Modal from '@/components/modal/Modal';
+
+type LayoutOrientation = 'horizontal' | 'vertical';
 
 // Types
 interface Service {
@@ -36,6 +39,220 @@ interface Category {
   id: string;
   name: string;
   services: Service[];
+}
+
+interface CategoryServiceLayout {
+  horizontal: string[];
+  vertical: string[];
+}
+
+interface ServiceLayoutCardProps {
+  service: Service;
+  draggable?: boolean;
+  onDragStart?: (serviceId: string) => void;
+  onRemove?: (serviceId: string) => void;
+}
+
+function ServiceLayoutCard({
+  service,
+  draggable = false,
+  onDragStart,
+  onRemove,
+}: ServiceLayoutCardProps) {
+  return (
+    <div
+      draggable={draggable}
+      onDragStart={() => onDragStart?.(service.id)}
+      className={`rounded-xl border border-[var(--primary-start)] bg-white p-4 shadow-sm transition-shadow hover:shadow-md ${
+        draggable ? 'cursor-grab active:cursor-grabbing' : ''
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h4 className="truncate font-medium text-gray-900">{service.name}</h4>
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-gray-500">
+            <span className="font-semibold text-[var(--primary-start)]">${service.price}</span>
+            {service.discount > 0 && (
+              <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-600">
+                {service.discount}% OFF
+              </span>
+            )}
+            <span className="flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5" />
+              {service.duration}
+            </span>
+          </div>
+        </div>
+        {onRemove && (
+          <button
+            type="button"
+            onClick={() => onRemove(service.id)}
+            className="rounded-full p-1 text-gray-400 transition hover:bg-red-50 hover:text-red-500"
+            aria-label={`Remove ${service.name} from layout`}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// interface ServiceDropZoneProps {
+//   title: string;
+//   description: string;
+//   services: Service[];
+//   orientation: LayoutOrientation;
+//   isActive: boolean;
+//   onDragOver: (orientation: LayoutOrientation) => void;
+//   onDrop: (orientation: LayoutOrientation) => void;
+//   onDragLeave: () => void;
+//   onRemove: (serviceId: string, orientation: LayoutOrientation) => void;
+// }
+
+interface ServiceDropZoneProps {
+  title: string;
+  description: string;
+  services: Service[];
+  orientation: LayoutOrientation;
+  isActive: boolean;
+  onDragOver: (orientation: LayoutOrientation) => void;
+  onDrop: (orientation: LayoutOrientation) => void;
+  onDragLeave: () => void;
+  onRemove: (serviceId: string, orientation: LayoutOrientation) => void;
+}
+
+// function ServiceDropZone({
+//   title,
+//   description,
+//   services,
+//   orientation,
+//   isActive,
+//   onDragOver,
+//   onDrop,
+//   onDragLeave,
+//   onRemove,
+// }: ServiceDropZoneProps) {
+//   return (
+//     <div
+//       onDragOver={(e) => {
+//         e.preventDefault();
+//         onDragOver(orientation);
+//       }}
+//       onDragLeave={onDragLeave}
+//       onDrop={(e) => {
+//         e.preventDefault();
+//         onDrop(orientation);
+//       }}
+//       className={`rounded-2xl border-2 border-dashed p-4 transition ${
+//         isActive
+//           ? 'border-[var(--primary-start)] bg-[var(--card-bg)]'
+//           : 'border-gray-200 bg-white'
+//       }`}
+//     >
+//       <div className="mb-4 flex items-start justify-between gap-3">
+//         <div>
+//           <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+//           <p className="text-sm text-gray-500">{description}</p>
+//         </div>
+//         <span className="rounded-full bg-[var(--card-bg)] px-3 py-1 text-xs font-medium text-gray-700">
+//           {services.length} selected
+//         </span>
+//       </div>
+
+//       <div className={orientation === 'horizontal' ? 'grid gap-3 md:grid-cols-2 xl:grid-cols-3' : 'space-y-3'}>
+//         {services.length > 0 ? (
+//           services.map((service) => (
+//             <ServiceLayoutCard
+//               key={service.id}
+//               service={service}
+//               onRemove={(serviceId) => onRemove(serviceId, orientation)}
+//             />
+//           ))
+//         ) : (
+//           <div className="rounded-xl border border-transparent bg-[var(--card-bg-light)] px-4 py-8 text-center text-sm text-gray-500">
+//             Drag services here to build the {title.toLowerCase()} layout.
+//           </div>
+//         )}
+//       </div>
+//     </div>
+//   );
+// }
+
+function ServiceDropZone({
+  title,
+  description,
+  services,
+  orientation,
+  isActive,
+  onDragOver,
+  onDrop,
+  onDragLeave,
+  onRemove,
+}: ServiceDropZoneProps) {
+  const maxItems = 5;
+  const isFull = services.length >= maxItems;
+  
+  return (
+    <div
+      onDragOver={(e) => {
+        e.preventDefault();
+        if (!isFull) {
+          onDragOver(orientation);
+        }
+      }}
+      onDragLeave={onDragLeave}
+      onDrop={(e) => {
+        e.preventDefault();
+        if (!isFull) {
+          onDrop(orientation);
+        }
+      }}
+      className={`rounded-2xl border-2 border-dashed p-4 transition ${
+        isActive && !isFull
+          ? 'border-[var(--primary-start)] bg-[var(--card-bg)]'
+          : 'border-gray-200 bg-white'
+      } ${isFull ? 'opacity-60 cursor-not-allowed' : ''}`}
+    >
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+          <p className="text-sm text-gray-500">{description}</p>
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <span className={`rounded-full px-3 py-1 text-xs font-medium ${
+            services.length >= maxItems 
+              ? 'bg-red-100 text-red-600' 
+              : 'bg-[var(--card-bg)] text-gray-700'
+          }`}>
+            {services.length} / {maxItems} selected
+          </span>
+          {isFull && (
+            <span className="text-xs text-red-500">Limit reached</span>
+          )}
+        </div>
+      </div>
+
+      <div className={orientation === 'horizontal' ? 'grid gap-3 md:grid-cols-2 xl:grid-cols-3' : 'space-y-3'}>
+        {services.length > 0 ? (
+          services.map((service) => (
+            <ServiceLayoutCard
+              key={service.id}
+              service={service}
+              onRemove={(serviceId) => onRemove(serviceId, orientation)}
+            />
+          ))
+        ) : (
+          <div className="rounded-xl border border-transparent bg-[var(--card-bg-light)] px-4 py-8 text-center text-sm text-gray-500">
+            {isFull 
+              ? `${title} section is full (max ${maxItems} items)`
+              : `Drag services here to build the ${title.toLowerCase()} layout. (${services.length}/${maxItems})`
+            }
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 const flowSteps = [
@@ -124,7 +341,11 @@ export default function ServicesPage() {
   // Modal states
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [isServiceLayoutModalOpen, setIsServiceLayoutModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [draggedServiceId, setDraggedServiceId] = useState<string | null>(null);
+  const [activeDropZone, setActiveDropZone] = useState<LayoutOrientation | null>(null);
+  const [serviceLayouts, setServiceLayouts] = useState<Record<string, CategoryServiceLayout>>({});
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, isEdit: boolean = false) => {
     const file = e.target.files?.[0];
@@ -189,6 +410,13 @@ export default function ServicesPage() {
       ...cat,
       services: cat.services.filter(s => s.id !== serviceId)
     })));
+    setServiceLayouts((prev) => ({
+      ...prev,
+      [selectedCategory]: {
+        horizontal: (prev[selectedCategory]?.horizontal || []).filter((id) => id !== serviceId),
+        vertical: (prev[selectedCategory]?.vertical || []).filter((id) => id !== serviceId),
+      },
+    }));
   };
 
   const handleAddCategory = () => {
@@ -214,6 +442,11 @@ export default function ServicesPage() {
 
   const handleDeleteCategory = (categoryId: string) => {
     setCategories(categories.filter(c => c.id !== categoryId));
+    setServiceLayouts((prev) => {
+      const nextLayouts = { ...prev };
+      delete nextLayouts[categoryId];
+      return nextLayouts;
+    });
     if (selectedCategory === categoryId && categories.length > 1) {
       setSelectedCategory(categories.find(c => c.id !== categoryId)?.id || '');
     }
@@ -247,7 +480,116 @@ export default function ServicesPage() {
     setNewCategoryName('');
   };
 
+  const getCategoryLayout = (categoryId: string): CategoryServiceLayout => (
+    serviceLayouts[categoryId] || { horizontal: [], vertical: [] }
+  );
+
+  const updateCategoryLayout = (
+    categoryId: string,
+    updater: (layout: CategoryServiceLayout) => CategoryServiceLayout
+  ) => {
+    setServiceLayouts((prev) => {
+      const currentLayout = prev[categoryId] || { horizontal: [], vertical: [] };
+      return {
+        ...prev,
+        [categoryId]: updater(currentLayout),
+      };
+    });
+  };
+
+  const handleOpenServiceLayoutModal = () => {
+    setDraggedServiceId(null);
+    setActiveDropZone(null);
+    setIsServiceLayoutModalOpen(true);
+  };
+
+  const handleCloseServiceLayoutModal = () => {
+    setDraggedServiceId(null);
+    setActiveDropZone(null);
+    setIsServiceLayoutModalOpen(false);
+  };
+
+  // const handleServiceDrop = (orientation: LayoutOrientation) => {
+  //   if (!draggedServiceId) return;
+
+  //   updateCategoryLayout(selectedCategory, (layout) => {
+  //     const nextHorizontal = layout.horizontal.filter((id) => id !== draggedServiceId);
+  //     const nextVertical = layout.vertical.filter((id) => id !== draggedServiceId);
+
+  //     if (orientation === 'horizontal') {
+  //       nextHorizontal.push(draggedServiceId);
+  //     } else {
+  //       nextVertical.push(draggedServiceId);
+  //     }
+
+  //     return {
+  //       horizontal: nextHorizontal,
+  //       vertical: nextVertical,
+  //     };
+  //   });
+
+  //   setDraggedServiceId(null);
+  //   setActiveDropZone(null);
+  // };
+
+  const handleServiceDrop = (orientation: LayoutOrientation) => {
+  if (!draggedServiceId) return;
+
+  updateCategoryLayout(selectedCategory, (layout) => {
+    // Check if the target section already has 5 or more items
+    const targetSection = orientation === 'horizontal' ? layout.horizontal : layout.vertical;
+    
+    if (targetSection.length >= 5) {
+      alert(`Cannot add more than 5 services to the ${orientation} section.`);
+      return layout;
+    }
+
+    const nextHorizontal = layout.horizontal.filter((id) => id !== draggedServiceId);
+    const nextVertical = layout.vertical.filter((id) => id !== draggedServiceId);
+
+    if (orientation === 'horizontal') {
+      nextHorizontal.push(draggedServiceId);
+    } else {
+      nextVertical.push(draggedServiceId);
+    }
+
+    return {
+      horizontal: nextHorizontal,
+      vertical: nextVertical,
+    };
+  });
+
+  setDraggedServiceId(null);
+  setActiveDropZone(null);
+};
+
+
+  const handleRemoveFromLayout = (serviceId: string, orientation: LayoutOrientation) => {
+    updateCategoryLayout(selectedCategory, (layout) => ({
+      ...layout,
+      [orientation]: layout[orientation].filter((id) => id !== serviceId),
+    }));
+  };
+
+  const handleResetServiceLayout = () => {
+    setServiceLayouts((prev) => ({
+      ...prev,
+      [selectedCategory]: { horizontal: [], vertical: [] },
+    }));
+    setDraggedServiceId(null);
+    setActiveDropZone(null);
+  };
+
   const currentServices = categories.find(c => c.id === selectedCategory)?.services || [];
+  const currentLayout = getCategoryLayout(selectedCategory);
+  const layoutServiceIds = new Set([...currentLayout.horizontal, ...currentLayout.vertical]);
+  const availableServices = currentServices.filter((service) => !layoutServiceIds.has(service.id));
+  const horizontalServices = currentLayout.horizontal
+    .map((serviceId) => currentServices.find((service) => service.id === serviceId))
+    .filter((service): service is Service => Boolean(service));
+  const verticalServices = currentLayout.vertical
+    .map((serviceId) => currentServices.find((service) => service.id === serviceId))
+    .filter((service): service is Service => Boolean(service));
 
   return (
     <div className="min-h-full bg-[var(--card-bg-light)]">
@@ -286,7 +628,7 @@ export default function ServicesPage() {
                     }`}
                   >
                     <span>{category.name.toUpperCase()}</span>
-                    <button
+                    <div
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDeleteCategory(category.id);
@@ -294,7 +636,7 @@ export default function ServicesPage() {
                       className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition"
                     >
                       <Trash2 className="w-3 h-3 text-[var(--primary-end)]" />
-                    </button>
+                    </div>
                   </button>
                 ))}
               </div>
@@ -306,6 +648,7 @@ export default function ServicesPage() {
                   <Plus className="w-4 h-4" />
                   <span>Add Category</span>
                 </Button>
+                
 
             </div>
           </div>
@@ -317,10 +660,17 @@ export default function ServicesPage() {
                 <h3 className="font-semibold text-gray-900">
                   Services in {categories.find(c => c.id === selectedCategory)?.name}
                 </h3>
+                <div className="flex space-x-2">
                 <Button onClick={openAddServiceModal}>
                   <Plus className="w-4 h-4" />
                   <span>Add Service</span>
                 </Button>
+                <Button onClick={handleOpenServiceLayoutModal}>
+                  <LayoutPanelLeft className="w-4 h-4" />
+                  <span>Service Layout</span>
+                </Button>
+                </div>
+                
               </div>
               
               <div className="p-4 max-h-[24rem] min-h-[24rem] overflow-y-auto">
@@ -545,6 +895,76 @@ export default function ServicesPage() {
             <p className="mt-2 text-sm text-gray-500">
               Categories help organize your services for better navigation.
             </p>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isServiceLayoutModalOpen}
+        onClose={handleCloseServiceLayoutModal}
+        onCancel={handleCloseServiceLayoutModal}
+        onConfirm={handleResetServiceLayout}
+        title={`Service Layout: ${categories.find(c => c.id === selectedCategory)?.name || ''}`}
+        size="xl"
+        cancelButtonText="Close"
+        confirmButtonText="Reset Layout"
+      >
+        <div className="space-y-6">
+          <section className="rounded-2xl border border-gray-200 bg-white p-4">
+            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-base font-semibold text-gray-900">Service List</h3>
+                <p className="text-sm text-gray-500">
+                  Drag a service into the horizontal or vertical section below.
+                </p>
+              </div>
+              <span className="rounded-full bg-[var(--card-bg)] px-3 py-1 text-xs font-medium text-gray-700">
+                {availableServices.length} available
+              </span>
+            </div>
+
+            <div className="grid max-h-[18rem] gap-3 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
+              {availableServices.length > 0 ? (
+                availableServices.map((service) => (
+                  <ServiceLayoutCard
+                    key={service.id}
+                    service={service}
+                    draggable
+                    onDragStart={(serviceId) => setDraggedServiceId(serviceId)}
+                  />
+                ))
+              ) : (
+                <div className="col-span-full rounded-xl bg-[var(--card-bg-light)] px-4 py-10 text-center text-sm text-gray-500">
+                  All services in this category have been assigned to a layout section.
+                </div>
+              )}
+            </div>
+          </section>
+
+          <div className="grid gap-4 xl:grid-cols-2">
+            <ServiceDropZone
+              title="Horizontal"
+              description="Best for side-by-side cards and grouped service rows."
+              services={horizontalServices}
+              orientation="horizontal"
+              isActive={activeDropZone === 'horizontal'}
+              onDragOver={setActiveDropZone}
+              onDrop={handleServiceDrop}
+              onDragLeave={() => setActiveDropZone(null)}
+              onRemove={handleRemoveFromLayout}
+            />
+
+            <ServiceDropZone
+              title="Vertical"
+              description="Best for stacked service items and detailed lists."
+              services={verticalServices}
+              orientation="vertical"
+              isActive={activeDropZone === 'vertical'}
+              onDragOver={setActiveDropZone}
+              onDrop={handleServiceDrop}
+              onDragLeave={() => setActiveDropZone(null)}
+              onRemove={handleRemoveFromLayout}
+            />
           </div>
         </div>
       </Modal>

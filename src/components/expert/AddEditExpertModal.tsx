@@ -1,7 +1,7 @@
 // components/AddExpertModal.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -44,10 +44,12 @@ const serviceSchema = z.object({
   duration: z.number().min(5, 'Duration must be at least 5 minutes'),
 });
 
+// Add phone to the schema
 const addExpertSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   username: z.string().min(3, 'Username must be at least 3 characters'),
+  phone: z.string().optional(),
   bio: z.string().min(10, 'Bio must be at least 10 characters'),
   specialization: z.string().min(2, 'Specialization is required'),
   experience: z.number().min(0, 'Experience must be a positive number').max(50, 'Experience cannot exceed 50 years'),
@@ -61,15 +63,21 @@ const addExpertSchema = z.object({
   }),
   tags: z.array(z.string()).min(1, 'At least one tag is required'),
   services: z.array(serviceSchema).min(1, 'At least one service is required'),
+  timezone: z.string().optional(),
+  gender: z.enum(['male', 'female', 'other']).optional(),
+  location: z.string().optional(),
 });
 
 type AddExpertFormData = z.infer<typeof addExpertSchema>;
 export type { AddExpertFormData };
 
-interface AddExpertModalProps {
+interface AddEditExpertModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddExpert: (data: AddExpertFormData) => Promise<void>;
+  onSave: (data: AddExpertFormData) => Promise<void>;
+  initialData?: AddExpertFormData | null;
+  mode: 'add' | 'edit';
+  isLoading?: boolean;
 }
 
 const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -78,13 +86,21 @@ const timeSlots = Array.from({ length: 24 }, (_, i) => {
   return `${hour}:00`;
 });
 
-export default function AddExpertModal({ isOpen, onClose, onAddExpert }: AddExpertModalProps) {
+export default function AddEditExpertModal({ 
+  isOpen, 
+  onClose, 
+  onSave, 
+  initialData, 
+  mode,
+  isLoading = false 
+}: AddEditExpertModalProps) {
   const [languageInput, setLanguageInput] = useState('');
   const [tagInput, setTagInput] = useState('');
   const [submitError, setSubmitError] = useState('');
 
   const handleModalClose = () => {
     setSubmitError('');
+    reset();
     onClose();
   };
 
@@ -98,10 +114,11 @@ export default function AddExpertModal({ isOpen, onClose, onAddExpert }: AddExpe
     watch,
   } = useForm<AddExpertFormData>({
     resolver: zodResolver(addExpertSchema),
-    defaultValues: {
+    defaultValues: initialData || {
       name: '',
       email: '',
       username: '',
+      phone: '',
       bio: '',
       specialization: '',
       experience: 0,
@@ -113,8 +130,39 @@ export default function AddExpertModal({ isOpen, onClose, onAddExpert }: AddExpe
       socialLinks: { linkedin: '' },
       tags: [],
       services: [{ name: '', price: 0, duration: 60 }],
+      timezone: '',
+      gender: undefined,
+      location: '',
     },
   });
+
+    // Reset form when initialData changes or modal opens
+  useEffect(() => {
+    if (isOpen && initialData) {
+      reset(initialData);
+    } else if (isOpen && !initialData) {
+      reset({
+        name: '',
+        email: '',
+        username: '',
+        phone: '',
+        bio: '',
+        specialization: '',
+        experience: 0,
+        consultationFee: 0,
+        education: [{ degree: '', institution: '', year: new Date().getFullYear() }],
+        workHistory: [{ company: '', position: '', period: '' }],
+        availability: [{ dayOfWeek: 'Monday', startTime: '09:00', endTime: '17:00' }],
+        languages: [],
+        socialLinks: { linkedin: '' },
+        tags: [],
+        services: [{ name: '', price: 0, duration: 60 }],
+        timezone: '',
+        gender: undefined,
+        location: '',
+      });
+    }
+  }, [isOpen, initialData, reset]);
 
   const { fields: educationFields, append: appendEducation, remove: removeEducation } = useFieldArray({
     control,
@@ -161,15 +209,13 @@ export default function AddExpertModal({ isOpen, onClose, onAddExpert }: AddExpe
     setValue('tags', tags.filter(t => t !== tag));
   };
 
-  const onSubmit = async (data: AddExpertFormData) => {
+   const onSubmit = async (data: AddExpertFormData) => {
     setSubmitError('');
-
     try {
-      await onAddExpert(data);
-      reset();
+      await onSave(data);
       handleModalClose();
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to add expert';
+      const message = error instanceof Error ? error.message : `Failed to ${mode} expert`;
       setSubmitError(message);
     }
   };
@@ -178,17 +224,17 @@ export default function AddExpertModal({ isOpen, onClose, onAddExpert }: AddExpe
 
 return (
   <Modal
-    isOpen={isOpen}
-    onClose={handleModalClose}
-    title="Add New Expert"
-    size="xl"
-    showCloseButton={true}
-    confirmButtonText="Add Expert"
-    cancelButtonText="Cancel"
-    onConfirm={handleSubmit(onSubmit)}
-    onCancel={handleModalClose}
-    isConfirmLoading={isSubmitting}
-  >
+  isOpen={isOpen}
+  onClose={handleModalClose}
+  title={mode === 'add' ? "Add New Expert" : "Edit Expert"}
+  size="xl"
+  showCloseButton={true}
+  confirmButtonText={mode === 'add' ? "Add Expert" : "Update Expert"}
+  cancelButtonText="Cancel"
+  onConfirm={handleSubmit(onSubmit)}
+  onCancel={handleModalClose}
+  isConfirmLoading={isSubmitting || isLoading}
+>
     <form id="add-expert-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-[var(--card-bg-light)]">
       {submitError && (
         <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
@@ -208,6 +254,11 @@ return (
             <Label htmlFor="email">Email *</Label>
             <Input id="email" type="email" {...register('email')} className="mt-1" />
             {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
+          </div>
+          <div>
+            <Label htmlFor="phone">Phone Number</Label>
+            <Input id="phone" type="tel" {...register('phone')} className="mt-1" />
+            {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>}
           </div>
           <div>
             <Label htmlFor="username">Username *</Label>
@@ -544,6 +595,15 @@ return (
         </div>
       </div>
     </form>
+
+    {isLoading && (
+    <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+        <p className="mt-2 text-sm text-gray-600">Loading expert details...</p>
+      </div>
+    </div>
+  )}
   </Modal>
 );
 }

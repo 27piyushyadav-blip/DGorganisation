@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {Toaster , toast } from 'sonner';
 
 import {
@@ -52,28 +52,127 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import AddExpertModal from '@/components/expert/AddExpertModal';
+import AddExpertModal, { AddExpertFormData } from '@/components/expert/AddEditExpertModal';
 import ChangeExpertTimingsModal from '@/components/expert/ChangeExpertTimingsModal';
-import type { AddExpertFormData } from '@/components/expert/AddExpertModal';
-import { createExpertApi, deleteExpertApi, updateExpertTimingsApi, uploadExpertAvatarApi, uploadExpertVideoApi } from '@/client/api/experts';
+import  AddEditExpertModal  from '@/components/expert/AddEditExpertModal';
+import { createExpertApi, deleteExpertApi, getExpertDetailsApi, GetExpertDetailsResponse, getExpertsApi, updateExpertApi, updateExpertTimingsApi, uploadExpertAvatarApi, uploadExpertVideoApi } from '@/client/api/experts';
 import { showConfirmDialog } from '@/components/ui/confirm-dialog';
 import Swal from 'sweetalert2';
 
-interface Expert {
-  id: number | string;
+interface ExpertAvailability {
+  dayOfWeek: string;
+  startTime: string;
+  endTime: string;
+}
+
+interface ExpertEducation {
+  degree: string;
+  institution: string;
+  year: number;
+}
+
+interface ExpertService {
   name: string;
+  price: number;
+  duration: number;
+}
+
+interface ExpertTiming {
+  day: string;
+  time: string;
+}
+
+interface ExpertWorkHistory {
+  company: string;
+  position: string;
+  period: string;
+}
+
+interface Expert {
+  id: string;
+  name: string;
+  email: string;
   username: string;
   avatar: string;
-  status: 'active' | 'hidden';
-  rating: number;
-  timings: { day: string; time: string }[];
+  bio: string;
+  specialization: string;
+  consultationFee: string;
+  experience: number;
+  status: 'active' | 'inactive' | 'hidden';
+  languages: string[];
+  tags: string[];
+  availability: ExpertAvailability[];
+  education: ExpertEducation[];
+  services: ExpertService[];  // This should be array of objects
+  timings: ExpertTiming[];
+  workHistory: ExpertWorkHistory[];
+  createdAt: string;
+  joinedAt: string;
   totalBookings: number;
   revenue: number;
-  services: string[];
-  email?: string;
-  phone?: string;
-  bio?: string;
-  videoUrl?: string;
+  rating?: number;  // Add this if missing
+  videoUrl?: string;  // Add this if missing
+  phone?: string;  // Add this if missing
+}
+
+const createDefaultExpertFromForm = (
+  expertData: AddExpertFormData,
+  createdId: string
+): Expert => ({
+  id: createdId,
+  name: expertData.name,
+  email: expertData.email,
+  username: expertData.username.startsWith('@')
+    ? expertData.username
+    : `@${expertData.username}`,
+  avatar: '/avatars/default.jpg',
+  bio: expertData.bio,
+  specialization: expertData.specialization,
+  consultationFee: expertData.consultationFee.toString(),
+  experience: expertData.experience,
+  status: 'active',
+  languages: expertData.languages,
+  tags: expertData.tags,
+  availability: expertData.availability,
+  education: expertData.education,
+  services: expertData.services,
+  timings: expertData.availability.map((avail) => ({
+    day: avail.dayOfWeek.slice(0, 3),
+    time: `${avail.startTime} - ${avail.endTime}`,
+  })),
+  workHistory: expertData.workHistory,
+  createdAt: '',
+  joinedAt: '',
+  totalBookings: 0,
+  revenue: 0,
+  rating: 0,
+  videoUrl: '',
+  phone: expertData.phone ?? '',
+});
+
+function parseServicesInput(servicesText: string | undefined, fallback: ExpertService[]): ExpertService[] {
+  if (!servicesText) return fallback;
+
+  return servicesText
+    .split(',')
+    .map((service) => service.trim())
+    .filter(Boolean)
+    .map((name, index) => {
+      const existingService = fallback[index];
+
+      return {
+        name,
+        price: existingService?.price ?? 0,
+        duration: existingService?.duration ?? 60,
+      };
+    });
+}
+
+interface ExpertsApiResponse {
+  experts: Expert[];
+  active: number;
+  inactive: number;
+  total: number;
 }
 
 interface EditFormData {
@@ -85,85 +184,225 @@ interface EditFormData {
   services?: string; // String for form input
 }
 
+type ApiRecord = Record<string, unknown>;
+
+const dayShortMap: Record<string, string> = {
+  Monday: 'Mon',
+  Tuesday: 'Tue',
+  Wednesday: 'Wed',
+  Thursday: 'Thu',
+  Friday: 'Fri',
+  Saturday: 'Sat',
+  Sunday: 'Sun',
+};
+
+function isRecord(value: unknown): value is ApiRecord {
+  return typeof value === 'object' && value !== null;
+}
+
+function asString(value: unknown, fallback: string = ''): string {
+  return typeof value === 'string' ? value : fallback;
+}
+
+function asNumber(value: unknown, fallback: number = 0): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+function normalizeServices(value: unknown): ExpertService[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((service) => {
+      if (isRecord(service)) {
+        return {
+          name: asString(service.name, asString(service.title, '')),
+          price: asNumber(service.price, asNumber(service.cost, 0)),
+          duration: asNumber(service.duration, asNumber(service.time, 60))
+        };
+      }
+      return null;
+    })
+    .filter((service): service is ExpertService => service !== null && service.name !== '');
+}
+
+function normalizeTimings(value: unknown): { day: string; time: string }[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((slot) => {
+      if (!isRecord(slot)) return null;
+
+      const dayOfWeek = asString(slot.dayOfWeek, asString(slot.day, ''));
+      const startTime = asString(slot.startTime, '');
+      const endTime = asString(slot.endTime, '');
+      const time = asString(slot.time, '');
+
+      if (dayOfWeek && startTime && endTime) {
+        return {
+          day: dayShortMap[dayOfWeek] ?? dayOfWeek.slice(0, 3),
+          time: `${startTime} - ${endTime}`,
+        };
+      }
+
+      if (dayOfWeek && time) {
+        return {
+          day: dayShortMap[dayOfWeek] ?? dayOfWeek.slice(0, 3),
+          time,
+        };
+      }
+
+      if (startTime && endTime) {
+        return {
+          day: dayShortMap[dayOfWeek] ?? dayOfWeek.slice(0, 3),
+          time: `${startTime} - ${endTime}`,
+        };
+      }
+
+      return null;
+    })
+    .filter((slot): slot is { day: string; time: string } => slot !== null);
+}
+
+function normalizeExpert(apiExpert: unknown): Expert | null {
+  if (!isRecord(apiExpert)) return null;
+
+  const id = apiExpert.id;
+  if (typeof id !== 'string' && typeof id !== 'number') {
+    return null;
+  }
+
+  const firstName = asString(apiExpert.firstName, '');
+  const lastName = asString(apiExpert.lastName, '');
+  const fullName = `${firstName} ${lastName}`.trim();
+  const name = asString(apiExpert.name, fullName || 'Unnamed Expert');
+  const rawUsername = asString(apiExpert.username, '');
+  const email = asString(apiExpert.email, '');
+  const phone = asString(apiExpert.phone, asString(apiExpert.mobile, ''));
+  const bio = asString(apiExpert.bio, asString(apiExpert.description, ''));
+  const avatar = asString(
+    apiExpert.avatarUrl,
+    asString(apiExpert.avatar, asString(apiExpert.profilePicture, '/avatars/default.jpg'))
+  );
+  const videoUrl = asString(apiExpert.videoUrl, asString(apiExpert.introductionVideo, ''));
+  const services = normalizeServices(
+  Array.isArray(apiExpert.services)
+    ? apiExpert.services
+    : Array.isArray(apiExpert.tags)
+      ? apiExpert.tags
+      : []
+);
+  const timings = normalizeTimings(
+    Array.isArray(apiExpert.availability)
+      ? apiExpert.availability
+      : Array.isArray(apiExpert.timings)
+        ? apiExpert.timings
+        : []
+  );
+
+  const statusValue = asString(apiExpert.status, '').toLowerCase();
+  const status: Expert['status'] =
+    statusValue === 'hidden' || apiExpert.isHidden === true ? 'hidden' : 'active';
+
+  return {
+    id: typeof id === 'number' ? id.toString() : id,
+    name,
+    email: email || '',
+    username: rawUsername ? (rawUsername.startsWith('@') ? rawUsername : `@${rawUsername}`) : '@expert',
+    avatar,
+    bio: bio || '',
+    specialization: asString(apiExpert.specialization, ''),
+    consultationFee: String(apiExpert.consultationFee ?? ''),
+    experience: asNumber(apiExpert.experience, 0),
+    status,
+    languages: Array.isArray(apiExpert.languages)
+      ? apiExpert.languages.filter((language): language is string => typeof language === 'string')
+      : [],
+    tags: Array.isArray(apiExpert.tags)
+      ? apiExpert.tags.filter((tag): tag is string => typeof tag === 'string')
+      : [],
+    availability: Array.isArray(apiExpert.availability)
+      ? apiExpert.availability
+          .map((slot) => {
+            if (!isRecord(slot)) return null;
+
+            const dayOfWeek = asString(slot.dayOfWeek, asString(slot.day, ''));
+            const startTime = asString(slot.startTime, '');
+            const endTime = asString(slot.endTime, '');
+
+            if (!dayOfWeek || !startTime || !endTime) return null;
+
+            return { dayOfWeek, startTime, endTime };
+          })
+          .filter((slot): slot is ExpertAvailability => slot !== null)
+      : [],
+    education: Array.isArray(apiExpert.education)
+      ? apiExpert.education
+          .map((entry) => {
+            if (!isRecord(entry)) return null;
+
+            return {
+              degree: asString(entry.degree, ''),
+              institution: asString(entry.institution, ''),
+              year: asNumber(entry.year, new Date().getFullYear()),
+            };
+          })
+          .filter((entry): entry is ExpertEducation => entry !== null)
+      : [],
+    services,
+    timings,
+    workHistory: Array.isArray(apiExpert.workHistory)
+      ? apiExpert.workHistory
+          .map((entry) => {
+            if (!isRecord(entry)) return null;
+
+            return {
+              company: asString(entry.company, ''),
+              position: asString(entry.position, ''),
+              period: asString(entry.period, ''),
+            };
+          })
+          .filter((entry): entry is ExpertWorkHistory => entry !== null)
+      : [],
+    createdAt: asString(apiExpert.createdAt, ''),
+    joinedAt: asString(apiExpert.joinedAt, asString(apiExpert.createdAt, '')),
+    totalBookings: asNumber(
+      apiExpert.totalBookings,
+      asNumber(apiExpert.bookingCount, asNumber(apiExpert.bookingsCount, 0))
+    ),
+    revenue: asNumber(
+      apiExpert.revenue,
+      asNumber(apiExpert.totalRevenue, asNumber(apiExpert.earnings, 0))
+    ),
+    rating: asNumber(apiExpert.rating, asNumber(apiExpert.averageRating, 0)),
+    videoUrl: videoUrl || '',
+    phone: phone || '',
+  };
+}
+
+function extractExperts(response: unknown): Expert[] {
+  const list = Array.isArray(response)
+    ? response
+    : isRecord(response) && Array.isArray(response.data)
+      ? response.data
+      : isRecord(response) && Array.isArray(response.items)
+        ? response.items
+        : isRecord(response) && isRecord(response.data) && Array.isArray(response.data.items)
+          ? response.data.items
+          : [];
+
+  return list
+    .map((expert) => normalizeExpert(expert))
+    .filter((expert): expert is Expert => expert !== null);
+}
+
 export default function ExpertsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('all');
   const [openDropdownId, setOpenDropdownId] = useState<number | string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [experts, setExperts] = useState<Expert[]>([
-    {
-      id: 1,
-      name: 'Dr. Sarah Johnson',
-      username: '@dr_sarah_consulting',
-      avatar: '/avatars/sarah.jpg',
-      status: 'active',
-      rating: 4.8,
-      timings: [
-        { day: 'Mon', time: '9AM - 5PM' },
-        { day: 'Wed', time: '9AM - 5PM' },
-        { day: 'Fri', time: '9AM - 5PM' },
-      ],
-      totalBookings: 45,
-      revenue: 1250,
-      services: ['Business Consulting', 'Strategy Planning'],
-      email: 'sarah.johnson@example.com',
-      phone: '+1 234-567-8900',
-      bio: 'Experienced business consultant with 10+ years helping companies grow.',
-    },
-    {
-      id: 2,
-      name: 'Dr. Michael Chen',
-      username: '@dr_michael_advisor',
-      avatar: '/avatars/michael.jpg',
-      status: 'active',
-      rating: 4.6,
-      timings: [
-        { day: 'Mon', time: '10AM - 6PM' },
-        { day: 'Tue', time: '10AM - 6PM' },
-        { day: 'Thu', time: '10AM - 6PM' },
-        { day: 'Sat', time: '10AM - 2PM' },
-      ],
-      totalBookings: 38,
-      revenue: 980,
-      services: ['Financial Advisory', 'Investment Planning'],
-      email: 'michael.chen@example.com',
-      phone: '+1 234-567-8901',
-      bio: 'Financial expert specializing in investment strategies and wealth management.',
-    },
-    {
-      id: 3,
-      name: 'Dr. Emily Davis',
-      username: '@dr_emily_expert',
-      avatar: '/avatars/emily.jpg',
-      status: 'active',
-      rating: 4.9,
-      timings: [],
-      totalBookings: 52,
-      revenue: 1450,
-      services: ['Legal Consulting', 'Compliance Advisory'],
-      email: 'emily.davis@example.com',
-      phone: '+1 234-567-8902',
-      bio: 'Legal consultant with expertise in corporate law and regulatory compliance.',
-    },
-    {
-      id: 4,
-      name: 'Dr. Robert Wilson',
-      username: '@dr_robert_consultant',
-      avatar: '/avatars/robert.jpg',
-      status: 'hidden',
-      rating: 4.7,
-      timings: [
-        { day: 'Mon', time: '1PM - 8PM' },
-        { day: 'Fri', time: '1PM - 8PM' },
-      ],
-      totalBookings: 28,
-      revenue: 720,
-      services: ['Technology Consulting', 'Digital Transformation'],
-      email: 'robert.wilson@example.com',
-      phone: '+1 234-567-8903',
-      bio: 'Technology consultant helping businesses with digital transformation.',
-    },
-  ]);
+  const [experts, setExperts] = useState<Expert[]>([]);
+  const [isLoadingExperts, setIsLoadingExperts] = useState(true);
+  const [expertsError, setExpertsError] = useState('');
 
   // Modal states
   const [editProfileOpen, setEditProfileOpen] = useState(false);
@@ -182,6 +421,14 @@ export default function ExpertsPage() {
   const [imagePreview, setImagePreview] = useState<string>('');
   const [videoPreview, setVideoPreview] = useState<string>('');
   const [addExpertModalOpen, setAddExpertModalOpen] = useState(false);
+  const [getExpertId, setGetExpertId] = useState<number | string | null>(null);
+
+  // Add state for edit mode
+const [editingExpert, setEditingExpert] = useState<AddExpertFormData | null>(null);
+const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+const [viewExpertDetails, setViewExpertDetails] = useState<GetExpertDetailsResponse | null>(null);
+const [isLoadingViewDetails, setIsLoadingViewDetails] = useState(false);
+const [isSaving, setIsSaving] = useState(false);
 
   const filteredExperts = experts.filter((expert) => {
     const matchesSearch =
@@ -206,31 +453,37 @@ export default function ExpertsPage() {
       return Number.isNaN(numericId) ? maxId : Math.max(maxId, numericId);
     }, 0) + 1;
 
+  const fetchExperts = async () => {
+    try {
+      setIsLoadingExperts(true);
+      setExpertsError('');
+
+      const response = await getExpertsApi() as ExpertsApiResponse;
+      console.log('Raw API response:', response);
+      setExperts(extractExperts(response.experts));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to load experts';
+      setExpertsError(message);
+      toast.error(message);
+    } finally {
+      setIsLoadingExperts(false);
+    }
+  };
+
+  useEffect(() => {
+    void fetchExperts();
+  }, []);
+
   // Add this new handler for adding experts
   const handleAddExpert = async (expertData: AddExpertFormData) => {
     try {
       const createdExpert = await createExpertApi(expertData);
 
-      const newExpert: Expert = {
-        id: createdExpert.id ?? getNextExpertId(),
-        name: expertData.name,
-        username: formatUsername(expertData.username),
-        avatar: '/avatars/default.jpg', // Default avatar
-        status: 'active',
-        rating: 0, // Will be updated later
-        timings: expertData.availability.map((avail) => ({
-          day: avail.dayOfWeek.slice(0, 3), // Convert "Monday" to "Mon"
-          time: `${avail.startTime} - ${avail.endTime}`
-        })),
-        totalBookings: 0,
-        revenue: 0,
-        services: expertData.services.map((service) => service.name),
-        email: expertData.email,
-        phone: '', // Not in form, can be added later
-        bio: expertData.bio,
-      };
+      const createdExpertId = String(createdExpert.id ?? getNextExpertId());
+      const newExpert = createDefaultExpertFromForm(expertData, createdExpertId);
 
       setExperts(prev => [...prev, newExpert]);
+      void fetchExperts();
       toast.success('Expert created successfully');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to create expert';
@@ -239,26 +492,107 @@ export default function ExpertsPage() {
     }
   };
 
-  // Handler functions
-  const handleEditProfile = (expert: Expert) => {
-    setSelectedExpert(expert);
-    setEditForm({
-      name: expert.name,
-      username: expert.username,
-      email: expert.email,
-      phone: expert.phone,
-      bio: expert.bio,
-      services: expert.services.join(', '), // Convert array to string for form
-    });
-    setEditProfileOpen(true);
-    setOpenDropdownId(null);
+  // Add these helper functions to transform API data to form data
+const transformApiToFormData = (apiData: GetExpertDetailsResponse): AddExpertFormData => {
+  return {
+    name: apiData.name || '',
+    email: apiData.email || '',
+    username: apiData.username?.replace('@', '') || '',
+    phone: apiData.phone || '',
+    bio: apiData.bio || '',
+    specialization: apiData.specialization || '',
+    experience: apiData.experience || 0,
+    consultationFee: apiData.consultationFee || 0,
+    education: apiData.education?.length ? apiData.education : [{ degree: '', institution: '', year: new Date().getFullYear() }],
+    workHistory: apiData.workHistory?.length ? apiData.workHistory : [{ company: '', position: '', period: '' }],
+    availability: apiData.availability?.length ? apiData.availability : [{ dayOfWeek: 'Monday', startTime: '09:00', endTime: '17:00' }],
+    languages: apiData.languages || [],
+    socialLinks: {
+      linkedin: apiData.socialLinks?.linkedin || '',
+    },
+    tags: apiData.tags || [],
+    services: apiData.services?.length ? apiData.services : [{ name: '', price: 0, duration: 60 }],
+    timezone: apiData.timezone || '',
+    gender: apiData.gender as any || undefined,
+    location: apiData.location || '',
   };
+};
 
-  const handleViewProfile = (expert: Expert) => {
+// Add state for loading expert details
+const [isLoadingExpertDetails, setIsLoadingExpertDetails] = useState(false);
+
+// Update handleEditProfile to fetch and populate data
+const handleEditProfile = async (expert: Expert) => {
+  setOpenDropdownId(null);
+  setIsLoadingExpertDetails(true);
+  
+  try {
+    // Fetch full expert details from API
+    const expertDetails = await getExpertDetailsApi(expert.id);
+    
+    // Transform API response to form data
+    const formData = transformApiToFormData(expertDetails);
+    
+    setEditingExpert(formData);
+    setSelectedExpert(expert);
+    setIsEditModalOpen(true);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to load expert details';
+    toast.error(message);
+  } finally {
+    setIsLoadingExpertDetails(false);
+  }
+};
+
+// Common save handler for both add and edit
+// Update the save handler to differentiate between create and update
+const handleSaveExpert = async (data: AddExpertFormData) => {
+  setIsSaving(true);
+  try {
+    if (editingExpert && selectedExpert) {
+      // Call update API for existing expert
+      await updateExpertApi(selectedExpert.id.toString(), data);
+      toast.success('Expert updated successfully');
+    } else {
+      // Call create API for new expert
+      await createExpertApi(data);
+      toast.success('Expert created successfully');
+    }
+    
+    // Refresh the experts list
+    await fetchExperts();
+    
+    // Close modal and reset states
+    setIsEditModalOpen(false);
+    setAddExpertModalOpen(false);
+    setEditingExpert(null);
+    setSelectedExpert(null);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to save expert';
+    toast.error(message);
+    throw error;
+  } finally {
+    setIsSaving(false);
+  }
+};
+
+  const handleViewProfile = async (expert: Expert) => {
+  setOpenDropdownId(null);
+  setIsLoadingViewDetails(true);
+  
+  try {
+    // Fetch full expert details from API
+    const expertDetails = await getExpertDetailsApi(expert.id);
+    setViewExpertDetails(expertDetails);
     setSelectedExpert(expert);
     setViewProfileOpen(true);
-    setOpenDropdownId(null);
-  };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to load expert details';
+    toast.error(message);
+  } finally {
+    setIsLoadingViewDetails(false);
+  }
+};
 
   const handleChangeDP = (expert: Expert) => {
     setSelectedExpert(expert);
@@ -343,7 +677,7 @@ export default function ExpertsPage() {
             email: editForm.email || e.email,
             phone: editForm.phone || e.phone,
             bio: editForm.bio || e.bio,
-            services: editForm.services?.split(',').map((s: string) => s.trim()).filter((s: string) => s) || e.services
+            services: parseServicesInput(editForm.services, e.services),
           }
         : e
     ));
@@ -452,6 +786,7 @@ export default function ExpertsPage() {
 
   // Update the handleSaveDP function with loading state
     const handleSaveDP = async () => {
+      debugger;
       if (!selectedExpert) return;
       
       setIsUploading(true);
@@ -461,10 +796,10 @@ export default function ExpertsPage() {
         
         // If we have an uploaded file, upload it to the server
         if (uploadedImageFile) {
-          const response = await uploadExpertAvatarApi(uploadedImageFile);
+          const response = await uploadExpertAvatarApi(uploadedImageFile,selectedExpert.id);
           
-          if (response.avatarUrl) {
-            finalAvatarUrl = response.avatarUrl;
+          if (response.fileUrl) {
+            finalAvatarUrl = response.fileUrl;
           } else {
             toast.error('Failed to upload image');
             return;
@@ -502,10 +837,10 @@ const handleSaveVideo = async () => {
     
     // If we have an uploaded file, upload it to the server
     if (uploadedVideoFile) {
-      const response = await uploadExpertVideoApi(uploadedVideoFile);
+      const response = await uploadExpertVideoApi(uploadedVideoFile, selectedExpert.id);
       
-      if (response.videoUrl) {
-        finalVideoUrl = response.videoUrl;
+      if (response.fileUrl) {
+        finalVideoUrl = response.fileUrl;
       } else {
         toast.error('Failed to upload video');
         return;
@@ -573,6 +908,21 @@ const handleSaveVideo = async () => {
       </div>
 
       <div className="flex flex-wrap gap-4">
+        {isLoadingExperts && (
+          <div className="w-full rounded-lg border border-dashed border-[var(--primary-start)] bg-white p-6 text-center text-sm text-gray-500">
+            Loading experts...
+          </div>
+        )}
+
+        {!isLoadingExperts && expertsError && (
+          <div className="w-full rounded-lg border border-red-200 bg-red-50 p-6 text-center">
+            <p className="text-sm text-red-600">{expertsError}</p>
+            <Button className="mt-4" onClick={() => void fetchExperts()}>
+              Retry
+            </Button>
+          </div>
+        )}
+
         {filteredExperts.map((expert) => (
           <Card key={expert.id} className="w-[280px] shadow-sm border-[#f79a4e] bg-[var(--card-bg)]">
             <CardContent className="p-6">
@@ -746,6 +1096,12 @@ const handleSaveVideo = async () => {
           </Card>
         ))}
 
+        {!isLoadingExperts && !expertsError && filteredExperts.length === 0 && (
+          <div className="w-full rounded-lg border border-dashed border-[var(--primary-start)] bg-white p-6 text-center text-sm text-gray-500">
+            No experts found.
+          </div>
+        )}
+
         {/* <Card className="w-[280px] border-dashed border-2 hover:border-primary/50 transition-colors cursor-pointer shadow-sm border-gray-100">
           <CardContent className="p-6 flex flex-col items-center justify-center h-full min-h-[280px]">
             <div className="bg-primary/10 rounded-full p-4 mb-4">
@@ -845,85 +1201,244 @@ const handleSaveVideo = async () => {
       </Dialog>
 
       {/* View Profile Modal */}
-      <Dialog open={viewProfileOpen} onOpenChange={setViewProfileOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Expert Profile Details</DialogTitle>
-          </DialogHeader>
-          {selectedExpert && (
-            <div className="space-y-4">
-              <div className="flex items-center space-x-4">
-                <Avatar className="h-16 w-16">
-                  <AvatarImage src={selectedExpert.avatar} alt={selectedExpert.name} />
-                  <AvatarFallback>{selectedExpert.name.charAt(0).toUpperCase()}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="text-lg font-semibold">{selectedExpert.name}</h3>
-                  <p className="text-sm text-gray-500">{selectedExpert.username}</p>
-                  <Badge variant={selectedExpert.status === 'active' ? 'default' : 'secondary'}>
-                    {selectedExpert.status}
-                  </Badge>
+      {/* View Profile Modal - Updated to show all data from API */}
+<Dialog open={viewProfileOpen} onOpenChange={(open) => {
+  setViewProfileOpen(open);
+  if (!open) setViewExpertDetails(null);
+}}>
+  <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+    <DialogHeader>
+      <DialogTitle>Expert Profile Details</DialogTitle>
+    </DialogHeader>
+    
+    {isLoadingViewDetails ? (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-2 text-sm text-gray-600">Loading expert details...</p>
+        </div>
+      </div>
+    ) : viewExpertDetails ? (
+      <div className="space-y-4">
+        {/* Basic Info Section */}
+        <div className="flex items-center space-x-4 pb-4 border-b">
+          <Avatar className="h-16 w-16">
+            <AvatarImage src={viewExpertDetails.avatarUrl || selectedExpert?.avatar} alt={viewExpertDetails.name} />
+            <AvatarFallback className="text-lg bg-gradient-to-r from-[var(--primary-start)] to-[var(--primary-end)] text-white">
+              {viewExpertDetails.name?.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <h3 className="text-lg font-semibold">{viewExpertDetails.name}</h3>
+            <p className="text-sm text-gray-500">{viewExpertDetails.username?.startsWith('@') ? viewExpertDetails.username : `@${viewExpertDetails.username}`}</p>
+            <Badge variant={selectedExpert?.status === 'active' ? 'default' : 'secondary'}>
+              {selectedExpert?.status}
+            </Badge>
+          </div>
+        </div>
+        
+        {/* Contact Information */}
+        <div>
+          <h4 className="text-sm font-semibold text-gray-700 mb-2">Contact Information</h4>
+          <div className="grid grid-cols-2 gap-3 bg-gray-50 rounded-lg p-3">
+            <div>
+              <Label className="text-xs text-gray-500">Email</Label>
+              <p className="text-sm">{viewExpertDetails.email || 'Not provided'}</p>
+            </div>
+            <div>
+              <Label className="text-xs text-gray-500">Phone</Label>
+              <p className="text-sm">{viewExpertDetails.phone || 'Not provided'}</p>
+            </div>
+            <div>
+              <Label className="text-xs text-gray-500">Location</Label>
+              <p className="text-sm">{viewExpertDetails.location || 'Not provided'}</p>
+            </div>
+            <div>
+              <Label className="text-xs text-gray-500">Timezone</Label>
+              <p className="text-sm">{viewExpertDetails.timezone || 'Not provided'}</p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Professional Details */}
+        <div>
+          <h4 className="text-sm font-semibold text-gray-700 mb-2">Professional Details</h4>
+          <div className="grid grid-cols-2 gap-3 bg-gray-50 rounded-lg p-3">
+            <div>
+              <Label className="text-xs text-gray-500">Specialization</Label>
+              <p className="text-sm">{viewExpertDetails.specialization || 'Not provided'}</p>
+            </div>
+            <div>
+              <Label className="text-xs text-gray-500">Experience</Label>
+              <p className="text-sm">{viewExpertDetails.experience} years</p>
+            </div>
+            <div>
+              <Label className="text-xs text-gray-500">Consultation Fee</Label>
+              <p className="text-sm">₹{viewExpertDetails.consultationFee}</p>
+            </div>
+            <div>
+              <Label className="text-xs text-gray-500">Rating</Label>
+              <p className="text-sm flex items-center">
+                <Star className="h-4 w-4 text-yellow-400 mr-1" />
+                {selectedExpert?.rating || 0}
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Bio */}
+        {viewExpertDetails.bio && (
+          <div>
+            <h4 className="text-sm font-semibold text-gray-700 mb-2">Bio</h4>
+            <div className="bg-gray-50 rounded-lg p-3">
+              <p className="text-sm">{viewExpertDetails.bio}</p>
+            </div>
+          </div>
+        )}
+        
+        {/* Languages */}
+        {viewExpertDetails.languages && viewExpertDetails.languages.length > 0 && (
+          <div>
+            <h4 className="text-sm font-semibold text-gray-700 mb-2">Languages</h4>
+            <div className="flex flex-wrap gap-2">
+              {viewExpertDetails.languages.map((lang, index) => (
+                <Badge key={index} variant="outline">{lang}</Badge>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Tags */}
+        {viewExpertDetails.tags && viewExpertDetails.tags.length > 0 && (
+          <div>
+            <h4 className="text-sm font-semibold text-gray-700 mb-2">Tags</h4>
+            <div className="flex flex-wrap gap-2">
+              {viewExpertDetails.tags.map((tag, index) => (
+                <Badge key={index} variant="secondary">{tag}</Badge>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Services */}
+        {viewExpertDetails.services && viewExpertDetails.services.length > 0 && (
+          <div>
+            <h4 className="text-sm font-semibold text-gray-700 mb-2">Services</h4>
+            <div className="space-y-2">
+              {viewExpertDetails.services.map((service, index) => (
+                <div key={index} className="bg-gray-50 rounded-lg p-3 flex justify-between items-center">
+                  <div>
+                    <p className="text-sm font-medium">{service.name}</p>
+                    <p className="text-xs text-gray-500">{service.duration} minutes</p>
+                  </div>
+                  <p className="text-sm font-semibold">₹{service.price}</p>
                 </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">Email</Label>
-                  <p className="text-sm">{selectedExpert.email || 'Not provided'}</p>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Education */}
+        {viewExpertDetails.education && viewExpertDetails.education.length > 0 && (
+          <div>
+            <h4 className="text-sm font-semibold text-gray-700 mb-2">Education</h4>
+            <div className="space-y-2">
+              {viewExpertDetails.education.map((edu, index) => (
+                <div key={index} className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-sm font-medium">{edu.degree}</p>
+                  <p className="text-xs text-gray-500">{edu.institution}</p>
+                  <p className="text-xs text-gray-400">Year: {edu.year}</p>
                 </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">Phone</Label>
-                  <p className="text-sm">{selectedExpert.phone || 'Not provided'}</p>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Work History */}
+        {viewExpertDetails.workHistory && viewExpertDetails.workHistory.length > 0 && (
+          <div>
+            <h4 className="text-sm font-semibold text-gray-700 mb-2">Work History</h4>
+            <div className="space-y-2">
+              {viewExpertDetails.workHistory.map((work, index) => (
+                <div key={index} className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-sm font-medium">{work.position}</p>
+                  <p className="text-xs text-gray-500">{work.company}</p>
+                  <p className="text-xs text-gray-400">Period: {work.period}</p>
                 </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">Rating</Label>
-                  <p className="text-sm flex items-center">
-                    <Star className="h-4 w-4 text-yellow-400 mr-1" />
-                    {selectedExpert.rating}
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">Total Bookings</Label>
-                  <p className="text-sm">{selectedExpert.totalBookings}</p>
-                </div>
-              </div>
-              
-              <div>
-                <Label className="text-sm font-medium text-gray-500">Services</Label>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {selectedExpert.services.map((service, index) => (
-                    <Badge key={index} variant="outline">{service}</Badge>
-                  ))}
-                </div>
-              </div>
-              
-              {selectedExpert.bio && (
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">Bio</Label>
-                  <p className="text-sm mt-1">{selectedExpert.bio}</p>
-                </div>
-              )}
-              
-              <div>
-                <Label className="text-sm font-medium text-gray-500">Available Timings</Label>
-                <div className="bg-gray-50 rounded-lg p-3 mt-1">
-                  {selectedExpert.timings.length > 0 ? (
-                    <div className="space-y-1">
-                      {selectedExpert.timings.map((timing, index) => (
-                        <div key={index} className="text-sm">
-                          {timing.day} – {timing.time}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-sm text-gray-500 ">No timings added</div>
-                  )}
-                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Availability Timings */}
+        {viewExpertDetails.availability && viewExpertDetails.availability.length > 0 && (
+          <div>
+            <h4 className="text-sm font-semibold text-gray-700 mb-2">Available Timings</h4>
+            <div className="bg-gray-50 rounded-lg p-3">
+              <div className="space-y-1">
+                {viewExpertDetails.availability.map((slot, index) => (
+                  <div key={index} className="text-sm">
+                    <span className="font-medium">{slot.dayOfWeek}</span> – {slot.startTime} to {slot.endTime}
+                  </div>
+                ))}
               </div>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+          </div>
+        )}
+        
+        {/* Social Links */}
+        {viewExpertDetails.socialLinks?.linkedin && (
+          <div>
+            <h4 className="text-sm font-semibold text-gray-700 mb-2">Social Links</h4>
+            <div className="bg-gray-50 rounded-lg p-3">
+              <a 
+                href={viewExpertDetails.socialLinks.linkedin} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-sm text-blue-600 hover:underline"
+              >
+                LinkedIn Profile
+              </a>
+            </div>
+          </div>
+        )}
+        
+        {/* Video Preview */}
+        {viewExpertDetails.videoUrl && (
+          <div>
+            <h4 className="text-sm font-semibold text-gray-700 mb-2">Introduction Video</h4>
+            <div className="bg-gray-50 rounded-lg p-3">
+              <video 
+                src={viewExpertDetails.videoUrl} 
+                controls 
+                className="w-full rounded-lg"
+              />
+            </div>
+          </div>
+        )}
+        
+        {/* Booking Stats */}
+        <div>
+          <h4 className="text-sm font-semibold text-gray-700 mb-2">Statistics</h4>
+          <div className="grid grid-cols-2 gap-3 bg-gray-50 rounded-lg p-3">
+            <div>
+              <Label className="text-xs text-gray-500">Total Bookings</Label>
+              <p className="text-sm font-semibold">{selectedExpert?.totalBookings || 0}</p>
+            </div>
+            <div>
+              <Label className="text-xs text-gray-500">Total Revenue</Label>
+              <p className="text-sm font-semibold">₹{selectedExpert?.revenue || 0}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    ) : selectedExpert ? (
+      <div className="text-center py-8 text-gray-500">
+        No detailed information available
+      </div>
+    ) : null}
+  </DialogContent>
+</Dialog>
 
       {/* Change Display Picture Modal */}
       <Dialog open={changeDPOpen} onOpenChange={setChangeDPOpen}>
@@ -1108,11 +1623,20 @@ const handleSaveVideo = async () => {
         </DialogContent>
       </Dialog>
 
-      <AddExpertModal
-        isOpen={addExpertModalOpen}
-        onClose={() => setAddExpertModalOpen(false)}
-        onAddExpert={handleAddExpert}
-      />
+
+<AddEditExpertModal
+  isOpen={addExpertModalOpen || isEditModalOpen}
+  onClose={() => {
+    setAddExpertModalOpen(false);
+    setIsEditModalOpen(false);
+    setEditingExpert(null);
+    setSelectedExpert(null);
+  }}
+  onSave={handleSaveExpert}
+  initialData={editingExpert}
+  mode={editingExpert ? 'edit' : 'add'}
+  isLoading={isSaving || isLoadingExpertDetails}
+/>
 
       <ChangeExpertTimingsModal
         isOpen={changeTimingsOpen}

@@ -1,4 +1,7 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {}
+const nextConfig = {
+    output: 'standalone',
+    distDir: '.next-app',
+}
 
 export default nextConfig
