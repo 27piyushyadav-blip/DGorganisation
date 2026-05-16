@@ -69,7 +69,7 @@ export default function Transactions() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 pt-6 md:p-8 bg-[var(--card-bg-light)]">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Transactions</h1>
         <div className="flex space-x-3">
@@ -137,7 +137,7 @@ export default function Transactions() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b">
+                <tr className="border-b border-[var(--primary-start)]">
                   <th className="text-left p-3">Transaction ID</th>
                   <th className="text-left p-3">Date</th>
                   <th className="text-left p-3">Customer</th>
@@ -150,7 +150,7 @@ export default function Transactions() {
               </thead>
               <tbody>
                 {filteredTransactions.map((transaction) => (
-                  <tr key={transaction.id} className="border-b hover:bg-gray-50">
+                  <tr key={transaction.id} className="border-b border-[var(--primary-start)] hover:bg-[var(--card-bg-light)]">
                     <td className="p-3 font-medium">{transaction.id}</td>
                     <td className="p-3">{transaction.date}</td>
                     <td className="p-3">{transaction.customer}</td>

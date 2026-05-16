@@ -5,7 +5,7 @@ import { Users, Calendar, DollarSign, MessageSquare, TrendingUp } from "lucide-r
 
 export default function DashboardPage() {
   return (
-    <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
+    <div className="flex-1 space-y-6 p-4 md:p-8 pt-6 bg-[var(--card-bg-light)]">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
@@ -96,7 +96,7 @@ export default function DashboardPage() {
                 { name: "Jane Smith", expert: "Dr. Michael Johnson", time: "3:30 PM", status: "Pending" },
                 { name: "Bob Johnson", expert: "Dr. Emily Davis", time: "4:00 PM", status: "Confirmed" },
               ].map((booking, index) => (
-                <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+                <div key={index} className="flex items-center justify-between p-4 border rounded-lg bg-[var(--card-bg-light)]">
                   <div>
                     <p className="font-medium">{booking.name}</p>
                     <p className="text-sm text-muted-foreground">with {booking.expert}</p>
@@ -124,7 +124,7 @@ export default function DashboardPage() {
                 { name: "Dr. Alice Brown", specialty: "Psychology", experience: "5 years" },
                 { name: "Dr. Carol White", specialty: "Counseling", experience: "3 years" },
               ].map((expert, index) => (
-                <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+                <div key={index} className="flex items-center justify-between p-4 border rounded-lg bg-[var(--card-bg-light)]">
                   <div>
                     <p className="font-medium">{expert.name}</p>
                     <p className="text-sm text-muted-foreground">{expert.specialty} • {expert.experience}</p>

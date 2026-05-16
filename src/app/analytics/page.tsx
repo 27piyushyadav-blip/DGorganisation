@@ -106,7 +106,7 @@ export default function AnalyticsPage() {
   const averageRating = (expertPerformance.reduce((sum, expert) => sum + expert.rating, 0) / expertPerformance.length).toFixed(1);
 
   return (
-    <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
+    <div className="flex-1 space-y-6 p-4 pt-6 md:p-8 bg-[var(--card-bg-light)]">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Organization Analytics</h2>
@@ -248,7 +248,7 @@ export default function AnalyticsPage() {
                 <h4 className="font-medium mb-3">Services Provided Today</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {expert.services.map((service, index) => (
-                    <div key={index} className="p-3 border rounded-lg">
+                    <div key={index} className="p-3 border border-[var(--primary-start)] rounded-lg">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="font-medium">{service.name}</p>
@@ -269,7 +269,7 @@ export default function AnalyticsPage() {
                 <h4 className="font-medium mb-3">Booking Timeline</h4>
                 <div className="space-y-2">
                   {expert.bookings.map((booking, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div key={index} className="flex items-center justify-between p-3 border border-[var(--primary-start)] rounded-lg">
                       <div className="flex items-center space-x-3">
                         <div className="text-sm font-medium">{booking.time}</div>
                         <div>
@@ -290,7 +290,7 @@ export default function AnalyticsPage() {
                 <h4 className="font-medium mb-3">Customer Reviews</h4>
                 <div className="space-y-3">
                   {expert.reviews.map((review, index) => (
-                    <div key={index} className="flex items-start space-x-3 p-3 border rounded-lg">
+                    <div key={index} className="flex items-start space-x-3 p-3 border border-[var(--primary-start)] rounded-lg">
                       <div className="flex items-center">
                         <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                         <span className="text-sm font-medium ml-1">{review.rating}</span>

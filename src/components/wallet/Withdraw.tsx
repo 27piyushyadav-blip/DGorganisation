@@ -81,7 +81,7 @@ export default function Withdraw() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 pt-6 md:p-8 bg-[var(--card-bg-light)]">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Withdraw Funds</h1>
       </div>
@@ -109,7 +109,7 @@ export default function Withdraw() {
                   <span>Pending Amount:</span>
                   <span>${walletStats.pendingAmount.toLocaleString()}</span>
                 </div>
-                <div className="border-t pt-4"></div>
+                <div className="border-t border-[var(--primary-start)] pt-4"></div>
                 <div className="flex justify-between items-center">
                   <span className="font-medium">Total Balance:</span>
                   <span className="text-xl font-bold">${walletStats.totalBalance.toLocaleString()}</span>
@@ -204,7 +204,7 @@ export default function Withdraw() {
             <CardContent>
               <div className="space-y-4">
                 {recentWithdrawals.map((withdrawal) => (
-                  <div key={withdrawal.id} className="border rounded-lg p-4 space-y-2">
+                  <div key={withdrawal.id} className="border border-[var(--primary-start)] rounded-lg p-4 space-y-2">
                     <div className="flex justify-between items-start">
                       <div>
                         <p className="font-medium">{withdrawal.id}</p>
