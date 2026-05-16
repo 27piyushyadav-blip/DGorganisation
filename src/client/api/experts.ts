@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:3000/organizations/experts";
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.digitaloffices.com.au/organizations/experts" || "http://localhost:3000/organizations/experts";
 // const BASE_URL = "https://api.digitaloffices.com.au/organizations/experts";
 
 export type EducationPayload = {
