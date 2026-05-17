@@ -11,6 +11,3 @@ coverage
 next-env.d.ts
 .next/cache
 .next/out
-.next-app
-.next-app/
-tsconfig.tsbuildinfo

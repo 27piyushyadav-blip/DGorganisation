@@ -29,6 +29,7 @@ import {
   AlertCircle,
   CheckCircle,
   XCircle,
+  Image,
 } from 'lucide-react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -204,6 +205,12 @@ export default function Sidebar({ currentPage }: SidebarProps) {
       ],
     },
     {
+      title: 'Banners',
+      href: '/banners',
+      icon: Image,
+      protected: true,
+    },
+    {
       title: 'Profile',
       href: '/profile',
       icon: Settings,
@@ -278,8 +285,8 @@ export default function Sidebar({ currentPage }: SidebarProps) {
                     <button
                       className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} rounded-lg px-3 py-3 text-sm transition-colors w-full ${
                         isActive
-                          ? 'bg-primary text-primary-foreground'
-                          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                          ? 'bg-gradient-to-r from-[var(--primary-start)] to-[var(--primary-end)] text-primary-foreground'
+                          : 'text-accent-foreground hover:bg-[var(--card-bg-light)] hover:text-accent-foreground'
                       } ${item.protected && !isVerified ? 'opacity-50 cursor-not-allowed' : ''}`}
                       onClick={() => {
                         if (item.protected && !isVerified) return;
@@ -374,8 +381,8 @@ export default function Sidebar({ currentPage }: SidebarProps) {
                     href={item.href}
                     className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} rounded-lg px-3 py-3 text-sm transition-colors ${
                       isActive
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                        ? 'bg-gradient-to-r from-[var(--primary-start)] to-[var(--primary-end)] text-primary-foreground'
+                        : 'text-accent-foreground hover:bg-[var(--card-bg-light)] hover:text-accent-foreground'
                     } ${item.protected && !isVerified ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
                     onClick={(e) => {
                       if (item.protected && !isVerified) {

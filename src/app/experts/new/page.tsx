@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -29,6 +29,7 @@ import {
   DollarSign,
   ChevronRight,
   ChevronLeft,
+  Check,
 } from 'lucide-react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -98,6 +99,49 @@ export default function NewExpertPage() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [orgServices, setOrgServices] = useState<any[]>([]);
+  const [isLoadingServices, setIsLoadingServices] = useState(false);
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      setIsLoadingServices(true);
+      try {
+        const response = await apiClient<any>(`${API_BASE}/organizations/services`);
+        if (response?.services) {
+          setOrgServices(response.services);
+        }
+      } catch (error) {
+        console.error('Failed to load organization services:', error);
+      } finally {
+        setIsLoadingServices(false);
+      }
+    };
+    fetchServices();
+  }, []);
+
+  const handleToggleService = (orgService: any) => {
+    const existingIndex = manualForm.services.findIndex((s: any) => s.name === orgService.name);
+    if (existingIndex > -1) {
+      const newServices = manualForm.services.filter((_, i) => i !== existingIndex);
+      setManualForm(prev => ({ ...prev, services: newServices }));
+    } else {
+      setManualForm(prev => ({
+        ...prev,
+        services: [
+          ...prev.services,
+          {
+            name: orgService.name,
+            duration: orgService.durationMinutes || 60,
+            videoPrice: String(orgService.basePrice) || '0',
+            clinicPrice: String(orgService.basePrice) || '0',
+            currency: 'INR',
+            description: orgService.description || '',
+            organizationServiceId: orgService.id,
+          }
+        ]
+      }));
+    }
+  };
   const [avatarPreview, setAvatarPreview] = useState<string>('');
   const [videoPreview, setVideoPreview] = useState<string>('');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -656,104 +700,72 @@ export default function NewExpertPage() {
 
             <TabsContent value="services" className="mt-0 space-y-6">
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle>Services & Pricing</CardTitle>
-                    <CardDescription>Define the consultation types and their respective fees.</CardDescription>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={() => setManualForm(prev => ({
-                    ...prev, 
-                    services: [...prev.services, { name: '', duration: 60, videoPrice: '', clinicPrice: '', currency: 'INR', description: '' }]
-                  }))}>
-                    <Plus className="h-3 w-3 mr-1" /> Add Service
-                  </Button>
+                <CardHeader>
+                  <CardTitle>Services & Pricing</CardTitle>
+                  <CardDescription>
+                    Select the pre-existing organization services that this expert will offer.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {manualForm.services.length === 0 && (
+                  {isLoadingServices ? (
+                    <div className="py-12 flex flex-col items-center justify-center space-y-3">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-900"></div>
+                      <p className="text-sm text-zinc-500">Loading organization services...</p>
+                    </div>
+                  ) : orgServices.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed rounded-xl text-zinc-400 bg-zinc-50/30">
                       <Sparkles className="h-10 w-10 opacity-10 mb-2" />
-                      <p>No services defined yet.</p>
-                      <Button variant="link" onClick={() => setManualForm(prev => ({
-                        ...prev, 
-                        services: [{ name: 'Standard Consultation', duration: 60, videoPrice: '1000', clinicPrice: '1200', currency: 'INR', description: '' }]
-                      }))}>Add a standard service</Button>
+                      <p className="mb-4">No organization services defined yet.</p>
+                      <Button
+                        variant="outline"
+                        onClick={() => router.push('/services')}
+                        className="rounded-xl"
+                      >
+                        Create Organization Services
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {orgServices.map((orgService) => {
+                        const isSelected = manualForm.services.some(
+                          (s: any) => s.name === orgService.name
+                        );
+                        return (
+                          <div
+                            key={orgService.id}
+                            onClick={() => handleToggleService(orgService)}
+                            className={`cursor-pointer p-5 rounded-xl border-2 transition-all duration-200 relative overflow-hidden flex flex-col justify-between h-32 ${
+                              isSelected
+                                ? 'border-zinc-900 bg-zinc-50/50 shadow-sm'
+                                : 'border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50/20'
+                            }`}
+                          >
+                            {isSelected && (
+                              <div className="absolute top-0 right-0 bg-zinc-900 text-white p-1 rounded-bl-lg">
+                                <Check className="h-3.5 w-3.5" />
+                              </div>
+                            )}
+                            <div>
+                              <h4 className="font-bold text-zinc-900 text-sm line-clamp-1">
+                                {orgService.name}
+                              </h4>
+                              <p className="text-xs text-zinc-500 mt-1 line-clamp-2">
+                                {orgService.description || 'No description available'}
+                              </p>
+                            </div>
+                            <div className="flex justify-between items-center mt-3 border-t pt-2 border-dashed border-zinc-100">
+                              <span className="text-xs text-zinc-400 font-medium">
+                                {orgService.durationMinutes || 60} mins
+                              </span>
+                              <span className="text-sm font-bold text-zinc-900">
+                                ₹{Number(orgService.basePrice).toLocaleString()}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
-                  {manualForm.services.map((service, idx) => (
-                    <div key={idx} className="bg-white border rounded-xl overflow-hidden relative shadow-sm">
-                      <div className="bg-zinc-50/50 p-4 border-b flex justify-between items-center">
-                        <h4 className="font-bold text-sm flex items-center gap-2">
-                          <span className="flex items-center justify-center h-5 w-5 rounded-full bg-zinc-200 text-[10px]">{idx + 1}</span>
-                          Service Item
-                        </h4>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => {
-                          const newServices = manualForm.services.filter((_, i) => i !== idx);
-                          setManualForm(prev => ({...prev, services: newServices}));
-                        }}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <div className="p-4 space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-1.5">
-                            <Label className="text-xs uppercase text-zinc-400 font-bold tracking-wider">Service Name</Label>
-                            <Input placeholder="e.g. Initial Consultation" value={service.name} onChange={e => {
-                              const newS = [...manualForm.services];
-                              newS[idx].name = e.target.value;
-                              setManualForm(prev => ({...prev, services: newS}));
-                            }} />
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label className="text-xs uppercase text-zinc-400 font-bold tracking-wider">Duration (Minutes)</Label>
-                            <div className="relative">
-                              <Clock className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400" />
-                              <Input type="number" className="pl-9" placeholder="60" value={service.duration} onChange={e => {
-                                const newS = [...manualForm.services];
-                                newS[idx].duration = Number(e.target.value);
-                                setManualForm(prev => ({...prev, services: newS}));
-                              }} />
-                            </div>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-1.5">
-                            <Label className="text-xs uppercase text-zinc-400 font-bold tracking-wider flex items-center gap-1">
-                              <Video className="h-3 w-3" /> Video Price
-                            </Label>
-                            <div className="relative">
-                              <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400" />
-                              <Input type="number" className="pl-9" placeholder="1000" value={service.videoPrice} onChange={e => {
-                                const newS = [...manualForm.services];
-                                newS[idx].videoPrice = e.target.value;
-                                setManualForm(prev => ({...prev, services: newS}));
-                              }} />
-                            </div>
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label className="text-xs uppercase text-zinc-400 font-bold tracking-wider flex items-center gap-1">
-                              <MapPin className="h-3 w-3" /> Clinic Price
-                            </Label>
-                            <div className="relative">
-                              <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400" />
-                              <Input type="number" className="pl-9" placeholder="1200" value={service.clinicPrice} onChange={e => {
-                                const newS = [...manualForm.services];
-                                newS[idx].clinicPrice = e.target.value;
-                                setManualForm(prev => ({...prev, services: newS}));
-                              }} />
-                            </div>
-                          </div>
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs uppercase text-zinc-400 font-bold tracking-wider">Description</Label>
-                          <Textarea placeholder="What can clients expect from this service?" value={service.description} onChange={e => {
-                            const newS = [...manualForm.services];
-                            newS[idx].description = e.target.value;
-                            setManualForm(prev => ({...prev, services: newS}));
-                          }} rows={2} />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
                 </CardContent>
               </Card>
 
