@@ -28,6 +28,11 @@ import {
   AlertCircle,
   CheckCircle,
   XCircle,
+  Wallet2,
+  ChartNoAxesGantt,
+  ReceiptRussianRuble,
+  Phone,
+  ArrowLeftRightIcon,
 } from 'lucide-react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -46,6 +51,7 @@ export default function Sidebar({ currentPage }: SidebarProps) {
   const [isBookingsExpanded, setIsBookingsExpanded] = useState(false);
   const [isRefundExpanded, setIsRefundExpanded] = useState(false);
   const [isBankExpanded, setIsBankExpanded] = useState(false);
+  const [isPaymentExpanded, setIsPaymentExpended] = useState(false);
 
   const menuItems = [
     {
@@ -186,6 +192,29 @@ export default function Sidebar({ currentPage }: SidebarProps) {
       ],
     },
     {
+      title: 'Payment',
+      href: '/payment',
+      icon: Wallet2,
+      hasSubmenu: true,
+      submenu: [
+        {
+          title: 'Create Order',
+          href: '/callorder',
+          icon: Phone,
+        },
+        {
+          title: 'Exchange Service',
+          href: '/exchangeservice',
+          icon: ArrowLeftRightIcon,
+        },
+        {
+          title: 'Payment Refund',
+          href: '/paymentrefund',
+          icon: ReceiptRussianRuble,
+        },
+      ],
+    },
+    {
       title: 'Profile',
       href: '/profile',
       icon: Settings,
@@ -250,7 +279,8 @@ export default function Sidebar({ currentPage }: SidebarProps) {
             {menuItems.map((item) => {
               if (item.hasSubmenu) {
                 const isActive = 
-                  (item.title === 'Communication' && (currentPage === '/messages' || currentPage === '/services')) ||
+                  (item.title === 'Communication' && (currentPage === '/messages' || currentPage === '/services')) || 
+                  (item.title === 'Payment' && (currentPage === '/callorder' || currentPage === '/paymentrefund' || currentPage === '/exchangeservice')) ||
                   (item.title === 'Bookings' && currentPage.startsWith('/bookings')) ||
                   (item.title === 'Refund' && (currentPage === '/refunds' || currentPage.startsWith('/refunds/') || currentPage === '/wallet/refund-logs')) ||
                   (item.title === 'Bank' && (currentPage === '/bank' || currentPage === '/wallet' || currentPage === '/bank-details' || currentPage.startsWith('/wallet/') && currentPage !== '/wallet/refund-logs'));
@@ -273,6 +303,8 @@ export default function Sidebar({ currentPage }: SidebarProps) {
                           setIsRefundExpanded(!isRefundExpanded);
                         } else if (item.title === 'Bank') {
                           setIsBankExpanded(!isBankExpanded);
+                        } else if (item.title === 'Payment') {
+                          setIsPaymentExpended(!isPaymentExpanded);
                         }
                       }}
                       title={isCollapsed ? item.title : undefined}
@@ -311,6 +343,12 @@ export default function Sidebar({ currentPage }: SidebarProps) {
                             ) : (
                               <ChevronRight className="h-4 w-4 ml-auto" />
                             )
+                          ) : item.title === 'Payment' ? (
+                            isPaymentExpanded ? (
+                              <ChevronDown className="h-4 w-4 ml-auto" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 ml-auto" />
+                            )
                           ) : null}
                         </>
                       )}
@@ -321,7 +359,8 @@ export default function Sidebar({ currentPage }: SidebarProps) {
                        (item.title === 'Wallet' && isWalletExpanded) ||
                        (item.title === 'Bookings' && isBookingsExpanded) ||
                        (item.title === 'Refund' && isRefundExpanded) ||
-                       (item.title === 'Bank' && isBankExpanded)) && 
+                       (item.title === 'Bank' && isBankExpanded) ||
+                      (item.title === 'Payment' && isPaymentExpanded)) && 
                       item.submenu && (
                       <div className="ml-6 mt-1 space-y-1">
                         {item.submenu.map((subItem) => {
