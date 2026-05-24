@@ -6,35 +6,38 @@ import {
   Search, 
   Copy, 
   CheckCircle, 
-  Phone, 
   Calendar, 
   Clock, 
   CreditCard, 
   Wallet, 
-  Landmark, 
-  Smartphone,
   MessageSquare,
   Mail,
   Send,
   Plus,
   Trash2,
   User,
-  PhoneCall,
   Users,
   Link2,
   FileText,
   ChevronRight,
   Eye,
-  RefreshCw,
   AlertCircle,
-  DollarSign,
-  CalendarDays,
   Sparkles,
   Star,
   Award,
   Briefcase,
-  Minus
+  Minus,
+  type LucideIcon
 } from 'lucide-react';
+import { Calendar as DatePickerCalendar } from '@/components/ui/calendar';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 
 // Service type definition
 type Service = {
@@ -162,6 +165,82 @@ const availableExperts: Expert[] = [
 
 type TabType = 'customer' | 'services' | 'experts' | 'payment' | 'summary';
 
+const serviceCategoryMeta: Record<string, { icon: LucideIcon; badgeClassName: string; iconClassName: string }> = {
+  Massage: {
+    icon: Sparkles,
+    badgeClassName: 'bg-blue-50 text-blue-700',
+    iconClassName: 'text-blue-600',
+  },
+  Hair: {
+    icon: Star,
+    badgeClassName: 'bg-violet-50 text-violet-700',
+    iconClassName: 'text-violet-600',
+  },
+  Facial: {
+    icon: Award,
+    badgeClassName: 'bg-amber-50 text-amber-700',
+    iconClassName: 'text-amber-600',
+  },
+  Nails: {
+    icon: CheckCircle,
+    badgeClassName: 'bg-emerald-50 text-emerald-700',
+    iconClassName: 'text-emerald-600',
+  },
+  Body: {
+    icon: Briefcase,
+    badgeClassName: 'bg-rose-50 text-rose-700',
+    iconClassName: 'text-rose-600',
+  },
+};
+
+const timeSlots = [
+  '09:00 AM',
+  '09:30 AM',
+  '10:00 AM',
+  '10:30 AM',
+  '11:00 AM',
+  '11:30 AM',
+  '12:00 PM',
+  '12:30 PM',
+  '01:00 PM',
+  '01:30 PM',
+  '02:00 PM',
+  '02:30 PM',
+  '03:00 PM',
+  '03:30 PM',
+  '04:00 PM',
+  '04:30 PM',
+  '05:00 PM',
+  '05:30 PM',
+  '06:00 PM',
+];
+
+const buildAvailableDates = () => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(today);
+    date.setDate(today.getDate() + index + 1);
+    return date;
+  });
+};
+
+const formatAppointmentDate = (date: Date) =>
+  date.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+
+const getServiceCategoryMeta = (category?: string) =>
+  serviceCategoryMeta[category ?? ''] ?? {
+    icon: Sparkles,
+    badgeClassName: 'bg-slate-100 text-slate-700',
+    iconClassName: 'text-slate-600',
+  };
+
 function ServiceImage({ src, alt, className }: ServiceImageProps) {
   const [hasError, setHasError] = useState(false);
 
@@ -219,9 +298,15 @@ export default function Home() {
   const [linkCopied, setLinkCopied] = useState(false);
   const [paymentSent, setPaymentSent] = useState(false);
   const [sendingMethod, setSendingMethod] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [isDateTimeDialogOpen, setIsDateTimeDialogOpen] = useState(false);
+  const [tempSelectedDate, setTempSelectedDate] = useState<Date | null>(null);
+  const [tempSelectedTime, setTempSelectedTime] = useState<string | null>(null);
+  const availableDates = buildAvailableDates();
   
   // Order date
-  const orderDate = new Date(2025, 4, 18, 11, 30);
+  const orderDate = selectedDate ?? new Date(2025, 4, 18, 11, 30);
   const formattedDate = orderDate.toLocaleDateString('en-US', { 
     month: 'long', 
     day: 'numeric', 
@@ -242,6 +327,10 @@ export default function Home() {
   const filteredServices = availableServices.filter(service =>
     service.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+  const appointmentLabel =
+    selectedDate && selectedTime
+      ? `${formatAppointmentDate(selectedDate)} at ${selectedTime}`
+      : 'Select date & time';
 
   // Filter experts based on search query
   const filteredExperts = availableExperts.filter(expert =>
@@ -311,6 +400,22 @@ export default function Home() {
     }, 500);
   };
 
+  const openDateTimeDialog = () => {
+    setTempSelectedDate(selectedDate ?? availableDates[0] ?? null);
+    setTempSelectedTime(selectedTime);
+    setIsDateTimeDialogOpen(true);
+  };
+
+  const handleDateTimeConfirm = () => {
+    if (!tempSelectedDate || !tempSelectedTime) {
+      return;
+    }
+
+    setSelectedDate(tempSelectedDate);
+    setSelectedTime(tempSelectedTime);
+    setIsDateTimeDialogOpen(false);
+  };
+
   // Check if current tab is complete
   const isTabComplete = (tab: TabType): boolean => {
     switch (tab) {
@@ -321,7 +426,7 @@ export default function Home() {
       case 'experts':
         return true; // Expert selection is optional
       case 'payment':
-        return true;
+        return Boolean(selectedDate && selectedTime);
       case 'summary':
         return true;
       default:
@@ -346,11 +451,18 @@ export default function Home() {
     { id: 'summary' as TabType, label: 'Order Summary', icon: FileText, description: 'Review & confirm' },
   ];
 
+  const goToTab = (tab: TabType) => {
+    setActiveTab(tab);
+    if (tab === 'payment' && (!selectedDate || !selectedTime)) {
+      openDateTimeDialog();
+    }
+  };
+
   // Handle next tab
   const goToNextTab = () => {
     const currentIndex = tabs.findIndex(t => t.id === activeTab);
     if (currentIndex < tabs.length - 1 && isTabComplete(activeTab)) {
-      setActiveTab(tabs[currentIndex + 1].id);
+      goToTab(tabs[currentIndex + 1].id);
     }
   };
 
@@ -358,7 +470,7 @@ export default function Home() {
   const goToPrevTab = () => {
     const currentIndex = tabs.findIndex(t => t.id === activeTab);
     if (currentIndex > 0) {
-      setActiveTab(tabs[currentIndex - 1].id);
+      goToTab(tabs[currentIndex - 1].id);
     }
   };
 
@@ -384,7 +496,6 @@ export default function Home() {
                 const status = getTabStatus(tab.id);
                 const isActive = activeTab === tab.id;
                 const isCompleted = status === 'completed';
-                const isPending = status === 'pending';
                 
                 return (
                   <button
@@ -392,7 +503,7 @@ export default function Home() {
                     onClick={() => {
                       // Allow navigation to completed tabs or previous tabs
                       if (isCompleted || idx <= tabs.findIndex(t => t.id === activeTab)) {
-                        setActiveTab(tab.id);
+                        goToTab(tab.id);
                       }
                     }}
                     className={`
@@ -545,41 +656,78 @@ export default function Home() {
                     />
                   </div>
 
-                  {/* Search Results */}
-                  {searchQuery && (
-                    <div className="mb-5 border border-slate-100 rounded-xl overflow-hidden">
-                        <div className="bg-slate-50 px-3 py-2 border-b border-slate-100">
-                        <p className="text-xs font-medium text-slate-500 uppercase">Search Results</p>
-                        </div>
-                        <div className="max-h-80 overflow-y-auto">
-                        {filteredServices.length > 0 ? (
-                            filteredServices.map((service) => (
-                            <button
-                                key={service.id}
-                                onClick={() => addService(service)}
-                                className="w-full flex items-center gap-3 p-3 hover:bg-blue-50 transition border-b last:border-b-0 text-left"
+                  {/* Available Services */}
+                  <div className="mb-6">
+                    <div className="flex justify-between items-center mb-3">
+                      <div>
+                        <p className="text-sm font-medium text-slate-700">Available Services</p>
+                        <p className="text-xs text-slate-500">
+                          {searchQuery ? `Showing ${filteredServices.length} result(s)` : 'Browse all services and add them to this order'}
+                        </p>
+                      </div>
+                      <p className="text-xs text-slate-500">{availableServices.length} total</p>
+                    </div>
+
+                    <div className='max-h-[20rem] overflow-y-scroll'>
+                    {filteredServices.length > 0 ? (
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {filteredServices.map((service) => {
+                          const serviceInCart = selectedServices.find((selectedService) => selectedService.id === service.id);
+                          const categoryMeta = getServiceCategoryMeta(service.category);
+                          const CategoryIcon = categoryMeta.icon;
+
+                          return (
+                            <div
+                              key={service.id}
+                              className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-blue-300 hover:shadow-md"
                             >
+                              <div className="flex items-start gap-3">
                                 <ServiceImage
                                   src={service.image}
                                   alt={service.name}
-                                  className="w-12 h-12 rounded-xl object-cover"
+                                  className="w-16 h-16 rounded-2xl object-cover"
                                 />
-                                <div className="flex-1">
-                                <p className="font-medium text-slate-800">{service.name}</p>
-                                <div className="flex gap-3 text-xs text-slate-500">
-                                    <span>{service.duration}</span>
-                                    <span className="text-blue-600 font-medium">${service.price}</span>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div>
+                                      <p className="font-medium text-slate-800">{service.name}</p>
+                                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                                        <span className={cn('inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-medium', categoryMeta.badgeClassName)}>
+                                          <CategoryIcon className="w-3.5 h-3.5" />
+                                          {service.category}
+                                        </span>
+                                        <span className="text-slate-500">{service.duration}</span>
+                                      </div>
+                                    </div>
+                                    <span className="text-base font-semibold text-blue-600">${service.price}</span>
+                                  </div>
+                                  <div className="mt-4 flex items-center justify-between">
+                                    <p className="text-xs text-slate-500">
+                                      {serviceInCart ? `${serviceInCart.quantity} selected` : 'Tap add to include'}
+                                    </p>
+                                    <button
+                                      onClick={() => addService(service)}
+                                      className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+                                    >
+                                      <Plus className="w-4 h-4" />
+                                      Add
+                                    </button>
+                                  </div>
                                 </div>
-                                </div>
-                                <Plus className="w-5 h-5 text-blue-500" />
-                            </button>
-                            ))
-                        ) : (
-                            <p className="p-4 text-slate-500 text-center text-sm">No services found</p>
-                        )}
-                        </div>
-                    </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-center py-10 bg-slate-50 rounded-xl">
+                        <Search className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                        <p className="text-slate-400">No services found</p>
+                        <p className="text-xs text-slate-400">Try a different search term</p>
+                      </div>
                     )}
+                    </div>
+                  </div>
 
                   {/* Selected Services */}
                   <div className="mt-4">
@@ -588,9 +736,14 @@ export default function Home() {
                       <p className="text-xs text-slate-500">{selectedServices.length} item(s)</p>
                     </div>
                     
+                    <div className='max-h-[10rem] overflow-y-scroll'>
                     {selectedServices.length > 0 ? (
                         <div className="space-y-2">
-                            {selectedServices.map((service) => (
+                            {selectedServices.map((service) => {
+                            const categoryMeta = getServiceCategoryMeta(service.category);
+                            const CategoryIcon = categoryMeta.icon;
+
+                            return (
                             <div
                                 key={service.id}
                                 className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl"
@@ -601,8 +754,15 @@ export default function Home() {
                                   className="w-12 h-12 rounded-xl object-cover"
                                 />
                                 <div className="flex-1">
-                                <p className="font-medium text-slate-800">{service.name}</p>
-                                <p className="text-xs text-slate-500">{service.duration}</p>
+                                <div className="flex items-center gap-2">
+                                  <div className={cn('flex h-8 w-8 items-center justify-center rounded-full', categoryMeta.badgeClassName)}>
+                                    <CategoryIcon className={cn('w-4 h-4', categoryMeta.iconClassName)} />
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-slate-800">{service.name}</p>
+                                    <p className="text-xs text-slate-500">{service.category} - {service.duration}</p>
+                                  </div>
+                                </div>
                                 </div>
                                 <div className="flex items-center gap-3">
                                 <div className="flex items-center gap-2">
@@ -631,12 +791,10 @@ export default function Home() {
                                 </button>
                                 </div>
                             </div>
-                            ))}
+                            );
+                            })}
                             
-                            <div className="mt-4 pt-4 border-t border-slate-100 flex justify-between items-center">
-                            <span className="font-semibold text-slate-800">Total Amount</span>
-                            <span className="text-2xl font-bold text-blue-600">${totalAmount}</span>
-                            </div>
+              
                         </div>
                         ) : (
                         <div className="text-center py-10 bg-slate-50 rounded-xl">
@@ -645,6 +803,11 @@ export default function Home() {
                             <p className="text-xs text-slate-400">Search and add services above</p>
                         </div>
                         )}
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-slate-100 flex justify-between items-center">
+                            <span className="font-semibold text-slate-800">Total Amount</span>
+                            <span className="text-2xl font-bold text-blue-600">${totalAmount}</span>
+                            </div>
                   </div>
                 </div>
               )}
@@ -827,6 +990,43 @@ export default function Home() {
                     </div>
                   </div>
 
+                  <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-slate-700">Select Date & Time</p>
+                        <p className="text-xs text-slate-500 mt-1">
+                          Choose the appointment slot before sending the payment link
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={openDateTimeDialog}
+                        className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-blue-600 transition hover:border-blue-300 hover:bg-blue-50"
+                      >
+                        {selectedDate && selectedTime ? 'Change' : 'Select'}
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={openDateTimeDialog}
+                      className="mt-4 flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-left transition hover:border-blue-300 hover:bg-blue-50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100">
+                          <Calendar className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-slate-700">{appointmentLabel}</p>
+                          <p className="text-xs text-slate-500 mt-1">
+                            {selectedDate && selectedTime ? 'Click to update appointment slot' : 'Required before continuing'}
+                          </p>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-400" />
+                    </button>
+                  </div>
+
                   {/* Send Options */}
                   <div>
                     <p className="text-sm font-medium text-slate-700 mb-3">Send payment link via</p>
@@ -976,6 +1176,10 @@ export default function Home() {
                         <span className="text-slate-600">Order Date</span>
                         <span>{formattedDate} - {formattedTime}</span>
                       </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Appointment Slot</span>
+                        <span>{appointmentLabel}</span>
+                      </div>
                     </div>
                   </div>
 
@@ -1053,6 +1257,14 @@ export default function Home() {
                   </div>
                 </div>
 
+                <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                  <div className="flex items-center gap-2 text-xs text-slate-500 uppercase tracking-wide mb-1">
+                    <Calendar className="w-3.5 h-3.5 text-blue-500" />
+                    Appointment
+                  </div>
+                  <p className="text-sm font-medium text-slate-700">{appointmentLabel}</p>
+                </div>
+
                 <div>
                   <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">Services</p>
                   <div className="space-y-2">
@@ -1124,6 +1336,120 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      <Dialog open={isDateTimeDialogOpen} onOpenChange={setIsDateTimeDialogOpen}>
+  <DialogContent className="max-h-[90vh] max-w-lg overflow-hidden rounded-3xl p-0 bg-white">
+    <DialogHeader className="border-b border-slate-100 px-6 pb-4 pt-6">
+      <DialogTitle className="text-2xl font-bold text-slate-900">Select Date & Time</DialogTitle>
+      <DialogDescription className="text-sm text-slate-500">Choose your preferred appointment slot</DialogDescription>
+    </DialogHeader>
+    
+    <div className="max-h-[calc(90vh-120px)] overflow-y-scroll scrollbar-thin px-6 pb-8">
+      {/* Calendar */}
+      <div className="mt-4">
+        <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+          <Calendar className="h-4 w-4 text-blue-600" />
+          <span>Select Date</span>
+        </div>
+        <div className="mt-3 flex justify-center rounded-2xl border border-slate-200 p-4 ">
+          <DatePickerCalendar
+            mode="single"
+            selected={tempSelectedDate || undefined}
+            onSelect={(date) => setTempSelectedDate(date ?? null)}
+            disabled={(date) => {
+              const minDate = availableDates[0];
+              const maxDate = availableDates[availableDates.length - 1];
+
+              if (!minDate || !maxDate) {
+                return false;
+              }
+
+              return date < minDate || date > maxDate;
+            }}
+            className="rounded-md bg-white text-black"
+          />
+        </div>
+      </div>
+
+      {/* Time Slots */}
+<div className="mt-6">
+  <div className="flex items-center justify-between">
+    <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+      <Clock className="h-4 w-4 text-blue-600" />
+      <span>Select Time Slot</span>
+    </div>
+    <div className="flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
+      <span>🍽️</span>
+      <span>Lunch Break</span>
+    </div>
+  </div>
+  <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-4">
+    {timeSlots.map((time) => {
+      const isSelected = tempSelectedTime === time;
+      const isDisabled = !tempSelectedDate || time === "12:30 PM" || time === "01:00 PM";
+      const isLunchSlot = time === "12:30 PM" || time === "01:00 PM";
+      
+      return (
+        <button
+          key={time}
+          type="button"
+          onClick={() => !isDisabled && setTempSelectedTime(time)}
+          disabled={isDisabled}
+          className={cn(
+            "rounded-xl border px-3 py-2.5 text-sm font-semibold transition",
+            isSelected
+              ? "border-blue-600 bg-blue-600 text-white"
+              : isDisabled
+              ? "cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400"
+              : "border-slate-200 text-slate-700 hover:border-blue-300 hover:bg-blue-50",
+            isLunchSlot && !isSelected && "relative"
+          )}
+        >
+          {time}
+          {isLunchSlot && !isSelected && (
+            <span className="absolute -top-1 -right-1 text-xs">🍽️</span>
+          )}
+        </button>
+      );
+    })}
+  </div>
+  {!tempSelectedDate && (
+    <p className="mt-3 text-center text-xs text-amber-600">
+      Please select a date first
+    </p>
+  )}
+  {tempSelectedDate && (
+    <p className="mt-3 text-center text-xs text-slate-500">
+      ⚠️ Lunch break: 12:30 PM - 1:00 PM (not available)
+    </p>
+  )}
+</div>
+
+      {/* Action Buttons */}
+      <div className="mt-8 flex gap-3">
+        <button
+          type="button"
+          onClick={() => {
+            setTempSelectedDate(selectedDate);
+            setTempSelectedTime(selectedTime);
+            setIsDateTimeDialogOpen(false);
+          }}
+          className="flex-1 rounded-2xl border border-slate-200 bg-white py-6 text-base font-semibold text-black transition hover:bg-slate-100"
+          >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={handleDateTimeConfirm}
+          disabled={!tempSelectedDate || !tempSelectedTime}
+          className="flex-1 rounded-2xl bg-blue-600 py-6 text-base font-semibold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Confirm
+        </button>
+      </div>
+    </div>
+  </DialogContent>
+</Dialog>
     </div>
   );
 }

@@ -727,6 +727,7 @@ export default function ExchangePage() {
                       )}
                     </div>
                     
+                    <div className='max-h-[10rem] overflow-y-scroll'>
                     {selectedServices.length > 0 ? (
                       <div className="space-y-2">
                         {selectedServices.map((service) => (
@@ -768,10 +769,6 @@ export default function ExchangePage() {
                             </div>
                           </div>
                         ))}
-                        <div className="mt-3 pt-3 border-t border-slate-100 flex justify-between items-center">
-                          <span className="font-semibold text-slate-800">New Services Total</span>
-                          <span className="text-xl font-bold text-blue-600">${newTotal}</span>
-                        </div>
                       </div>
                     ) : (
                       <div className="text-center py-10 bg-slate-50 rounded-xl">
@@ -780,6 +777,11 @@ export default function ExchangePage() {
                         <p className="text-xs text-slate-400">Click on services above to add</p>
                       </div>
                     )}
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-slate-100 flex justify-between items-center">
+                          <span className="font-semibold text-slate-800">New Services Total</span>
+                          <span className="text-xl font-bold text-blue-600">${newTotal}</span>
+                        </div>
                   </div>
 
                   {/* Payment Adjustment based on exchange type */}
