@@ -100,6 +100,8 @@ const availableServices: Service[] = [
   { id: '6', name: 'Manicure & Pedicure', duration: '60 min', price: 65, category: 'Nails', image: 'https://images.unsplash.com/photo-1610991923496-b62c5e2d34cf?w=150&h=150&fit=crop' },
   { id: '7', name: 'Hot Stone Massage', duration: '75 min', price: 140, category: 'Massage', image: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=150&h=150&fit=crop' },
   { id: '8', name: 'Body Scrub', duration: '45 min', price: 95, category: 'Body', image: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=150&h=150&fit=crop' },
+  { id: '9', name: 'Swedish Massage', duration: '60 min', price: 150, category: 'Massage', image: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=150&h=150&fit=crop' },
+  { id: '10', name: 'Hair Styling', duration: '45 min', price: 100, category: 'Hair', image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=150&h=150&fit=crop' },
 ];
 
 const availableExperts: Expert[] = [
@@ -224,7 +226,9 @@ export default function ExchangePage() {
   const [activeTab, setActiveTab] = useState<TabType>('exchange');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [selectedServices, setSelectedServices] = useState<SelectedService[]>([]);
+  const [selectedServices, setSelectedServices] = useState<SelectedService[]>(
+    () => originalServices.map(service => ({ ...service, quantity: 1 }))
+  );
   const [selectedExpert, setSelectedExpert] = useState<Expert | null>(null);
   const [balanceAction, setBalanceAction] = useState<'refund' | 'credit'>('refund');
   const [exchangeConfirmed, setExchangeConfirmed] = useState(false);
@@ -494,11 +498,7 @@ export default function ExchangePage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
       <div className="max-w-6xl mx-auto px-4 py-6 md:py-10">
         {/* Header */}
-        <div className="mb-6">
-          <button className="flex items-center gap-2 text-slate-600 hover:text-slate-800 mb-4 transition group">
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition" />
-            <span className="text-sm">Back to Orders</span>
-          </button>
+        <div className="mb-2">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-slate-800">
@@ -523,7 +523,7 @@ export default function ExchangePage() {
         </div>
 
         {/* Exchange Type Banner */}
-        {selectedServices.length > 0 && !isEqualAmount && (
+        {/* {selectedServices.length > 0 && !isEqualAmount && (
           <div className={`mb-6 p-4 rounded-xl border border-${currentExchange.bgColor}-200 bg-${currentExchange.bgColor}-50`}>
             <div className="flex items-start gap-3">
               <div className={`w-10 h-10 rounded-lg bg-${currentExchange.bgColor}-100 flex items-center justify-center flex-shrink-0`}>
@@ -542,7 +542,7 @@ export default function ExchangePage() {
               </div>
             </div>
           </div>
-        )}
+        )} */}
 
         {/* Modern Tab Bar */}
         <div className="mb-8">
