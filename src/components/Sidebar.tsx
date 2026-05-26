@@ -30,6 +30,11 @@ import {
   CheckCircle,
   XCircle,
   Image,
+  Wallet2,
+  ChartNoAxesGantt,
+  ReceiptRussianRuble,
+  Phone,
+  ArrowLeftRightIcon,
 } from 'lucide-react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -51,6 +56,7 @@ export default function Sidebar({ currentPage }: SidebarProps) {
   const [isBookingsExpanded, setIsBookingsExpanded] = useState(false);
   const [isRefundExpanded, setIsRefundExpanded] = useState(false);
   const [isBankExpanded, setIsBankExpanded] = useState(false);
+  const [isPaymentExpanded, setIsPaymentExpended] = useState(false);
 
   const menuItems = [
     {
@@ -211,6 +217,29 @@ export default function Sidebar({ currentPage }: SidebarProps) {
       protected: true,
     },
     {
+      title: 'Payment',
+      href: '/payment',
+      icon: Wallet2,
+      hasSubmenu: true,
+      submenu: [
+        {
+          title: 'Create Order',
+          href: '/callorder',
+          icon: Phone,
+        },
+        {
+          title: 'Exchange Service',
+          href: '/exchangeservice',
+          icon: ArrowLeftRightIcon,
+        },
+        {
+          title: 'Payment Refund',
+          href: '/paymentrefund',
+          icon: ReceiptRussianRuble,
+        },
+      ],
+    },
+    {
       title: 'Profile',
       href: '/profile',
       icon: Settings,
@@ -237,9 +266,8 @@ export default function Sidebar({ currentPage }: SidebarProps) {
 
       {/* Sidebar */}
       <div
-        className={`bg-[var(--card-bg)] border-border fixed inset-y-0 left-0 z-40 transform border-r transition-all duration-300 ease-in-out lg:relative lg:translate-x-0 ${
-          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-        } ${isCollapsed ? 'w-16' : 'w-64'} `}
+        className={`bg-[var(--card-bg)] border-border fixed inset-y-0 left-0 z-40 transform border-r transition-all duration-300 ease-in-out lg:relative lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+          } ${isCollapsed ? 'w-16' : 'w-64'} `}
       >
         <div className="flex h-full flex-col">
           {/* User info */}
@@ -260,9 +288,9 @@ export default function Sidebar({ currentPage }: SidebarProps) {
                   </p>
                 </div>
               )}
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setIsCollapsed(!isCollapsed)}
                 className="hidden lg:flex"
               >
@@ -275,19 +303,19 @@ export default function Sidebar({ currentPage }: SidebarProps) {
           <nav className={`flex-1 ${isCollapsed ? 'p-2' : 'p-4'} max-h-[calc(100vh-8rem)] overflow-y-auto scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300`}>
             {menuItems.map((item) => {
               if (item.hasSubmenu) {
-                const isActive = 
+                const isActive =
                   (item.title === 'Communication' && (currentPage === '/messages' || currentPage === '/services')) ||
+                  (item.title === 'Payment' && (currentPage === '/callorder' || currentPage === '/paymentrefund' || currentPage === '/exchangeservice')) ||
                   (item.title === 'Bookings' && currentPage.startsWith('/bookings')) ||
                   (item.title === 'Refund' && (currentPage === '/refunds' || currentPage.startsWith('/refunds/') || currentPage === '/wallet/refund-logs')) ||
                   (item.title === 'Bank' && (currentPage === '/bank' || currentPage === '/wallet' || currentPage === '/bank-details' || currentPage.startsWith('/wallet/') && currentPage !== '/wallet/refund-logs'));
                 return (
                   <div key={item.title}>
                     <button
-                      className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} rounded-lg px-3 py-3 text-sm transition-colors w-full ${
-                        isActive
+                      className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} rounded-lg px-3 py-3 text-sm transition-colors w-full ${isActive
                           ? 'bg-gradient-to-r from-[var(--primary-start)] to-[var(--primary-end)] text-primary-foreground'
                           : 'text-accent-foreground hover:bg-[var(--card-bg-light)] hover:text-accent-foreground'
-                      } ${item.protected && !isVerified ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        } ${item.protected && !isVerified ? 'opacity-50 cursor-not-allowed' : ''}`}
                       onClick={() => {
                         if (item.protected && !isVerified) return;
                         if (item.title === 'Communication') {
@@ -300,6 +328,8 @@ export default function Sidebar({ currentPage }: SidebarProps) {
                           setIsRefundExpanded(!isRefundExpanded);
                         } else if (item.title === 'Bank') {
                           setIsBankExpanded(!isBankExpanded);
+                        } else if (item.title === 'Payment') {
+                          setIsPaymentExpended(!isPaymentExpanded);
                         }
                       }}
                       title={isCollapsed ? item.title : undefined}
@@ -338,39 +368,45 @@ export default function Sidebar({ currentPage }: SidebarProps) {
                             ) : (
                               <ChevronRight className="h-4 w-4 ml-auto" />
                             )
+                          ) : item.title === 'Payment' ? (
+                            isPaymentExpanded ? (
+                              <ChevronDown className="h-4 w-4 ml-auto" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 ml-auto" />
+                            )
                           ) : null}
                         </>
                       )}
                     </button>
-                    
-                    {!isCollapsed && 
-                      ((item.title === 'Communication' && isCommunicationExpanded) || 
-                       (item.title === 'Wallet' && isWalletExpanded) ||
-                       (item.title === 'Bookings' && isBookingsExpanded) ||
-                       (item.title === 'Refund' && isRefundExpanded) ||
-                       (item.title === 'Bank' && isBankExpanded)) && 
+
+                    {!isCollapsed &&
+                      ((item.title === 'Communication' && isCommunicationExpanded) ||
+                        (item.title === 'Wallet' && isWalletExpanded) ||
+                        (item.title === 'Bookings' && isBookingsExpanded) ||
+                        (item.title === 'Refund' && isRefundExpanded) ||
+                        (item.title === 'Bank' && isBankExpanded) ||
+                        (item.title === 'Payment' && isPaymentExpanded)) &&
                       item.submenu && (
-                      <div className="ml-6 mt-1 space-y-1">
-                        {item.submenu.map((subItem) => {
-                          const isSubActive = currentPage === subItem.href;
-                          return (
-                            <Link
-                              key={subItem.href}
-                              href={subItem.href}
-                              className={`flex items-center space-x-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                                isSubActive
-                                  ? 'bg-gradient-to-r from-[var(--primary-start)] to-[var(--primary-end)] text-primary-foreground'
-                                  : 'text-accent-foreground hover:bg-[var(--card-bg-light)] hover:text-accent-foreground'
-                              } `}
-                              onClick={() => setIsMobileMenuOpen(false)}
-                            >
-                              <subItem.icon className="h-4 w-4" />
-                              <span className="font-medium">{subItem.title}</span>
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    )}
+                        <div className="ml-6 mt-1 space-y-1">
+                          {item.submenu.map((subItem) => {
+                            const isSubActive = currentPage === subItem.href;
+                            return (
+                              <Link
+                                key={subItem.href}
+                                href={subItem.href}
+                                className={`flex items-center space-x-3 rounded-lg px-3 py-2 text-sm transition-colors ${isSubActive
+                                    ? 'bg-gradient-to-r from-[var(--primary-start)] to-[var(--primary-end)] text-primary-foreground'
+                                    : 'text-accent-foreground hover:bg-[var(--card-bg-light)] hover:text-accent-foreground'
+                                  } `}
+                                onClick={() => setIsMobileMenuOpen(false)}
+                              >
+                                <subItem.icon className="h-4 w-4" />
+                                <span className="font-medium">{subItem.title}</span>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      )}
                   </div>
                 );
               } else {
@@ -379,11 +415,10 @@ export default function Sidebar({ currentPage }: SidebarProps) {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} rounded-lg px-3 py-3 text-sm transition-colors ${
-                      isActive
+                    className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} rounded-lg px-3 py-3 text-sm transition-colors ${isActive
                         ? 'bg-gradient-to-r from-[var(--primary-start)] to-[var(--primary-end)] text-primary-foreground'
                         : 'text-accent-foreground hover:bg-[var(--card-bg-light)] hover:text-accent-foreground'
-                    } ${item.protected && !isVerified ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
+                      } ${item.protected && !isVerified ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
                     onClick={(e) => {
                       if (item.protected && !isVerified) {
                         e.preventDefault();
@@ -405,8 +440,8 @@ export default function Sidebar({ currentPage }: SidebarProps) {
 
           {/* Footer */}
           <div className={` border-[var(--primary-start)] border-t ${isCollapsed ? 'p-2' : 'p-4'}`}>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               className={`${isCollapsed ? 'w-full justify-center' : 'w-full justify-start'}`}
               title={isCollapsed ? 'Logout' : undefined}
             >

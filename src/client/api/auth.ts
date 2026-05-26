@@ -27,7 +27,7 @@ export class AuthError extends Error {
 
 async function handleResponse<T>(response: Response): Promise<T> {
   let data;
-  
+
   try {
     // Check if response has content before parsing JSON
     const text = await response.text();
@@ -35,16 +35,16 @@ async function handleResponse<T>(response: Response): Promise<T> {
   } catch (error) {
     data = {};
   }
-  
+
   if (!response.ok) {
     // Handle case where data might be empty or message might not exist
-    const errorMessage = (data && typeof data === 'object' && 'message' in data) 
-      ? (data as any).message 
+    const errorMessage = (data && typeof data === 'object' && 'message' in data)
+      ? (data as any).message
       : `Request failed with status ${response.status}`;
-    
+
     throw new AuthError(errorMessage, response.status);
   }
-  
+
   return data;
 }
 
@@ -84,50 +84,50 @@ export async function loginUserApi(data: {
   });
 
   const result = await handleResponse<LoginResponse>(response);
-  
+
   // Store tokens in localStorage
   localStorage.setItem("access_token", result.access_token);
   localStorage.setItem("refresh_token", result.refresh_token);
-  
+
   return result;
 }
 
 // 4. Refresh Token
 export async function refreshTokenApi(): Promise<RefreshResponse> {
   const refreshToken = localStorage.getItem("refresh_token");
-  
+
   if (!refreshToken) {
     throw new AuthError("No refresh token available", 401);
   }
 
   const response = await fetch(`${BASE_URL}/refresh`, {
     method: "POST",
-    headers: { 
+    headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${refreshToken}`
     },
   });
 
   const result = await handleResponse<RefreshResponse>(response);
-  
+
   // Update tokens in localStorage
   localStorage.setItem("access_token", result.access_token);
   localStorage.setItem("refresh_token", result.refresh_token);
-  
+
   return result;
 }
 
 // 5. Logout
 export async function logoutApi(): Promise<AuthResponse> {
   const accessToken = localStorage.getItem("access_token");
-  
+
   if (!accessToken) {
     throw new AuthError("No access token available", 401);
   }
 
   const response = await fetch(`${BASE_URL}/logout`, {
     method: "POST",
-    headers: { 
+    headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${accessToken}`
     },
@@ -136,7 +136,7 @@ export async function logoutApi(): Promise<AuthResponse> {
   // Clear tokens from localStorage
   localStorage.removeItem("access_token");
   localStorage.removeItem("refresh_token");
-  
+
   return handleResponse<AuthResponse>(response);
 }
 
