@@ -228,7 +228,7 @@ export default function Sidebar({ currentPage }: SidebarProps) {
           icon: Phone,
         },
         {
-          title: 'Exchange Service',
+          title: 'Edit Service',
           href: '/exchangeservice',
           icon: ArrowLeftRightIcon,
         },
