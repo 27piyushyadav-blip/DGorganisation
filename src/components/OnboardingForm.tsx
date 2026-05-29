@@ -93,6 +93,8 @@ export default function OnboardingForm({ initialData, onComplete }: OnboardingFo
     introVideo: initialData.introVideo || "",
     documents: initialData.documents || [],
     tags: initialData.tags || [],
+    products: initialData.products || [],
+    features: initialData.features || [],
   });
 
   const logoInputRef = useRef<HTMLInputElement>(null);

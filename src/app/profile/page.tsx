@@ -34,6 +34,9 @@ import {
   Loader2,
   RefreshCcw,
   FileText,
+  ShoppingBag,
+  Sparkles,
+  Trash2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import OnboardingForm from "@/components/OnboardingForm";
@@ -81,6 +84,8 @@ export default function ProfilePage() {
     coverImageUrl: "",
     profileVideo: "",
     tags: [] as string[],
+    products: [] as { name: string; price: string; image?: string }[],
+    features: [] as { title: string; description: string }[],
   });
 
   const [visibilitySettings, setVisibilitySettings] = useState({
@@ -92,6 +97,11 @@ export default function ProfilePage() {
   });
 
   const [newTag, setNewTag] = useState("");
+  const [newProductName, setNewProductName] = useState("");
+  const [newProductPrice, setNewProductPrice] = useState("");
+  const [newProductImage, setNewProductImage] = useState("");
+  const [newFeatureTitle, setNewFeatureTitle] = useState("");
+  const [newFeatureDesc, setNewFeatureDesc] = useState("");
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -153,6 +163,8 @@ export default function ProfilePage() {
         coverImageUrl: data.coverImageUrl || "",
         profileVideo: data.introVideo || "",
         tags: data.tags || [],
+        products: data.products || [],
+        features: data.features || [],
       });
     } catch (err) {
       console.error(err);
@@ -280,6 +292,56 @@ export default function ProfilePage() {
     setFormData((prev) => ({
       ...prev,
       tags: prev.tags.filter((tag) => tag !== tagToRemove),
+    }));
+  };
+
+  const addProduct = () => {
+    if (newProductName.trim() && newProductPrice.trim()) {
+      setFormData((prev) => ({
+        ...prev,
+        products: [
+          ...prev.products,
+          {
+            name: newProductName.trim(),
+            price: newProductPrice.trim(),
+            image: newProductImage.trim() || undefined,
+          },
+        ],
+      }));
+      setNewProductName("");
+      setNewProductPrice("");
+      setNewProductImage("");
+    }
+  };
+
+  const removeProduct = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      products: prev.products.filter((_, i) => i !== index),
+    }));
+  };
+
+  const addFeature = () => {
+    if (newFeatureTitle.trim() && newFeatureDesc.trim()) {
+      setFormData((prev) => ({
+        ...prev,
+        features: [
+          ...prev.features,
+          {
+            title: newFeatureTitle.trim(),
+            description: newFeatureDesc.trim(),
+          },
+        ],
+      }));
+      setNewFeatureTitle("");
+      setNewFeatureDesc("");
+    }
+  };
+
+  const removeFeature = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      features: prev.features.filter((_, i) => i !== index),
     }));
   };
 
@@ -760,11 +822,12 @@ export default function ProfilePage() {
 
         <div className="md:col-span-2 space-y-6">
           <Tabs defaultValue="identity" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-6 h-auto">
+            <TabsList className="grid w-full grid-cols-7 h-auto">
               <TabsTrigger value="identity">Identity</TabsTrigger>
               <TabsTrigger value="contact">Contact</TabsTrigger>
               <TabsTrigger value="location">Location</TabsTrigger>
               <TabsTrigger value="services">Services</TabsTrigger>
+              <TabsTrigger value="products-features">Products & Features</TabsTrigger>
               <TabsTrigger value="legal">Legal & Bank</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
@@ -1310,6 +1373,161 @@ export default function ProfilePage() {
                         </div>
                       </div>
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="products-features" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <ShoppingBag className="h-5 w-5 text-primary" />
+                    <span>Products (Physical Merchandise)</span>
+                  </CardTitle>
+                  <CardDescription>
+                    Manage physical products offered by your organization (e.g., body oils, balms, merchandise).
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {isEditing && (
+                    <div className="p-4 rounded-lg bg-muted/40 border space-y-4">
+                      <h4 className="font-semibold text-sm">Add New Product</h4>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label>Product Name</Label>
+                          <Input
+                            placeholder="e.g. Lavender Massage Oil"
+                            value={newProductName}
+                            onChange={(e) => setNewProductName(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Price</Label>
+                          <Input
+                            placeholder="e.g. $25"
+                            value={newProductPrice}
+                            onChange={(e) => setNewProductPrice(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Image URL (Optional)</Label>
+                          <Input
+                            placeholder="e.g. https://..."
+                            value={newProductImage}
+                            onChange={(e) => setNewProductImage(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <Button onClick={addProduct} type="button" className="mt-2">
+                        <Plus className="mr-2 h-4 w-4" /> Add Product
+                      </Button>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {formData.products?.length === 0 ? (
+                      <div className="col-span-full py-8 text-center text-muted-foreground text-sm">
+                        No products added yet.
+                      </div>
+                    ) : (
+                      formData.products?.map((prod: any, idx: number) => (
+                        <div
+                          key={idx}
+                          className="flex items-center space-x-4 p-3 rounded-lg border bg-card hover:shadow-md transition-shadow relative group"
+                        >
+                          <div className="w-16 h-16 rounded-md bg-muted overflow-hidden flex-shrink-0 flex items-center justify-center border">
+                            {prod.image ? (
+                              <img src={prod.image} alt={prod.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <ShoppingBag className="w-8 h-8 text-muted-foreground opacity-40" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{prod.name}</p>
+                            <p className="text-sm text-primary font-semibold">{prod.price}</p>
+                          </div>
+                          {isEditing && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive hover:bg-destructive/10 hover:text-destructive absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => removeProduct(idx)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                    <span>Features & Key Qualities</span>
+                  </CardTitle>
+                  <CardDescription>
+                    Add distinctive qualities or services highlights (e.g., Hygienic Environment, Certified Experts).
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {isEditing && (
+                    <div className="p-4 rounded-lg bg-muted/40 border space-y-4">
+                      <h4 className="font-semibold text-sm">Add New Feature</h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Feature Title</Label>
+                          <Input
+                            placeholder="e.g. Professional Experts"
+                            value={newFeatureTitle}
+                            onChange={(e) => setNewFeatureTitle(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Description</Label>
+                          <Input
+                            placeholder="e.g. Certified and highly experienced"
+                            value={newFeatureDesc}
+                            onChange={(e) => setNewFeatureDesc(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <Button onClick={addFeature} type="button" className="mt-2">
+                        <Plus className="mr-2 h-4 w-4" /> Add Feature
+                      </Button>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {formData.features?.length === 0 ? (
+                      <div className="col-span-full py-8 text-center text-muted-foreground text-sm">
+                        No features added yet.
+                      </div>
+                    ) : (
+                      formData.features?.map((feat: any, idx: number) => (
+                        <div
+                          key={idx}
+                          className="p-4 rounded-lg border bg-card hover:shadow-md transition-shadow relative group"
+                        >
+                          <p className="font-semibold text-sm pr-8">{feat.title}</p>
+                          <p className="text-sm text-muted-foreground mt-1">{feat.description}</p>
+                          {isEditing && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive hover:bg-destructive/10 hover:text-destructive absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => removeFeature(idx)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ))
+                    )}
                   </div>
                 </CardContent>
               </Card>
