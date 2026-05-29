@@ -122,6 +122,9 @@ export default function RefundPage() {
   const [refundMethod, setRefundMethod] = useState<'online' | 'account'>('online');
   const [onlineRefundValue, setOnlineRefundValue] = useState('upi@refund');
   const [accountRefundValue, setAccountRefundValue] = useState('Axis Bank - 459812341234');
+  const [accountbsb, setAccountBsb] = useState('123-456');
+  const [accountBankName, setAccountBankName] = useState('Axis Bank');
+  const [accountHolderName, setAccountHolderName] = useState('John Doe');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isProcessed, setIsProcessed] = useState(false);
   const [refundConfirmed, setRefundConfirmed] = useState(false);
@@ -535,7 +538,7 @@ export default function RefundPage() {
                           : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                       }`}
                     >
-                      Partial Refund
+                      Refund amount
                     </button>
                   </div>
 
@@ -592,75 +595,72 @@ export default function RefundPage() {
                   </div>
 
                   {/* Refund Method */}
-                  <div className="p-4 bg-slate-50 rounded-xl">
-                    <p className="text-sm text-slate-500 mb-1">Refund Method</p>
-                    <div className="flex items-center gap-2">
-                      <CreditCard className="w-4 h-4 text-slate-400" />
-                      <span className="text-slate-800">Original Payment Method (•••• 4242)</span>
-                    </div>
-                  </div>
 
                   <div className="p-4 bg-slate-50 rounded-xl">
-                    <p className="text-sm text-slate-500 mb-3">Choose Refund Destination</p>
+                    <p className="text-sm text-slate-500 mb-3">Refund Bank Details</p>
                     <div className="space-y-3">
-                      <label
-                        className={`block rounded-xl border-2 p-4 transition cursor-pointer ${
-                          refundMethod === 'online'
-                            ? 'border-blue-500 bg-blue-50/60'
-                            : 'border-slate-200 bg-white hover:border-blue-200'
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <input
-                            type="radio"
-                            name="refundMethod"
-                            checked={refundMethod === 'online'}
-                            onChange={() => setRefundMethod('online')}
-                            className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500"
-                          />
-                          <div className="flex-1">
-                            <div className="mb-2 flex items-center gap-2">
-                              <Smartphone className="w-4 h-4 text-blue-500" />
-                              <span className="font-medium text-slate-800">Online</span>
-                            </div>
-                            <input
-                              type="text"
-                              value={onlineRefundValue}
-                              onChange={(e) => setOnlineRefundValue(e.target.value)}
-                              placeholder="Enter UPI ID, wallet ID, or online reference"
-                              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-                            />
-                          </div>
-                        </div>
-                      </label>
 
                       <label
-                        className={`block rounded-xl border-2 p-4 transition cursor-pointer ${
-                          refundMethod === 'account'
-                            ? 'border-blue-500 bg-blue-50/60'
-                            : 'border-slate-200 bg-white hover:border-blue-200'
-                        }`}
+                        className="block rounded-xl border-2 p-4 transition cursor-pointer'border-slate-200 bg-white hover:border-blue-200"
                       >
                         <div className="flex items-start gap-3">
-                          <input
-                            type="radio"
-                            name="refundMethod"
-                            checked={refundMethod === 'account'}
-                            onChange={() => setRefundMethod('account')}
-                            className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500"
-                          />
-                          <div className="flex-1">
+                          <div className="flex-1 space-y-2">
                             <div className="mb-2 flex items-center gap-2">
                               <Landmark className="w-4 h-4 text-blue-500" />
                               <span className="font-medium text-slate-800">Account</span>
                             </div>
+
+                            <div>
+                            <label className="block text-xs font-medium text-slate-900 mb-1 ml-2">
+                              Account Number :
+                            </label>
                             <input
                               type="text"
                               value={accountRefundValue}
                               onChange={(e) => setAccountRefundValue(e.target.value)}
-                              placeholder="Enter account number or bank details"
+                              placeholder="Enter Account Number"
                               className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                             />
+                            </div>
+
+                            <div>
+                            <label className="block text-xs font-medium text-slate-900 mb-1 ml-2">
+                              BSB Code :
+                            </label>
+                            <input
+                              type="text"
+                              value={accountbsb}
+                              onChange={(e) => setAccountBsb(e.target.value)}
+                              placeholder="Enter BSB Code"
+                              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                            />
+                            </div>
+
+                            <div>
+                            <label className="block text-xs font-medium text-slate-900 mb-1 ml-2">
+                              Bank Name :
+                            </label>
+                            <input
+                              type="text"
+                              value={accountBankName}
+                              onChange={(e) => setAccountBankName(e.target.value)}
+                              placeholder="Enter Bank Name"
+                              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                            />
+                            </div>
+
+                            <div>
+                            <label className="block text-xs font-medium text-slate-900 mb-1 ml-2">
+                              Account Holder Name :
+                            </label>
+                            <input
+                              type="text"
+                              value={accountHolderName}
+                              onChange={(e) => setAccountHolderName(e.target.value)}
+                              placeholder="Enter Account Holder Name"
+                              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                            />
+                            </div>
                           </div>
                         </div>
                       </label>

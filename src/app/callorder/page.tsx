@@ -1206,7 +1206,7 @@ export default function Home() {
                   }`}
                   disabled={tabs.findIndex(t => t.id === activeTab) === 0}
                 >
-                  Previous
+                  Back
                 </button>
                 {activeTab !== 'summary' ? (
                   <button
