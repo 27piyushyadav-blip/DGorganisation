@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle2, CircleDollarSign, Clock3, ShieldAlert, XCircle } from 'lucide-react';
 
@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { getRefundRequestsApi, approveRefundApi, rejectRefundApi } from '@/client/api/services-bookings';
 
 type RefundStatus = 'Pending' | 'Accepted' | 'Rejected';
 
@@ -40,49 +41,6 @@ type RefundRequest = {
   rejectionReason?: string;
 };
 
-const initialRefundRequests: RefundRequest[] = [
-  {
-    id: 'RR-1001',
-    clientName: 'Sophia Carter',
-    service: 'Deep Tissue Massage',
-    amount: 120,
-    reason: 'Client had to cancel due to a medical emergency.',
-    requestedAt: '2026-05-23',
-    paymentMethod: 'Visa ending 4821',
-    status: 'Pending',
-  },
-  {
-    id: 'RR-1002',
-    clientName: 'Liam Brooks',
-    service: 'Hair Spa Treatment',
-    amount: 80,
-    reason: 'Requested a refund after duplicate payment was charged.',
-    requestedAt: '2026-05-22',
-    paymentMethod: 'UPI',
-    status: 'Pending',
-  },
-  {
-    id: 'RR-1003',
-    clientName: 'Emma Wilson',
-    service: 'Facial Glow',
-    amount: 70,
-    reason: 'Slot was unavailable after payment confirmation.',
-    requestedAt: '2026-05-21',
-    paymentMethod: 'Mastercard ending 1099',
-    status: 'Pending',
-  },
-  {
-    id: 'RR-1004',
-    clientName: 'Noah Bennett',
-    service: 'Manicure & Pedicure',
-    amount: 65,
-    reason: 'Refund requested outside the eligible refund window.',
-    requestedAt: '2026-05-20',
-    paymentMethod: 'Wallet Balance',
-    status: 'Pending',
-  },
-];
-
 const currency = new Intl.NumberFormat('en-US', {
   style: 'currency',
   currency: 'USD',
@@ -90,10 +48,41 @@ const currency = new Intl.NumberFormat('en-US', {
 
 export default function PaymentRefundPage() {
   const router = useRouter();
-  const [refundRequests, setRefundRequests] = useState(initialRefundRequests);
+  const [refundRequests, setRefundRequests] = useState<RefundRequest[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [selectedRejectId, setSelectedRejectId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+
+  useEffect(() => {
+    async function fetchRefundRequests() {
+      try {
+        const response = await getRefundRequestsApi('pending');
+        console.log('Refund requests API response:', response);
+        // Transform API response to match the expected structure
+        const transformedRequests = response.map((item: any) => ({
+          id: item.refund.id,
+          clientName: item.client?.name || 'Unknown',
+          service: item.booking?.service || 'Unknown Service',
+          amount: parseFloat(item.refund.amount) || 0,
+          reason: item.refund.reason || '',
+          requestedAt: new Date(item.refund.requestedAt).toLocaleDateString(),
+          paymentMethod: item.refund.paymentMethod || 'Unknown',
+          status: item.refund.status.charAt(0).toUpperCase() + item.refund.status.slice(1) as RefundStatus,
+          rejectionReason: item.refund.rejectionReason,
+        }));
+        console.log('Transformed refund requests:', transformedRequests);
+        setRefundRequests(transformedRequests);
+      } catch (error) {
+        console.error('Failed to fetch refund requests:', error);
+        toast.error('Failed to load refund requests');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchRefundRequests();
+  }, []);
 
   const summary = useMemo(() => {
     const pending = refundRequests.filter((request) => request.status === 'Pending');
@@ -120,27 +109,41 @@ export default function PaymentRefundPage() {
     setIsRejectDialogOpen(true);
   };
 
-  const handleReject = () => {
+  const handleReject = async () => {
     if (!selectedRejectId || !rejectReason.trim()) {
       return;
     }
 
-    setRefundRequests((current) =>
-      current.map((request) =>
-        request.id === selectedRejectId
-          ? { ...request, status: 'Rejected', rejectionReason: rejectReason.trim() }
-          : request
-      )
-    );
-    setIsRejectDialogOpen(false);
-    setSelectedRejectId(null);
-    setRejectReason('');
-    toast.success("Reject Successfully");
+    try {
+      await rejectRefundApi(selectedRejectId, rejectReason.trim());
+      setRefundRequests((current) =>
+        current.map((request) =>
+          request.id === selectedRejectId
+            ? { ...request, status: 'Rejected', rejectionReason: rejectReason.trim() }
+            : request
+        )
+      );
+      setIsRejectDialogOpen(false);
+      setSelectedRejectId(null);
+      setRejectReason('');
+      toast.success("Reject Successfully");
+    } catch (error) {
+      console.error('Failed to reject refund:', error);
+      toast.error('Failed to reject refund request');
+    }
   };
 
-  const handleAccept = (id: string) => {
-    updateRequestStatus(id, 'Accepted');
-    router.push('/paymentrefund/request');
+  const handleAccept = async (id: string) => {
+    try {
+      await approveRefundApi(id);
+      setRefundRequests((current) =>
+        current.map((request) => (request.id === id ? { ...request, status: 'Accepted' } : request))
+      );
+      toast.success("Refund approved successfully");
+    } catch (error) {
+      console.error('Failed to approve refund:', error);
+      toast.error('Failed to approve refund request');
+    }
   };
 
   const getStatusBadge = (status: RefundStatus) => {

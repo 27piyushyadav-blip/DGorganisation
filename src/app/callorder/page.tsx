@@ -1,7 +1,7 @@
 // app/page.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Search, 
   Copy, 
@@ -38,6 +38,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import {
+  getOrganizationServicesApi,
+  getOrganizationExpertsForOrderApi,
+  createVoiceCallBookingApi,
+} from '@/client/api/services-bookings';
 
 // Service type definition
 type Service = {
@@ -81,8 +86,8 @@ type ServiceImageProps = {
   className: string;
 };
 
-// Updated available services data with images
-const availableServices: Service[] = [
+// Fallback services — shown while API loads or if it fails
+const FALLBACK_SERVICES: Service[] = [
   { id: '1', name: 'Deep Tissue Massage', duration: '60 min', price: 120, category: 'Massage', image: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=150&h=150&fit=crop' },
   { id: '2', name: 'Hair Spa Treatment', duration: '60 min', price: 90, category: 'Hair', image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=150&h=150&fit=crop' },
   { id: '3', name: 'Aromatherapy Massage', duration: '60 min', price: 110, category: 'Massage', image: 'https://images.unsplash.com/photo-1600334129128-685c5582fd35?w=150&h=150&fit=crop' },
@@ -93,8 +98,8 @@ const availableServices: Service[] = [
   { id: '8', name: 'Body Scrub', duration: '45 min', price: 95, category: 'Body', image: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=150&h=150&fit=crop' },
 ];
 
-// Available experts data
-const availableExperts: Expert[] = [
+// Fallback experts — shown while API loads or if it fails
+const FALLBACK_EXPERTS: Expert[] = [
   {
     id: '1',
     name: 'Sarah Johnson',
@@ -279,14 +284,21 @@ export default function Home() {
     notes: 'Customer called and requested the following services for tomorrow.',
   });
   const [notesCharCount, setNotesCharCount] = useState(customer.notes.length);
-  
+
+  // ── Live data from organization API (falls back to FALLBACK constants) ──────
+  const [availableServices, setAvailableServices] = useState<Service[]>(FALLBACK_SERVICES);
+  const [availableExperts, setAvailableExperts] = useState<Expert[]>(FALLBACK_EXPERTS);
+  const [servicesLoading, setServicesLoading] = useState(true);
+  const [expertsLoading, setExpertsLoading] = useState(true);
+
+  // ── Order submission state ────────────────────────────────────────────────
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
   // Services state
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedServices, setSelectedServices] = useState<SelectedService[]>([
-    { ...availableServices[0], quantity: 1 },
-    { ...availableServices[1], quantity: 1 },
-    { ...availableServices[2], quantity: 1 },
-  ]);
+  const [selectedServices, setSelectedServices] = useState<SelectedService[]>([]);
   
   // Experts state
   const [expertSearchQuery, setExpertSearchQuery] = useState('');
@@ -304,7 +316,70 @@ export default function Home() {
   const [tempSelectedDate, setTempSelectedDate] = useState<Date | null>(null);
   const [tempSelectedTime, setTempSelectedTime] = useState<string | null>(null);
   const availableDates = buildAvailableDates();
-  
+
+  // ── Load real services & experts from the org backend on mount ─────────────
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadData() {
+      // Load services
+      try {
+        const res = await getOrganizationServicesApi();
+        if (!cancelled && res.services && res.services.length > 0) {
+          setAvailableServices(
+            res.services.map((s) => ({
+              id: s.id,
+              name: s.name,
+              duration: s.duration ? `${s.duration} min` : '60 min',
+              price: s.basePrice,
+              category: s.category || 'General',
+              image:
+                s.image ||
+                'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=150&h=150&fit=crop',
+            }))
+          );
+        }
+      } catch {
+        // FALLBACK_SERVICES already in state
+      } finally {
+        if (!cancelled) setServicesLoading(false);
+      }
+
+      // Load experts
+      try {
+        const res = await getOrganizationExpertsForOrderApi();
+        if (!cancelled && res.experts && res.experts.length > 0) {
+          setAvailableExperts(
+            res.experts.map((e) => ({
+              id: e.id,
+              name: e.name,
+              role: e.specialization || e.role || 'Specialist',
+              experience: e.experience ? `${e.experience} years` : 'Experienced',
+              rating: e.rating ?? 4.8,
+              reviewCount: e.reviewCount ?? 0,
+              image:
+                e.avatar ||
+                'https://images.unsplash.com/photo-1554151228-14d9def656e4?w=150&h=150&fit=crop',
+              specialties: e.specialties?.length
+                ? e.specialties
+                : e.specialization
+                ? [e.specialization]
+                : [],
+              available: e.status === 'active' || e.available !== false,
+            }))
+          );
+        }
+      } catch {
+        // FALLBACK_EXPERTS already in state
+      } finally {
+        if (!cancelled) setExpertsLoading(false);
+      }
+    }
+
+    loadData();
+    return () => { cancelled = true; };
+  }, []);
+
   // Order date
   const orderDate = selectedDate ?? new Date(2025, 4, 18, 11, 30);
   const formattedDate = orderDate.toLocaleDateString('en-US', { 
@@ -669,7 +744,22 @@ export default function Home() {
                     </div>
 
                     <div className='max-h-[20rem] overflow-y-scroll'>
-                    {filteredServices.length > 0 ? (
+                    {servicesLoading ? (
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {Array.from({ length: 4 }).map((_, i) => (
+                          <div key={i} className="rounded-2xl border border-slate-200 bg-white p-4 animate-pulse">
+                            <div className="flex items-start gap-3">
+                              <div className="w-16 h-16 rounded-2xl bg-slate-200 flex-shrink-0" />
+                              <div className="flex-1 space-y-2 pt-1">
+                                <div className="h-4 bg-slate-200 rounded w-3/4" />
+                                <div className="h-3 bg-slate-200 rounded w-1/2" />
+                                <div className="h-7 bg-slate-200 rounded w-1/3 mt-3" />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : filteredServices.length > 0 ? (
                       <div className="grid gap-3 md:grid-cols-2">
                         {filteredServices.map((service) => {
                           const serviceInCart = selectedServices.find((selectedService) => selectedService.id === service.id);
@@ -839,7 +929,25 @@ export default function Home() {
 
                   {/* Expert Cards Grid */}
                   <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
-                    {filteredExperts.length > 0 ? (
+                    {expertsLoading ? (
+                      <div className="space-y-3">
+                        {Array.from({ length: 3 }).map((_, i) => (
+                          <div key={i} className="rounded-xl border-2 border-slate-200 p-4 animate-pulse">
+                            <div className="flex gap-4">
+                              <div className="w-20 h-20 rounded-xl bg-slate-200 flex-shrink-0" />
+                              <div className="flex-1 space-y-2 pt-1">
+                                <div className="h-4 bg-slate-200 rounded w-1/2" />
+                                <div className="h-3 bg-slate-200 rounded w-1/3" />
+                                <div className="flex gap-2 mt-2">
+                                  <div className="h-5 bg-slate-200 rounded-full w-20" />
+                                  <div className="h-5 bg-slate-200 rounded-full w-24" />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : filteredExperts.length > 0 ? (
                       filteredExperts.map((expert) => (
                         <div
                           key={expert.id}
@@ -1192,6 +1300,22 @@ export default function Home() {
                       {selectedExpert && ` Expert ${selectedExpert.name} will be assigned to this order.`}
                     </p>
                   </div>
+
+                  {/* ── Submit Feedback ──────────────────────────────────── */}
+                  {submitError && (
+                    <div className="mt-3 flex items-start gap-3 p-3 bg-red-50 rounded-xl border border-red-200">
+                      <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-red-700">{submitError}</p>
+                    </div>
+                  )}
+                  {submitSuccess && (
+                    <div className="mt-3 flex items-start gap-3 p-3 bg-green-50 rounded-xl border border-green-200">
+                      <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-green-700">
+                        Order <strong>{orderId}</strong> created successfully! Payment link is ready to share.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1223,11 +1347,47 @@ export default function Home() {
                   </button>
                 ) : (
                   <button
-                    onClick={() => alert('Order created successfully!')}
-                    className="px-5 py-2 rounded-xl font-medium transition flex items-center gap-2 bg-green-600 text-white hover:bg-green-700 shadow-md"
+                    onClick={async () => {
+                      if (submitSuccess) return;
+                      setIsSubmitting(true);
+                      setSubmitError(null);
+                      try {
+                        await createVoiceCallBookingApi({
+                          orderId,
+                          customerName: customer.name,
+                          customerPhone: customer.phone,
+                          customerEmail: customer.email || undefined,
+                          customerNotes: customer.notes || undefined,
+                          services: selectedServices.map((s) => ({
+                            id: s.id,
+                            name: s.name,
+                            price: s.price,
+                            quantity: s.quantity,
+                          })),
+                          expertId: selectedExpert?.id ?? null,
+                          scheduledDate: selectedDate ? selectedDate.toISOString() : null,
+                          scheduledTime: selectedTime ?? null,
+                          totalAmount,
+                          paymentLink,
+                        });
+                        setSubmitSuccess(true);
+                      } catch (err: any) {
+                        setSubmitError(err?.message || 'Failed to create order. Please try again.');
+                      } finally {
+                        setIsSubmitting(false);
+                      }
+                    }}
+                    disabled={isSubmitting || submitSuccess}
+                    className={`px-5 py-2 rounded-xl font-medium transition flex items-center gap-2 shadow-md ${
+                      submitSuccess
+                        ? 'bg-green-500 text-white cursor-default'
+                        : isSubmitting
+                        ? 'bg-green-400 text-white cursor-not-allowed'
+                        : 'bg-green-600 text-white hover:bg-green-700 cursor-pointer'
+                    }`}
                   >
                     <CheckCircle className="w-4 h-4" />
-                    Confirm Order
+                    {isSubmitting ? 'Confirming…' : submitSuccess ? 'Order Confirmed!' : 'Confirm Order'}
                   </button>
                 )}
               </div>

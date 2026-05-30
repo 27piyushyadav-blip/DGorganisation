@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle2, CircleDollarSign, Clock3, ShieldAlert, XCircle } from 'lucide-react';
 
@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { getEditServiceRequestsApi, approveEditServiceRequestApi, rejectEditServiceRequestApi } from '@/client/api/services-bookings';
 
 type RefundStatus = 'Pending' | 'Accepted' | 'Rejected';
 
@@ -40,49 +41,6 @@ type RefundRequest = {
   rejectionReason?: string;
 };
 
-const initialRefundRequests: RefundRequest[] = [
-  {
-    id: 'RR-1001',
-    clientName: 'Sophia Carter',
-    service: 'Deep Tissue Massage',
-    amount: 120,
-    reason: 'Client had to cancel due to a medical emergency.',
-    requestedAt: '2026-05-23',
-    paymentMethod: 'Visa ending 4821',
-    status: 'Pending',
-  },
-  {
-    id: 'RR-1002',
-    clientName: 'Liam Brooks',
-    service: 'Hair Spa Treatment',
-    amount: 80,
-    reason: 'Requested a refund after duplicate payment was charged.',
-    requestedAt: '2026-05-22',
-    paymentMethod: 'UPI',
-    status: 'Pending',
-  },
-  {
-    id: 'RR-1003',
-    clientName: 'Emma Wilson',
-    service: 'Facial Glow',
-    amount: 70,
-    reason: 'Slot was unavailable after payment confirmation.',
-    requestedAt: '2026-05-21',
-    paymentMethod: 'Mastercard ending 1099',
-    status: 'Pending',
-  },
-  {
-    id: 'RR-1004',
-    clientName: 'Noah Bennett',
-    service: 'Manicure & Pedicure',
-    amount: 65,
-    reason: 'Refund requested outside the eligible refund window.',
-    requestedAt: '2026-05-20',
-    paymentMethod: 'Wallet Balance',
-    status: 'Pending',
-  },
-];
-
 const currency = new Intl.NumberFormat('en-US', {
   style: 'currency',
   currency: 'USD',
@@ -90,10 +48,39 @@ const currency = new Intl.NumberFormat('en-US', {
 
 export default function ExchangeServicepage() {
   const router = useRouter();
-  const [refundRequests, setRefundRequests] = useState(initialRefundRequests);
+  const [refundRequests, setRefundRequests] = useState<RefundRequest[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [selectedRejectId, setSelectedRejectId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+
+  useEffect(() => {
+    async function fetchEditServiceRequests() {
+      try {
+        const response = await getEditServiceRequestsApi('pending');
+        // Transform API response to match the expected structure
+        const transformedRequests = response.map((item: any) => ({
+          id: item.editRequest.id,
+          clientName: item.client?.name || 'Unknown',
+          service: item.editRequest.newService || 'Unknown Service',
+          amount: parseFloat(item.editRequest.newAmount) || 0,
+          reason: item.editRequest.reason || '',
+          requestedAt: new Date(item.editRequest.requestedAt).toLocaleDateString(),
+          paymentMethod: 'N/A',
+          status: item.editRequest.status.charAt(0).toUpperCase() + item.editRequest.status.slice(1) as RefundStatus,
+          rejectionReason: item.editRequest.rejectionReason,
+        }));
+        setRefundRequests(transformedRequests);
+      } catch (error) {
+        console.error('Failed to fetch edit service requests:', error);
+        toast.error('Failed to load edit service requests');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchEditServiceRequests();
+  }, []);
 
   const summary = useMemo(() => {
     const pending = refundRequests.filter((request) => request.status === 'Pending');
@@ -120,27 +107,41 @@ export default function ExchangeServicepage() {
     setIsRejectDialogOpen(true);
   };
 
-  const handleReject = () => {
+  const handleReject = async () => {
     if (!selectedRejectId || !rejectReason.trim()) {
       return;
     }
 
-    setRefundRequests((current) =>
-      current.map((request) =>
-        request.id === selectedRejectId
-          ? { ...request, status: 'Rejected', rejectionReason: rejectReason.trim() }
-          : request
-      )
-    );
-    setIsRejectDialogOpen(false);
-    setSelectedRejectId(null);
-    setRejectReason('');
-    toast.success("Reject Successfully");
+    try {
+      await rejectEditServiceRequestApi(selectedRejectId, rejectReason.trim());
+      setRefundRequests((current) =>
+        current.map((request) =>
+          request.id === selectedRejectId
+            ? { ...request, status: 'Rejected', rejectionReason: rejectReason.trim() }
+            : request
+        )
+      );
+      setIsRejectDialogOpen(false);
+      setSelectedRejectId(null);
+      setRejectReason('');
+      toast.success("Reject Successfully");
+    } catch (error) {
+      console.error('Failed to reject edit service request:', error);
+      toast.error('Failed to reject edit service request');
+    }
   };
 
-  const handleAccept = (id: string) => {
-    updateRequestStatus(id, 'Accepted');
-    router.push('/exchangeservice/request');
+  const handleAccept = async (id: string) => {
+    try {
+      await approveEditServiceRequestApi(id);
+      setRefundRequests((current) =>
+        current.map((request) => (request.id === id ? { ...request, status: 'Accepted' } : request))
+      );
+      toast.success("Edit service request approved successfully");
+    } catch (error) {
+      console.error('Failed to approve edit service request:', error);
+      toast.error('Failed to approve edit service request');
+    }
   };
 
   const getStatusBadge = (status: RefundStatus) => {
