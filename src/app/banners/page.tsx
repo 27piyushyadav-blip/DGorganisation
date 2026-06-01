@@ -24,6 +24,7 @@ import {
   AlertCircle,
   Eye,
   ArrowRight,
+  Pencil,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 
@@ -33,6 +34,7 @@ interface BannerItem {
   id: string;
   imageUrl: string;
   title?: string;
+  description?: string;
   link?: string;
 }
 
@@ -51,10 +53,19 @@ export default function BannersPage() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [uploadType, setUploadType] = useState<'horizontal' | 'vertical'>('horizontal');
   const [newBannerTitle, setNewBannerTitle] = useState('');
+  const [newBannerDescription, setNewBannerDescription] = useState('');
   const [newBannerLink, setNewBannerLink] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   
+  // Edit modal state
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingBanner, setEditingBanner] = useState<BannerItem | null>(null);
+  const [editingType, setEditingType] = useState<'horizontal' | 'vertical'>('horizontal');
+  const [editBannerTitle, setEditBannerTitle] = useState('');
+  const [editBannerDescription, setEditBannerDescription] = useState('');
+  const [editBannerLink, setEditBannerLink] = useState('');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadBanners = async () => {
@@ -91,6 +102,7 @@ export default function BannersPage() {
     setSelectedFile(null);
     setPreviewUrl('');
     setNewBannerTitle('');
+    setNewBannerDescription('');
     setNewBannerLink('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -135,6 +147,7 @@ export default function BannersPage() {
         id: Math.random().toString(36).substring(2, 9),
         imageUrl: uploadRes.imageUrl,
         title: newBannerTitle.trim() || undefined,
+        description: newBannerDescription.trim() || undefined,
         link: newBannerLink.trim() || undefined,
       };
 
@@ -177,6 +190,58 @@ export default function BannersPage() {
     } catch (err) {
       console.error('Error deleting banner:', err);
       alert('Failed to delete banner');
+    }
+  };
+
+  const handleOpenEdit = (type: 'horizontal' | 'vertical', banner: BannerItem) => {
+    setEditingType(type);
+    setEditingBanner(banner);
+    setEditBannerTitle(banner.title || '');
+    setEditBannerDescription(banner.description || '');
+    setEditBannerLink(banner.link || '');
+    setIsEditModalOpen(true);
+  };
+
+  const handleCloseEdit = () => {
+    setIsEditModalOpen(false);
+    setEditingBanner(null);
+    setEditBannerTitle('');
+    setEditBannerDescription('');
+    setEditBannerLink('');
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingBanner) return;
+
+    setIsLoading(true);
+    try {
+      const nextBanners = {
+        ...banners,
+        [editingType]: banners[editingType].map((b) =>
+          b.id === editingBanner.id
+            ? {
+                ...b,
+                title: editBannerTitle.trim() || undefined,
+                description: editBannerDescription.trim() || undefined,
+                link: editBannerLink.trim() || undefined,
+              }
+            : b
+        ),
+      };
+
+      await apiClient(`${API_BASE}/organizations/banners`, {
+        method: 'PUT',
+        body: JSON.stringify(nextBanners),
+      });
+
+      setBanners(nextBanners);
+      handleCloseEdit();
+    } catch (err) {
+      console.error('Error saving banner edit:', err);
+      alert('Failed to save banner changes');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -265,10 +330,20 @@ export default function BannersPage() {
                     />
                     <div className="absolute top-3 right-3 flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                       <Button
+                        variant="secondary"
+                        size="icon"
+                        onClick={() => handleOpenEdit('horizontal', banner)}
+                        className="h-8 w-8 shadow-md bg-white hover:bg-slate-100 text-slate-800"
+                        type="button"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
                         variant="destructive"
                         size="icon"
                         onClick={() => handleDeleteBanner('horizontal', banner.id)}
                         className="h-8 w-8 shadow-md"
+                        type="button"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -276,6 +351,9 @@ export default function BannersPage() {
                   </div>
                   <CardContent className="p-4">
                     <h3 className="font-semibold text-base truncate">{banner.title || 'Untitled Banner'}</h3>
+                    {banner.description && (
+                      <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">{banner.description}</p>
+                    )}
                     {banner.link ? (
                       <a
                         href={banner.link}
@@ -320,10 +398,20 @@ export default function BannersPage() {
                     />
                     <div className="absolute top-3 right-3 flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                       <Button
+                        variant="secondary"
+                        size="icon"
+                        onClick={() => handleOpenEdit('vertical', banner)}
+                        className="h-8 w-8 shadow-md bg-white hover:bg-slate-100 text-slate-800"
+                        type="button"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
                         variant="destructive"
                         size="icon"
                         onClick={() => handleDeleteBanner('vertical', banner.id)}
                         className="h-8 w-8 shadow-md"
+                        type="button"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -331,6 +419,9 @@ export default function BannersPage() {
                   </div>
                   <CardContent className="p-4">
                     <h3 className="font-semibold text-base truncate">{banner.title || 'Untitled Banner'}</h3>
+                    {banner.description && (
+                      <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">{banner.description}</p>
+                    )}
                     {banner.link ? (
                       <a
                         href={banner.link}
@@ -425,6 +516,17 @@ export default function BannersPage() {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="banner-description">Banner Description (Optional)</Label>
+                  <Input
+                    id="banner-description"
+                    placeholder="e.g. Get 20% off on all workspace bookings this month."
+                    value={newBannerDescription}
+                    onChange={(e) => setNewBannerDescription(e.target.value)}
+                    className="bg-[var(--card-bg)]"
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="banner-link">Click-through Destination Link (Optional)</Label>
                   <Input
                     id="banner-link"
@@ -458,6 +560,85 @@ export default function BannersPage() {
                       Upload Banner <ArrowRight className="ml-2 h-4 w-4" />
                     </>
                   )}
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
+
+      {/* Edit Banner Dialog */}
+      {isEditModalOpen && editingBanner && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <Card className="w-full max-w-lg bg-[var(--card-bg)] border shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <CardHeader className="border-b pb-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xl">Edit {editingType === 'horizontal' ? 'Horizontal' : 'Vertical'} Banner</CardTitle>
+                <Button variant="ghost" size="icon" onClick={handleCloseEdit} className="h-8 w-8 rounded-full">
+                  <span className="text-lg">×</span>
+                </Button>
+              </div>
+              <CardDescription>
+                Modify details for this promotional banner.
+              </CardDescription>
+            </CardHeader>
+
+            <form onSubmit={handleSaveEdit}>
+              <CardContent className="space-y-5 pt-5">
+                <div className="flex justify-center bg-black/5 p-4 rounded-md border">
+                  <img
+                    src={editingBanner.imageUrl}
+                    alt="Banner Preview"
+                    className={`object-cover rounded-md max-h-48 ${
+                      editingType === 'horizontal' ? 'aspect-[3/1] w-full' : 'aspect-[3/5] h-48'
+                    }`}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-banner-title">Banner Title</Label>
+                  <Input
+                    id="edit-banner-title"
+                    placeholder="e.g. Special Holiday Discounts"
+                    value={editBannerTitle}
+                    onChange={(e) => setEditBannerTitle(e.target.value)}
+                    className="bg-[var(--card-bg)]"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-banner-description">Banner Description</Label>
+                  <Input
+                    id="edit-banner-description"
+                    placeholder="e.g. Get 20% off on all workspace bookings this month."
+                    value={editBannerDescription}
+                    onChange={(e) => setEditBannerDescription(e.target.value)}
+                    className="bg-[var(--card-bg)]"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-banner-link">Click-through Destination Link</Label>
+                  <Input
+                    id="edit-banner-link"
+                    type="url"
+                    placeholder="e.g. https://yoursite.com/promotions"
+                    value={editBannerLink}
+                    onChange={(e) => setEditBannerLink(e.target.value)}
+                    className="bg-[var(--card-bg)]"
+                  />
+                </div>
+              </CardContent>
+
+              <div className="flex items-center justify-end space-x-3 p-6 border-t bg-[var(--card-bg-light)]">
+                <Button type="button" variant="outline" onClick={handleCloseEdit}>
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="bg-gradient-to-r from-[var(--primary-start)] to-[var(--primary-end)] text-white hover:opacity-95 shadow-md flex items-center"
+                >
+                  Save Changes <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
             </form>

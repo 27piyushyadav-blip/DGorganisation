@@ -41,9 +41,9 @@ type RefundRequest = {
   rejectionReason?: string;
 };
 
-const currency = new Intl.NumberFormat('en-US', {
+const currency = new Intl.NumberFormat('en-IN', {
   style: 'currency',
-  currency: 'USD',
+  currency: 'INR',
 });
 
 export default function ExchangeServicepage() {
@@ -57,7 +57,7 @@ export default function ExchangeServicepage() {
   useEffect(() => {
     async function fetchEditServiceRequests() {
       try {
-        const response = await getEditServiceRequestsApi('pending');
+        const response = await getEditServiceRequestsApi();
         // Transform API response to match the expected structure
         const transformedRequests = response.map((item: any) => ({
           id: item.editRequest.id,
