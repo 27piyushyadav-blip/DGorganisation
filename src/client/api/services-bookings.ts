@@ -27,6 +27,7 @@ export type OrgExpert = {
   specialties?: string[];
   available?: boolean;
   role?: string;
+  services?: any[];
 };
 
 export type CreateVoiceCallBookingPayload = {
@@ -226,6 +227,31 @@ export async function rejectEditServiceRequestApi(requestId: string, reason?: st
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({ reason }),
+  });
+
+  return handleResponse(response);
+}
+
+/**
+ * Send payment link to customer.
+ * POST /organizations/bookings/send-payment-link
+ */
+export async function sendPaymentLinkApi(payload: {
+  customerEmail: string;
+  customerName: string;
+  paymentLink: string;
+  totalAmount: number;
+}): Promise<{ message: string }> {
+  const token = getAccessToken();
+  if (!token) throw new ServicesApiError('Not authenticated', 401);
+
+  const response = await fetch(`${API_BASE}/organizations/bookings/send-payment-link`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
   });
 
   return handleResponse(response);

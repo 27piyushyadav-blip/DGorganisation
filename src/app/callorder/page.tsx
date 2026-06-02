@@ -42,6 +42,7 @@ import {
   getOrganizationServicesApi,
   getOrganizationExpertsForOrderApi,
   createVoiceCallBookingApi,
+  sendPaymentLinkApi,
 } from '@/client/api/services-bookings';
 
 // Service type definition
@@ -65,6 +66,7 @@ type Expert = {
   image: string;
   specialties: string[];
   available: boolean;
+  services?: any[];
 };
 
 // Selected service with quantity
@@ -110,6 +112,7 @@ const FALLBACK_EXPERTS: Expert[] = [
     image: 'https://images.unsplash.com/photo-1554151228-14d9def656e4?w=150&h=150&fit=crop',
     specialties: ['Deep Tissue', 'Sports Massage', 'Trigger Point'],
     available: true,
+    services: ['1', '3', '4', '6'],
   },
   {
     id: '2',
@@ -121,6 +124,7 @@ const FALLBACK_EXPERTS: Expert[] = [
     image: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&h=150&fit=crop',
     specialties: ['Hair Styling', 'Color Treatment', 'Hair Spa'],
     available: true,
+    services: ['2'],
   },
   {
     id: '3',
@@ -132,6 +136,7 @@ const FALLBACK_EXPERTS: Expert[] = [
     image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop',
     specialties: ['Aromatherapy', 'Swedish Massage', 'Relaxation'],
     available: true,
+    services: ['3', '4'],
   },
   {
     id: '4',
@@ -143,6 +148,7 @@ const FALLBACK_EXPERTS: Expert[] = [
     image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop',
     specialties: ['Anti-aging', 'Acne Treatment', 'Hydrafacial'],
     available: false,
+    services: ['5'],
   },
   {
     id: '5',
@@ -154,6 +160,7 @@ const FALLBACK_EXPERTS: Expert[] = [
     image: 'https://images.unsplash.com/photo-1534751516642-1d2aa6d3f2d0?w=150&h=150&fit=crop',
     specialties: ['Manicure', 'Pedicure', 'Nail Art'],
     available: true,
+    services: ['7'],
   },
   {
     id: '6',
@@ -165,6 +172,7 @@ const FALLBACK_EXPERTS: Expert[] = [
     image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop',
     specialties: ['Body Scrub', 'Hot Stone', 'Therapy'],
     available: true,
+    services: ['6', '8'],
   },
 ];
 
@@ -278,12 +286,37 @@ export default function Home() {
   
   // Customer details state
   const [customer, setCustomer] = useState<CustomerDetails>({
-    name: 'Emma Roberts',
-    phone: '+1 987 654 3210',
-    email: 'emma.roberts@example.com',
-    notes: 'Customer called and requested the following services for tomorrow.',
+    name: '',
+    phone: '',
+    email: '',
+    notes: '',
   });
-  const [notesCharCount, setNotesCharCount] = useState(customer.notes.length);
+  const [notesCharCount, setNotesCharCount] = useState(0);
+  
+  // Touched fields state for real-time validation error rendering
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  const getValidationError = (field: string, value: string): string | null => {
+    if (field === 'name') {
+      if (!value.trim()) return 'Full Name is required';
+      if (value.trim().length < 2) return 'Full Name must be at least 2 characters';
+      if (!/^[a-zA-Z\s]+$/.test(value)) return 'Full Name must contain only letters and spaces';
+    }
+    if (field === 'phone') {
+      if (!value.trim()) return 'Phone Number is required';
+      
+      const digitsOnly = value.replace(/\D/g, '');
+      if (digitsOnly.length < 6) {
+        return 'Please enter a valid phone number';
+      }
+    }
+    if (field === 'email') {
+      if (value.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+        return 'Please enter a valid email address';
+      }
+    }
+    return null;
+  };
 
   // ── Live data from organization API (falls back to FALLBACK constants) ──────
   const [availableServices, setAvailableServices] = useState<Service[]>(FALLBACK_SERVICES);
@@ -310,6 +343,8 @@ export default function Home() {
   const [linkCopied, setLinkCopied] = useState(false);
   const [paymentSent, setPaymentSent] = useState(false);
   const [sendingMethod, setSendingMethod] = useState<string | null>(null);
+  const [isSendingPayment, setIsSendingPayment] = useState(false);
+  const [sendPaymentError, setSendPaymentError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isDateTimeDialogOpen, setIsDateTimeDialogOpen] = useState(false);
@@ -366,6 +401,7 @@ export default function Home() {
                 ? [e.specialization]
                 : [],
               available: e.status === 'active' || e.available !== false,
+              services: e.services || [],
             }))
           );
         }
@@ -407,12 +443,29 @@ export default function Home() {
       ? `${formatAppointmentDate(selectedDate)} at ${selectedTime}`
       : 'Select date & time';
 
-  // Filter experts based on search query
-  const filteredExperts = availableExperts.filter(expert =>
-    expert.name.toLowerCase().includes(expertSearchQuery.toLowerCase()) ||
-    expert.role.toLowerCase().includes(expertSearchQuery.toLowerCase()) ||
-    expert.specialties.some(specialty => specialty.toLowerCase().includes(expertSearchQuery.toLowerCase()))
-  );
+  // Filter experts based on selected services and search query
+  const filteredExperts = availableExperts.filter(expert => {
+    // Only show experts who provide at least one of the selected services
+    if (selectedServices.length > 0) {
+      const hasMatchingService = selectedServices.some(selected => {
+        if (!expert.services || !Array.isArray(expert.services)) return false;
+        return expert.services.some((s: any) => {
+          if (!s) return false;
+          if (typeof s === 'object') {
+            return s.id === selected.id || s._id === selected.id || s.name === selected.name;
+          }
+          return s === selected.id || s === selected.name;
+        });
+      });
+      if (!hasMatchingService) return false;
+    }
+
+    return (
+      expert.name.toLowerCase().includes(expertSearchQuery.toLowerCase()) ||
+      expert.role.toLowerCase().includes(expertSearchQuery.toLowerCase()) ||
+      expert.specialties.some(specialty => specialty.toLowerCase().includes(expertSearchQuery.toLowerCase()))
+    );
+  });
 
   // Add service to selected list
   const addService = (service: Service) => {
@@ -467,12 +520,41 @@ export default function Home() {
   };
 
   // Handle sending payment link
-  const handleSendPayment = (method: string) => {
+  const handleSendPayment = async (method: string) => {
     setSendingMethod(method);
-    setTimeout(() => {
-      setPaymentSent(true);
-      setTimeout(() => setPaymentSent(false), 3000);
-    }, 500);
+    setSendPaymentError(null);
+    setPaymentSent(false);
+
+    if (method === 'Email') {
+      if (!customer.email || !customer.email.trim()) {
+        setSendPaymentError('Customer email address is required to send payment link.');
+        return;
+      }
+
+      setIsSendingPayment(true);
+      try {
+        await sendPaymentLinkApi({
+          customerEmail: customer.email,
+          customerName: customer.name,
+          paymentLink: paymentLink,
+          totalAmount: totalAmount
+        });
+        setPaymentSent(true);
+        setTimeout(() => setPaymentSent(false), 5000);
+      } catch (err: any) {
+        setSendPaymentError(err?.message || 'Failed to send payment email. Please try again.');
+      } finally {
+        setIsSendingPayment(false);
+      }
+    } else {
+      // Mock SMS and WhatsApp options
+      setIsSendingPayment(true);
+      setTimeout(() => {
+        setIsSendingPayment(false);
+        setPaymentSent(true);
+        setTimeout(() => setPaymentSent(false), 3000);
+      }, 600);
+    }
   };
 
   const openDateTimeDialog = () => {
@@ -495,7 +577,13 @@ export default function Home() {
   const isTabComplete = (tab: TabType): boolean => {
     switch (tab) {
       case 'customer':
-        return customer.name.trim() !== '' && customer.phone.trim() !== '';
+        return (
+          customer.name.trim() !== '' &&
+          customer.phone.trim() !== '' &&
+          getValidationError('name', customer.name) === null &&
+          getValidationError('phone', customer.phone) === null &&
+          getValidationError('email', customer.email) === null
+        );
       case 'services':
         return selectedServices.length > 0;
       case 'experts':
@@ -655,10 +743,25 @@ export default function Home() {
                       <input
                         type="text"
                         value={customer.name}
-                        onChange={(e) => setCustomer(prev => ({ ...prev, name: e.target.value }))}
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-slate-50/30"
+                        onBlur={() => setTouched(prev => ({ ...prev, name: true }))}
+                        onChange={(e) => {
+                          setCustomer(prev => ({ ...prev, name: e.target.value }));
+                          setTouched(prev => ({ ...prev, name: true }));
+                        }}
+                        className={cn(
+                          "w-full px-4 py-2.5 border rounded-xl focus:ring-2 outline-none transition bg-slate-50/30",
+                          touched.name && getValidationError('name', customer.name)
+                            ? "border-red-300 focus:ring-red-500 focus:border-transparent"
+                            : "border-slate-200 focus:ring-blue-500 focus:border-transparent"
+                        )}
                         placeholder="Enter customer name"
                       />
+                      {touched.name && getValidationError('name', customer.name) && (
+                        <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          {getValidationError('name', customer.name)}
+                        </p>
+                      )}
                     </div>
                     
                     <div>
@@ -668,10 +771,25 @@ export default function Home() {
                       <input
                         type="tel"
                         value={customer.phone}
-                        onChange={(e) => setCustomer(prev => ({ ...prev, phone: e.target.value }))}
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-slate-50/30"
-                        placeholder="Enter phone number"
+                        onBlur={() => setTouched(prev => ({ ...prev, phone: true }))}
+                        onChange={(e) => {
+                          setCustomer(prev => ({ ...prev, phone: e.target.value }));
+                          setTouched(prev => ({ ...prev, phone: true }));
+                        }}
+                        className={cn(
+                          "w-full px-4 py-2.5 border rounded-xl focus:ring-2 outline-none transition bg-slate-50/30",
+                          touched.phone && getValidationError('phone', customer.phone)
+                            ? "border-red-300 focus:ring-red-500 focus:border-transparent"
+                            : "border-slate-200 focus:ring-blue-500 focus:border-transparent"
+                        )}
+                        placeholder="+61 400 000 000"
                       />
+                      {touched.phone && getValidationError('phone', customer.phone) && (
+                        <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
+                          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                          <span>{getValidationError('phone', customer.phone)}</span>
+                        </p>
+                      )}
                     </div>
                     
                     <div>
@@ -681,10 +799,25 @@ export default function Home() {
                       <input
                         type="email"
                         value={customer.email}
-                        onChange={(e) => setCustomer(prev => ({ ...prev, email: e.target.value }))}
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-slate-50/30"
+                        onBlur={() => setTouched(prev => ({ ...prev, email: true }))}
+                        onChange={(e) => {
+                          setCustomer(prev => ({ ...prev, email: e.target.value }));
+                          setTouched(prev => ({ ...prev, email: true }));
+                        }}
+                        className={cn(
+                          "w-full px-4 py-2.5 border rounded-xl focus:ring-2 outline-none transition bg-slate-50/30",
+                          touched.email && getValidationError('email', customer.email)
+                            ? "border-red-300 focus:ring-red-500 focus:border-transparent"
+                            : "border-slate-200 focus:ring-blue-500 focus:border-transparent"
+                        )}
                         placeholder="Enter email address"
                       />
+                      {touched.email && getValidationError('email', customer.email) && (
+                        <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          {getValidationError('email', customer.email)}
+                        </p>
+                      )}
                     </div>
                     
                     <div>
@@ -1141,33 +1274,59 @@ export default function Home() {
                     <div className="grid grid-cols-3 gap-3">
                       <button
                         onClick={() => handleSendPayment('SMS')}
-                        className="flex flex-col items-center gap-2 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition group"
+                        disabled={isSendingPayment}
+                        className={cn(
+                          "flex flex-col items-center gap-2 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition group cursor-pointer",
+                          isSendingPayment && "opacity-50 cursor-not-allowed"
+                        )}
                       >
                         <MessageSquare className="w-5 h-5" />
                         <span className="text-xs">SMS</span>
                       </button>
                       <button
                         onClick={() => handleSendPayment('WhatsApp')}
-                        className="flex flex-col items-center gap-2 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition group"
+                        disabled={isSendingPayment}
+                        className={cn(
+                          "flex flex-col items-center gap-2 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition group cursor-pointer",
+                          isSendingPayment && "opacity-50 cursor-not-allowed"
+                        )}
                       >
                         <Send className="w-5 h-5" />
                         <span className="text-xs">WhatsApp</span>
                       </button>
                       <button
                         onClick={() => handleSendPayment('Email')}
-                        className="flex flex-col items-center gap-2 py-3 bg-slate-600 text-white rounded-xl hover:bg-slate-700 transition group"
+                        disabled={isSendingPayment}
+                        className={cn(
+                          "flex flex-col items-center gap-2 py-3 bg-slate-600 text-white rounded-xl hover:bg-slate-700 transition group cursor-pointer",
+                          isSendingPayment && "opacity-50 cursor-not-allowed"
+                        )}
                       >
-                        <Mail className="w-5 h-5" />
-                        <span className="text-xs">Email</span>
+                        {isSendingPayment && sendingMethod === 'Email' ? (
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Mail className="w-5 h-5" />
+                        )}
+                        <span className="text-xs">{isSendingPayment && sendingMethod === 'Email' ? 'Sending...' : 'Email'}</span>
                       </button>
                     </div>
                   </div>
+
+                  {/* Error Message */}
+                  {sendPaymentError && (
+                    <div className="mt-4 p-3 bg-red-50 rounded-xl border border-red-200 animate-in fade-in duration-300">
+                      <div className="flex items-center gap-2 text-red-700">
+                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                        <span className="text-sm">{sendPaymentError}</span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Success Message */}
                   {paymentSent && (
                     <div className="mt-4 p-3 bg-green-50 rounded-xl border border-green-200 animate-in fade-in duration-300">
                       <div className="flex items-center gap-2 text-green-700">
-                        <CheckCircle className="w-4 h-4" />
+                        <CheckCircle className="w-4 h-4 flex-shrink-0" />
                         <span className="text-sm">Payment link sent via {sendingMethod} successfully!</span>
                       </div>
                     </div>
