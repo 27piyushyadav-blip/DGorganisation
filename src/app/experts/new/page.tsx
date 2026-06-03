@@ -658,7 +658,8 @@ export default function NewExpertPage() {
                                   );
                                   setManualForm(prev => ({ ...prev, availability: newAv }));
                                 }} 
-                                className="h-9 text-sm w-32 bg-white" 
+                                className="h-9 text-sm w-32 bg-white cursor-pointer" 
+                                onClick={(e) => (e.currentTarget as any).showPicker?.()}
                               />
                               <span className="text-zinc-400 font-medium">to</span>
                               <Input 
@@ -670,7 +671,8 @@ export default function NewExpertPage() {
                                   );
                                   setManualForm(prev => ({ ...prev, availability: newAv }));
                                 }} 
-                                className="h-9 text-sm w-32 bg-white" 
+                                className="h-9 text-sm w-32 bg-white cursor-pointer" 
+                                onClick={(e) => (e.currentTarget as any).showPicker?.()}
                               />
                             </div>
                           )}

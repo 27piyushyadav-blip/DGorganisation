@@ -7,6 +7,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,9 +38,12 @@ import {
   ShoppingBag,
   Sparkles,
   Trash2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import OnboardingForm from "@/components/OnboardingForm";
+import { toast } from "sonner";
 
 const PROFILE_BASE = process.env.NEXT_PUBLIC_PROFILE_BASE_URL!;
 
@@ -50,6 +54,12 @@ export default function ProfilePage() {
   const [isFixing, setIsFixing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState<any>(null);
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [isUploadingLicense, setIsUploadingLicense] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState("identity");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -116,6 +126,14 @@ export default function ProfilePage() {
       ...prev,
       [field]: value,
     }));
+  };
+
+  const handleOperatingHoursChange = (index: number, field: string, value: any) => {
+    setFormData((prev: any) => {
+      const newHours = [...(prev.operatingHours || [])];
+      newHours[index] = { ...newHours[index], [field]: value };
+      return { ...prev, operatingHours: newHours };
+    });
   };
 
   const loadProfile = async () => {
@@ -194,6 +212,7 @@ export default function ProfilePage() {
     const formDataUpload = new FormData();
     formDataUpload.append("file", file);
 
+    setIsUploadingLogo(true);
     try {
       const d = await apiClient<any>(`${PROFILE_BASE}/logo`, {
         method: "POST",
@@ -201,8 +220,12 @@ export default function ProfilePage() {
       });
 
       setFormData((prev) => ({ ...prev, logo: d.logoUrl }));
-    } catch (err) {
+      toast.success("Logo uploaded successfully!");
+    } catch (err: any) {
       console.error(err);
+      toast.error(err?.message || "Failed to upload logo.");
+    } finally {
+      setIsUploadingLogo(false);
     }
   };
 
@@ -216,6 +239,7 @@ export default function ProfilePage() {
     const formDataUpload = new FormData();
     formDataUpload.append("file", file);
 
+    setIsUploadingVideo(true);
     try {
       const d = await apiClient<any>(`${PROFILE_BASE}/intro-video`, {
         method: "POST",
@@ -223,8 +247,12 @@ export default function ProfilePage() {
       });
 
       setFormData((prev) => ({ ...prev, profileVideo: d.fileUrl }));
-    } catch (err) {
+      toast.success("Video uploaded successfully!");
+    } catch (err: any) {
       console.error(err);
+      toast.error(err?.message || "Failed to upload video.");
+    } finally {
+      setIsUploadingVideo(false);
     }
   };
 
@@ -238,6 +266,7 @@ export default function ProfilePage() {
     const formDataUpload = new FormData();
     formDataUpload.append("file", file);
 
+    setIsUploadingCover(true);
     try {
       const d = await apiClient<any>(`${PROFILE_BASE}/cover-image`, {
         method: "POST",
@@ -245,8 +274,12 @@ export default function ProfilePage() {
       });
 
       setFormData((prev) => ({ ...prev, coverImageUrl: d.coverUrl }));
-    } catch (err) {
+      toast.success("Cover photo uploaded successfully!");
+    } catch (err: any) {
       console.error(err);
+      toast.error(err?.message || "Failed to upload cover photo.");
+    } finally {
+      setIsUploadingCover(false);
     }
   };
 
@@ -262,6 +295,7 @@ export default function ProfilePage() {
     formDataUpload.append("title", "Business License");
     formDataUpload.append("category", "Verification");
 
+    setIsUploadingLicense(true);
     try {
       const d = await apiClient<any>(`${PROFILE_BASE}/documents`, {
         method: "POST",
@@ -272,8 +306,12 @@ export default function ProfilePage() {
         ...prev,
         businessLicenseUrl: d.document.url,
       }));
-    } catch (err) {
+      toast.success("Business license uploaded successfully!");
+    } catch (err: any) {
       console.error(err);
+      toast.error(err?.message || "Failed to upload business license.");
+    } finally {
+      setIsUploadingLicense(false);
     }
   };
 
@@ -346,6 +384,7 @@ export default function ProfilePage() {
   };
 
   const handleSave = async () => {
+    setIsSaving(true);
     try {
       await apiClient(PROFILE_BASE, {
         method: "PUT",
@@ -361,13 +400,86 @@ export default function ProfilePage() {
       });
 
       setIsEditing(false);
-    } catch (err) {
+      toast.success("Profile saved successfully!");
+    } catch (err: any) {
       console.error(err);
+      toast.error(err?.message || "Failed to save profile.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleCancel = () => {
     setIsEditing(false);
+  };
+
+  const renderTabNavigation = (currentTab: string) => {
+    if (!isEditing) return null;
+
+    const tabsOrder = [
+      "identity",
+      "contact",
+      "location",
+      "services",
+      // "products-features",
+      "legal",
+      "settings",
+    ];
+    const currentIndex = tabsOrder.indexOf(currentTab);
+    if (currentIndex === -1) return null;
+
+    const handleNextTab = () => {
+      if (currentIndex < tabsOrder.length - 1) {
+        setActiveTab(tabsOrder[currentIndex + 1]);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    };
+
+    const handlePrevTab = () => {
+      if (currentIndex > 0) {
+        setActiveTab(tabsOrder[currentIndex - 1]);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    };
+
+    const isFirst = currentIndex === 0;
+    const isLast = currentIndex === tabsOrder.length - 1;
+
+    return (
+      <CardFooter className="flex justify-between border-t border-muted pt-6 mt-6">
+        <Button
+          variant="ghost"
+          type="button"
+          onClick={handlePrevTab}
+          disabled={isFirst || isSaving}
+          className={isFirst ? "opacity-0 pointer-events-none" : ""}
+        >
+          <ChevronLeft className="mr-2 w-4 h-4" />
+          Previous Step
+        </Button>
+
+        {!isLast ? (
+          <Button type="button" onClick={handleNextTab} disabled={isSaving}>
+            Next Step
+            <ChevronRight className="ml-2 w-4 h-4" />
+          </Button>
+        ) : (
+          <Button type="button" onClick={handleSave} disabled={isSaving} className="bg-primary hover:bg-primary/90">
+            {isSaving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving Changes...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                Save Changes
+              </>
+            )}
+          </Button>
+        )}
+      </CardFooter>
+    );
   };
 
   const handleOnboardingComplete = async () => {
@@ -532,12 +644,21 @@ export default function ProfilePage() {
         <div className="flex items-center space-x-2">
           {isEditing ? (
             <>
-              <Button onClick={handleSave}>
-                <Save className="mr-2 h-4 w-4" />
-                Save Changes
+              <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Changes
+                  </>
+                )}
               </Button>
 
-              <Button variant="outline" onClick={handleCancel}>
+              <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
                 <X className="mr-2 h-4 w-4" />
                 Cancel
               </Button>
@@ -582,9 +703,19 @@ export default function ProfilePage() {
                     variant="outline"
                     className="w-full"
                     onClick={() => imageInputRef.current?.click()}
+                    disabled={isUploadingLogo}
                   >
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Logo
+                    {isUploadingLogo ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Upload Logo
+                      </>
+                    )}
                   </Button>
 
                   <input
@@ -632,9 +763,19 @@ export default function ProfilePage() {
                     variant="outline"
                     className="w-full"
                     onClick={() => coverInputRef.current?.click()}
+                    disabled={isUploadingCover}
                   >
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Cover
+                    {isUploadingCover ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Upload Cover
+                      </>
+                    )}
                   </Button>
 
                   <input
@@ -694,9 +835,19 @@ export default function ProfilePage() {
                     variant="outline"
                     className="w-full"
                     onClick={() => videoInputRef.current?.click()}
+                    disabled={isUploadingVideo}
                   >
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Video
+                    {isUploadingVideo ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Upload Video
+                      </>
+                    )}
                   </Button>
 
                   <input
@@ -760,11 +911,10 @@ export default function ProfilePage() {
                   <CheckCircle className="h-4 w-4 text-green-500" />
                 ) : (
                   <AlertCircle
-                    className={`h-4 w-4 ${
-                      status === "REJECTED"
+                    className={`h-4 w-4 ${status === "REJECTED"
                         ? "text-red-500"
                         : "text-yellow-500"
-                    }`}
+                      }`}
                   />
                 )}
 
@@ -772,8 +922,8 @@ export default function ProfilePage() {
                   {status === "VERIFIED"
                     ? "Profile Verified"
                     : status === "REJECTED"
-                    ? "Profile Rejected"
-                    : "Profile Pending Review"}
+                      ? "Profile Rejected"
+                      : "Profile Pending Review"}
                 </span>
               </div>
 
@@ -821,13 +971,14 @@ export default function ProfilePage() {
         </div>
 
         <div className="md:col-span-2 space-y-6">
-          <Tabs defaultValue="identity" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-7 h-auto">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+            {/* <TabsList className="grid w-full grid-cols-7 h-auto"> */}
+            <TabsList className="grid w-full grid-cols-6 h-auto">
               <TabsTrigger value="identity">Identity</TabsTrigger>
               <TabsTrigger value="contact">Contact</TabsTrigger>
               <TabsTrigger value="location">Location</TabsTrigger>
               <TabsTrigger value="services">Services</TabsTrigger>
-              <TabsTrigger value="products-features">Products & Features</TabsTrigger>
+              {/* <TabsTrigger value="products-features">Products & Features</TabsTrigger> */}
               <TabsTrigger value="legal">Legal & Bank</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
@@ -943,6 +1094,7 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 </CardContent>
+                {renderTabNavigation("identity")}
               </Card>
             </TabsContent>
 
@@ -1030,6 +1182,7 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 </CardContent>
+                {renderTabNavigation("contact")}
               </Card>
             </TabsContent>
 
@@ -1117,6 +1270,7 @@ export default function ProfilePage() {
                     </div>
                   )}
                 </CardContent>
+                {renderTabNavigation("location")}
               </Card>
             </TabsContent>
 
@@ -1178,25 +1332,60 @@ export default function ProfilePage() {
                   <div className="space-y-4">
                     <Label className="font-semibold">Operating Hours</Label>
 
-                    <div className="grid gap-2 border p-4 rounded-md">
-                      {formData.operatingHours?.map((day: any, i: number) => (
-                        <div key={i} className="flex items-center gap-4 text-sm">
-                          <span className="w-20 font-medium">{day.day}</span>
+                    {isEditing ? (
+                      <div className="p-4 rounded-lg bg-muted/50 border space-y-4 max-h-[300px] overflow-y-auto">
+                        {formData.operatingHours?.map((hour: any, i: number) => (
+                          <div key={hour.day} className="grid grid-cols-4 items-center gap-3">
+                            <span className="text-xs font-medium w-max">{hour.day}</span>
+                             <Input
+                              type="time"
+                              className="h-8 text-xs bg-white cursor-pointer"
+                              value={hour.open}
+                              disabled={hour.is_closed}
+                              onChange={(e) => handleOperatingHoursChange(i, "open", e.target.value)}
+                              onClick={(e) => (e.currentTarget as any).showPicker?.()}
+                            />
+                            <Input
+                              type="time"
+                              className="h-8 text-xs bg-white cursor-pointer"
+                              value={hour.close}
+                              disabled={hour.is_closed}
+                              onChange={(e) => handleOperatingHoursChange(i, "close", e.target.value)}
+                              onClick={(e) => (e.currentTarget as any).showPicker?.()}
+                            />
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={hour.is_closed}
+                                onChange={(e) => handleOperatingHoursChange(i, "is_closed", e.target.checked)}
+                              />
+                              <span className="text-[10px]">Closed</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="grid gap-2 border p-4 rounded-md">
+                        {formData.operatingHours?.map((day: any, i: number) => (
+                          <div key={i} className="flex items-center gap-4 text-sm">
+                            <span className="w-20 font-medium">{day.day}</span>
 
-                          <span
-                            className={
-                              day.is_closed ? "text-red-500" : "text-green-600"
-                            }
-                          >
-                            {day.is_closed
-                              ? "Closed"
-                              : `${day.open} - ${day.close}`}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
+                            <span
+                              className={
+                                day.is_closed ? "text-red-500" : "text-green-600"
+                              }
+                            >
+                              {day.is_closed
+                                ? "Closed"
+                                : `${day.open} - ${day.close}`}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </CardContent>
+                {renderTabNavigation("services")}
               </Card>
             </TabsContent>
 
@@ -1249,11 +1438,21 @@ export default function ProfilePage() {
                             variant="outline"
                             size="sm"
                             onClick={() => docInputRef.current?.click()}
+                            disabled={isUploadingLicense}
                           >
-                            <Upload className="h-4 w-4 mr-2" />
-                            {formData.businessLicenseUrl
-                              ? "Update License"
-                              : "Upload License"}
+                            {isUploadingLicense ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Uploading...
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="h-4 w-4 mr-2" />
+                                {formData.businessLicenseUrl
+                                  ? "Update License"
+                                  : "Upload License"}
+                              </>
+                            )}
                           </Button>
 
                           <p className="text-[10px] text-muted-foreground mt-1">
@@ -1375,10 +1574,11 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 </CardContent>
+                {renderTabNavigation("legal")}
               </Card>
             </TabsContent>
 
-            <TabsContent value="products-features" className="space-y-4">
+            {/* <TabsContent value="products-features" className="space-y-4">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
@@ -1530,8 +1730,9 @@ export default function ProfilePage() {
                     )}
                   </div>
                 </CardContent>
+                {renderTabNavigation("products-features")}
               </Card>
-            </TabsContent>
+            </TabsContent> */}
 
             <TabsContent value="settings" className="space-y-4">
               <Card>
@@ -1587,6 +1788,7 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 </CardContent>
+                {renderTabNavigation("settings")}
               </Card>
             </TabsContent>
           </Tabs>

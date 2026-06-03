@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiClient } from "@/client/api/api-client";
+import { toast } from "sonner";
 
 const PROFILE_BASE = process.env.NEXT_PUBLIC_PROFILE_BASE_URL!;
 
@@ -164,13 +165,15 @@ export default function OnboardingForm({ initialData, onComplete }: OnboardingFo
     body.append("file", file);
 
     try {
-      const res: any = await await apiClient(`${PROFILE_BASE}/logo`, {
+      const res: any = await apiClient(`${PROFILE_BASE}/logo`, {
         method: "POST",
         body,
       });
       setFormData((prev) => ({ ...prev, logo: res.logoUrl }));
-    } catch (error) {
+      toast.success("Logo uploaded successfully!");
+    } catch (error: any) {
       console.error("Logo upload failed:", error);
+      toast.error(error?.message || "Failed to upload logo.");
     } finally {
       setIsUploadingLogo(false);
     }
@@ -190,8 +193,10 @@ export default function OnboardingForm({ initialData, onComplete }: OnboardingFo
         body,
       });
       setFormData((prev) => ({ ...prev, coverImageUrl: res.coverUrl }));
-    } catch (error) {
+      toast.success("Cover photo uploaded successfully!");
+    } catch (error: any) {
       console.error("Cover upload failed:", error);
+      toast.error(error?.message || "Failed to upload cover photo.");
     } finally {
       setIsUploadingCover(false);
     }
@@ -220,8 +225,10 @@ export default function OnboardingForm({ initialData, onComplete }: OnboardingFo
         documents: [...(prev.documents || []), res.document],
         ...(title.toLowerCase().includes('license') || !prev.businessLicenseUrl ? { businessLicenseUrl: res.document.url } : {})
       }));
-    } catch (error) {
+      toast.success("Document uploaded successfully!");
+    } catch (error: any) {
       console.error("Document upload failed:", error);
+      toast.error(error?.message || "Failed to upload document.");
     } finally {
       setIsUploadingDoc(false);
     }
@@ -241,8 +248,10 @@ export default function OnboardingForm({ initialData, onComplete }: OnboardingFo
         body,
       });
       setFormData((prev) => ({ ...prev, introVideo: res.fileUrl }));
-    } catch (error) {
+      toast.success("Video uploaded successfully!");
+    } catch (error: any) {
       console.error("Video upload failed:", error);
+      toast.error(error?.message || "Failed to upload video.");
     } finally {
       setIsUploadingVideo(false);
     }
@@ -264,9 +273,11 @@ export default function OnboardingForm({ initialData, onComplete }: OnboardingFo
           verificationStatus: "PENDING",
         }),
       });
+      toast.success("Profile submitted for verification successfully!");
       onComplete();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Onboarding submission failed:", error);
+      toast.error(error?.message || "Submission failed.");
     } finally {
       setIsLoading(false);
     }
@@ -607,17 +618,19 @@ export default function OnboardingForm({ initialData, onComplete }: OnboardingFo
                     <span className="text-xs font-medium w-max">{hour.day}</span>
                     <Input 
                       type="time" 
-                      className="h-8 text-xs" 
+                      className="h-8 text-xs cursor-pointer" 
                       value={hour.open} 
                       disabled={hour.is_closed}
                       onChange={(e) => handleOperatingHoursChange(i, "open", e.target.value)} 
+                      onClick={(e) => (e.currentTarget as any).showPicker?.()}
                     />
                     <Input 
                       type="time" 
-                      className="h-8 text-xs" 
+                      className="h-8 text-xs cursor-pointer" 
                       value={hour.close} 
                       disabled={hour.is_closed}
                       onChange={(e) => handleOperatingHoursChange(i, "close", e.target.value)} 
+                      onClick={(e) => (e.currentTarget as any).showPicker?.()}
                     />
                     <div className="flex items-center gap-2">
                        <input 
