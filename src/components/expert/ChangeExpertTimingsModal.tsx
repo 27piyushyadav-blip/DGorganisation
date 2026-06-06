@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Modal from '@/components/modal/Modal';
 import { Label } from '@/components/ui/label';
+import { formatToAmPm } from '@/lib/utils';
 import {
   Select,
   SelectContent,
@@ -37,6 +38,7 @@ interface ChangeExpertTimingsModalProps {
   timings: ExpertTiming[];
   onClose: () => void;
   onSave: (availability: AvailabilitySlot[]) => Promise<void>;
+  operatingHours?: any[];
 }
 
 const dayOptions = [
@@ -122,6 +124,7 @@ export default function ChangeExpertTimingsModal({
   timings,
   onClose,
   onSave,
+  operatingHours,
 }: ChangeExpertTimingsModalProps) {
   const [timingSlots, setTimingSlots] = useState<TimingSlot[]>(() => buildTimingSlots(timings));
   const [submitError, setSubmitError] = useState('');
@@ -148,7 +151,14 @@ export default function ChangeExpertTimingsModal({
     value: string
   ) => {
     setTimingSlots((prev) =>
-      prev.map((slot) => (slot.id === slotId ? { ...slot, [field]: value } : slot))
+      prev.map((slot) => {
+        if (slot.id !== slotId) return slot;
+        let updatedSlot = { ...slot, [field]: value };
+        if (field === 'startTime' && updatedSlot.endTime <= value) {
+          updatedSlot.endTime = '';
+        }
+        return updatedSlot;
+      })
     );
   };
 
@@ -175,6 +185,30 @@ export default function ChangeExpertTimingsModal({
     if (hasInvalidRange) {
       setSubmitError('End time must be later than start time for every selected day.');
       return;
+    }
+
+    if (operatingHours && Array.isArray(operatingHours)) {
+      for (const slot of availability) {
+        const dayHours = operatingHours.find(
+          (h) => h && h.day && h.day.toLowerCase() === slot.dayOfWeek.toLowerCase()
+        );
+        if (!dayHours) {
+          setSubmitError(`Organization operating hours are not configured for ${slot.dayOfWeek}.`);
+          return;
+        }
+        if (dayHours.is_closed) {
+          setSubmitError(`Organization is closed on ${slot.dayOfWeek}. Availability cannot be set.`);
+          return;
+        }
+        if (slot.startTime < dayHours.open) {
+          setSubmitError(`Start time on ${slot.dayOfWeek} cannot be earlier than organization open time (${formatToAmPm(dayHours.open)}).`);
+          return;
+        }
+        if (slot.endTime > dayHours.close) {
+          setSubmitError(`End time on ${slot.dayOfWeek} cannot be later than organization close time (${formatToAmPm(dayHours.close)}).`);
+          return;
+        }
+      }
     }
 
     try {
@@ -209,67 +243,87 @@ export default function ChangeExpertTimingsModal({
             {submitError}
           </div>
         )}
-        {timingSlots.map((slot) => (
-          <div
-            key={slot.id}
-            className="flex flex-col gap-3 rounded-lg border border-[var(--primary-start)] p-4 md:flex-row md:items-center justify-between"
-          >
-            <div className="flex items-center space-x-2 md:w-28">
-              <input
-                type="checkbox"
-                checked={slot.isAvailable}
-                onChange={() => handleTimingToggle(slot.id)}
-                className="h-4 w-4"
-              />
-              <Label className="font-medium">{slot.shortDay}</Label>
-            </div>
+        {timingSlots.map((slot) => {
+          const dayHours = operatingHours?.find(
+            (h) => h && h.day && h.day.toLowerCase() === slot.dayOfWeek.toLowerCase()
+          );
+          const isClosed = !dayHours || dayHours.is_closed;
 
-            <div>
+          const filteredTimeSlots = timeOptions.filter((time) => {
+            if (!dayHours) return true;
+            return time >= dayHours.open && time <= dayHours.close;
+          });
 
-            {slot.isAvailable ? (
-              <div className="flex flex-1 items-center gap-3">
-                <Select
-                  value={slot.startTime}
-                  onValueChange={(value) =>
-                    handleTimingTimeChange(slot.id, 'startTime', value)
-                  }
-                >
-                  <SelectTrigger className="w-full md:w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {timeOptions.map((time) => (
-                      <SelectItem key={time} value={time}>
-                        {time}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <span className="text-sm text-gray-500">to</span>
-                <Select
-                  value={slot.endTime}
-                  onValueChange={(value) =>
-                    handleTimingTimeChange(slot.id, 'endTime', value)
-                  }
-                >
-                  <SelectTrigger className="w-full md:w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {timeOptions.map((time) => (
-                      <SelectItem key={time} value={time}>
-                        {time}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          const filteredEndTimeSlots = filteredTimeSlots.filter((time) => {
+            return time > slot.startTime;
+          });
+
+          return (
+            <div
+              key={slot.id}
+              className="flex flex-col gap-3 rounded-lg border border-[var(--primary-start)] p-4 md:flex-row md:items-center justify-between"
+            >
+              <div className="flex items-center space-x-2 md:w-28">
+                <input
+                  type="checkbox"
+                  checked={slot.isAvailable && !isClosed}
+                  disabled={isClosed}
+                  onChange={() => handleTimingToggle(slot.id)}
+                  className="h-4 w-4"
+                />
+                <Label className={`font-medium ${isClosed ? 'text-gray-400' : ''}`}>
+                  {slot.shortDay}
+                </Label>
               </div>
-            ) : (
-              <span className="text-sm italic text-gray-500">Not Available</span>
-            )}
+
+              <div>
+                {slot.isAvailable && !isClosed ? (
+                  <div className="flex flex-1 items-center gap-3">
+                    <Select
+                      value={slot.startTime}
+                      onValueChange={(value) =>
+                        handleTimingTimeChange(slot.id, 'startTime', value)
+                      }
+                    >
+                      <SelectTrigger className="w-full md:w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {filteredTimeSlots.map((time) => (
+                          <SelectItem key={time} value={time}>
+                            {formatToAmPm(time)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <span className="text-sm text-gray-500">to</span>
+                    <Select
+                      value={slot.endTime}
+                      onValueChange={(value) =>
+                        handleTimingTimeChange(slot.id, 'endTime', value)
+                      }
+                    >
+                      <SelectTrigger className="w-full md:w-32">
+                        <SelectValue placeholder="End time" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {filteredEndTimeSlots.map((time) => (
+                          <SelectItem key={time} value={time}>
+                            {formatToAmPm(time)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : isClosed ? (
+                  <span className="text-sm italic text-red-500">Org is Closed</span>
+                ) : (
+                  <span className="text-sm italic text-gray-500">Not Available</span>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </Modal>
   );

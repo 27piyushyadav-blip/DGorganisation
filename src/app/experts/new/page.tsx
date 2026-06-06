@@ -30,6 +30,7 @@ import {
   ChevronRight,
   ChevronLeft,
   Check,
+  Package,
 } from 'lucide-react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -46,6 +47,9 @@ import { apiClient } from '@/client/api/api-client';
 import { toast } from 'sonner';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL!;
+
+let cachedServices: any[] | null = null;
+let cachedCategories: any[] | null = null;
 
 export default function NewExpertPage() {
   const router = useRouter();
@@ -99,24 +103,49 @@ export default function NewExpertPage() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [orgServices, setOrgServices] = useState<any[]>([]);
-  const [isLoadingServices, setIsLoadingServices] = useState(false);
+  const [orgServices, setOrgServices] = useState<any[]>(cachedServices || []);
+  const [categories, setCategories] = useState<any[]>(cachedCategories || []);
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
+  const [isLoadingServices, setIsLoadingServices] = useState(!cachedServices);
+
+  const hasDefaultServices = orgServices.some((s: any) => !s.categoryId);
+  const displayedCategories = [
+    { id: 'all', name: 'All' },
+    ...(hasDefaultServices ? [{ id: 'default', name: 'Services' }] : []),
+    ...categories.map((c: any) => ({ id: c.id, name: c.name }))
+  ];
+
+  const filteredServices = orgServices.filter((s: any) => {
+    if (selectedCategoryFilter === 'all') return true;
+    if (selectedCategoryFilter === 'default') return !s.categoryId;
+    return s.categoryId === selectedCategoryFilter;
+  });
 
   useEffect(() => {
-    const fetchServices = async () => {
-      setIsLoadingServices(true);
+    const fetchServicesAndCategories = async () => {
+      if (!cachedServices) {
+        setIsLoadingServices(true);
+      }
       try {
-        const response = await apiClient<any>(`${API_BASE}/organizations/services`);
-        if (response?.services) {
-          setOrgServices(response.services);
+        const [servicesRes, categoriesRes] = await Promise.all([
+          apiClient<any>(`${API_BASE}/organizations/services`),
+          apiClient<any>(`${API_BASE}/organizations/services/categories`)
+        ]);
+        if (servicesRes?.services) {
+          setOrgServices(servicesRes.services);
+          cachedServices = servicesRes.services;
+        }
+        if (categoriesRes?.categories) {
+          setCategories(categoriesRes.categories);
+          cachedCategories = categoriesRes.categories;
         }
       } catch (error) {
-        console.error('Failed to load organization services:', error);
+        console.error('Failed to load organization services/categories:', error);
       } finally {
         setIsLoadingServices(false);
       }
     };
-    fetchServices();
+    fetchServicesAndCategories();
   }, []);
 
   const handleToggleService = (orgService: any) => {
@@ -443,10 +472,6 @@ export default function NewExpertPage() {
                       <Input type="number" value={manualForm.experience} onChange={e => setManualForm(prev => ({...prev, experience: e.target.value}))} placeholder="5" />
                     </div>
                     <div className="space-y-2">
-                      <Label>Consultation Fee</Label>
-                      <Input type="number" value={manualForm.consultationFee} onChange={e => setManualForm(prev => ({...prev, consultationFee: e.target.value}))} placeholder="1000" />
-                    </div>
-                    <div className="space-y-2">
                       <Label>Tags (comma separated)</Label>
                       <Input value={manualForm.tags} onChange={e => setManualForm(prev => ({...prev, tags: e.target.value}))} placeholder="Strategy, Finance" />
                     </div>
@@ -727,45 +752,90 @@ export default function NewExpertPage() {
                       </Button>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {orgServices.map((orgService) => {
-                        const isSelected = manualForm.services.some(
-                          (s: any) => s.name === orgService.name
-                        );
-                        return (
-                          <div
-                            key={orgService.id}
-                            onClick={() => handleToggleService(orgService)}
-                            className={`cursor-pointer p-5 rounded-xl border-2 transition-all duration-200 relative overflow-hidden flex flex-col justify-between h-32 ${
-                              isSelected
-                                ? 'border-zinc-900 bg-zinc-50/50 shadow-sm'
-                                : 'border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50/20'
-                            }`}
-                          >
-                            {isSelected && (
-                              <div className="absolute top-0 right-0 bg-zinc-900 text-white p-1 rounded-bl-lg">
-                                <Check className="h-3.5 w-3.5" />
+                    <div className="space-y-4">
+                      {/* Category Filter Pills */}
+                      <div className="flex flex-wrap gap-2 pb-1 border-b border-zinc-100">
+                        {displayedCategories.map((cat) => {
+                          const isActive = selectedCategoryFilter === cat.id;
+                          return (
+                            <button
+                              key={cat.id}
+                              type="button"
+                              onClick={() => setSelectedCategoryFilter(cat.id)}
+                              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
+                                isActive
+                                  ? 'bg-zinc-900 text-white shadow-sm'
+                                  : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+                              }`}
+                            >
+                              {cat.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {filteredServices.length === 0 ? (
+                        <div className="py-8 text-center bg-zinc-50/50 border border-dashed border-zinc-200 rounded-xl">
+                          <p className="text-zinc-500 text-sm">No services found in this category.</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {filteredServices.map((orgService) => {
+                            const isSelected = manualForm.services.some(
+                              (s: any) => s.name === orgService.name
+                            );
+                            return (
+                              <div
+                                key={orgService.id}
+                                onClick={() => handleToggleService(orgService)}
+                                className={`cursor-pointer p-4 rounded-xl border-2 transition-all duration-200 relative overflow-hidden flex gap-3 h-28 items-center ${
+                                  isSelected
+                                    ? 'border-indigo-600 bg-indigo-50/30 shadow-sm'
+                                    : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/30'
+                                }`}
+                              >
+                                {isSelected && (
+                                  <div className="absolute top-0 right-0 bg-indigo-600 text-white p-1 rounded-bl-lg z-10">
+                                    <Check className="h-3 w-3" />
+                                  </div>
+                                )}
+
+                                {orgService.imageUrl ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={orgService.imageUrl}
+                                    alt={orgService.name}
+                                    className="w-16 h-16 object-cover rounded-lg shrink-0 border border-gray-100"
+                                  />
+                                ) : (
+                                  <div className="w-16 h-16 rounded-lg bg-zinc-50 flex items-center justify-center shrink-0 border border-zinc-100">
+                                    <Package className="w-6 h-6 text-zinc-400" />
+                                  </div>
+                                )}
+
+                                <div className="flex-1 min-w-0 flex flex-col justify-between h-full">
+                                  <div>
+                                    <h4 className="font-semibold text-zinc-900 text-sm line-clamp-1">
+                                      {orgService.name}
+                                    </h4>
+                                    <p className="text-xs text-zinc-500 mt-0.5 line-clamp-1">
+                                      {orgService.description || 'No description available'}
+                                    </p>
+                                  </div>
+                                  <div className="flex justify-between items-center mt-1 pt-1 border-t border-dashed border-zinc-100">
+                                    <span className="text-xs text-zinc-400 font-medium">
+                                      {orgService.durationMinutes || 60} mins
+                                    </span>
+                                    <span className="text-sm font-bold text-indigo-600">
+                                      ₹{Number(orgService.basePrice).toLocaleString()}
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
-                            )}
-                            <div>
-                              <h4 className="font-bold text-zinc-900 text-sm line-clamp-1">
-                                {orgService.name}
-                              </h4>
-                              <p className="text-xs text-zinc-500 mt-1 line-clamp-2">
-                                {orgService.description || 'No description available'}
-                              </p>
-                            </div>
-                            <div className="flex justify-between items-center mt-3 border-t pt-2 border-dashed border-zinc-100">
-                              <span className="text-xs text-zinc-400 font-medium">
-                                {orgService.durationMinutes || 60} mins
-                              </span>
-                              <span className="text-sm font-bold text-zinc-900">
-                                ₹{Number(orgService.basePrice).toLocaleString()}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   )}
                 </CardContent>

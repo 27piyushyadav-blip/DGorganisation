@@ -5,7 +5,8 @@ import React, { useEffect, useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { X, Plus, Trash2, Check } from 'lucide-react';
+import { X, Plus, Trash2, Check, Package, User, Video } from 'lucide-react';
+import { uploadExpertAvatarApi, uploadExpertVideoApi } from '@/client/api/experts';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,6 +21,7 @@ import {
 import Modal from '../modal/Modal';
 import { apiClient } from '@/client/api/api-client';
 import { toast } from 'sonner';
+import { formatToAmPm } from '@/lib/utils';
 
 // Zod validation schema
 const educationSchema = z.object({
@@ -55,7 +57,7 @@ const addExpertSchema = z.object({
   bio: z.string().min(10, 'Bio must be at least 10 characters'),
   specialization: z.string().min(2, 'Specialization is required'),
   experience: z.number().min(0, 'Experience must be a positive number').max(50, 'Experience cannot exceed 50 years'),
-  consultationFee: z.number().min(0, 'Consultation fee must be positive'),
+  consultationFee: z.number().min(0, 'Consultation fee must be positive').optional(),
   education: z.array(educationSchema).min(1, 'At least one education entry is required'),
   workHistory: z.array(workHistorySchema).min(1, 'At least one work history entry is required'),
   availability: z.array(availabilitySchema).min(1, 'At least one availability slot is required'),
@@ -68,6 +70,9 @@ const addExpertSchema = z.object({
   timezone: z.string().optional(),
   gender: z.enum(['male', 'female', 'other']).optional(),
   location: z.string().optional(),
+  avatar: z.string().optional(),
+  introVideo: z.string().optional(),
+  id: z.string().optional(),
 });
 
 type AddExpertFormData = z.infer<typeof addExpertSchema>;
@@ -80,6 +85,7 @@ interface AddEditExpertModalProps {
   initialData?: AddExpertFormData | null;
   mode: 'add' | 'edit';
   isLoading?: boolean;
+  operatingHours?: any[];
 }
 
 const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -88,43 +94,57 @@ const timeSlots = Array.from({ length: 24 }, (_, i) => {
   return `${hour}:00`;
 });
 
+let cachedServices: any[] | null = null;
+let cachedCategories: any[] | null = null;
+
 export default function AddEditExpertModal({ 
   isOpen, 
   onClose, 
   onSave, 
   initialData, 
   mode,
-  isLoading = false 
+  isLoading = false,
+  operatingHours,
 }: AddEditExpertModalProps) {
   const [languageInput, setLanguageInput] = useState('');
   const [tagInput, setTagInput] = useState('');
   const [submitError, setSubmitError] = useState('');
-  const [orgServices, setOrgServices] = useState<any[]>([]);
-  const [isLoadingServices, setIsLoadingServices] = useState(false);
+  const [orgServices, setOrgServices] = useState<any[]>(cachedServices || []);
+  const [categories, setCategories] = useState<any[]>(cachedCategories || []);
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
+  const [isLoadingServices, setIsLoadingServices] = useState(!cachedServices);
 
   useEffect(() => {
-    if (isOpen) {
-      const fetchServices = async () => {
+    const fetchServicesAndCategories = async () => {
+      if (!cachedServices) {
         setIsLoadingServices(true);
-        try {
-          const response = await apiClient<any>(
-            `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/organizations/services`
-          );
-          if (response?.services) {
-            setOrgServices(response.services);
-          }
-        } catch (error) {
-          console.error('Failed to load organization services:', error);
-        } finally {
-          setIsLoadingServices(false);
+      }
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+        const [servicesRes, categoriesRes] = await Promise.all([
+          apiClient<any>(`${baseUrl}/organizations/services`),
+          apiClient<any>(`${baseUrl}/organizations/services/categories`)
+        ]);
+        if (servicesRes?.services) {
+          setOrgServices(servicesRes.services);
+          cachedServices = servicesRes.services;
         }
-      };
-      fetchServices();
-    }
-  }, [isOpen]);
+        if (categoriesRes?.categories) {
+          setCategories(categoriesRes.categories);
+          cachedCategories = categoriesRes.categories;
+        }
+      } catch (error) {
+        console.error('Failed to load organization services/categories:', error);
+      } finally {
+        setIsLoadingServices(false);
+      }
+    };
+    fetchServicesAndCategories();
+  }, []);
 
   const handleModalClose = () => {
     setSubmitError('');
+    setSelectedCategoryFilter('all');
     reset();
     onClose();
   };
@@ -140,6 +160,7 @@ export default function AddEditExpertModal({
   } = useForm<AddExpertFormData>({
     resolver: zodResolver(addExpertSchema),
     defaultValues: initialData || {
+      id: '',
       name: '',
       email: '',
       username: '',
@@ -158,6 +179,8 @@ export default function AddEditExpertModal({
       timezone: '',
       gender: undefined,
       location: '',
+      avatar: '',
+      introVideo: '',
     },
   });
 
@@ -166,6 +189,9 @@ export default function AddEditExpertModal({
     if (isOpen && initialData) {
       const formatted = {
         ...initialData,
+        id: initialData.id || '',
+        avatar: initialData.avatar || '',
+        introVideo: initialData.introVideo || '',
         experience: initialData.experience !== undefined ? Number(initialData.experience) : 0,
         consultationFee: initialData.consultationFee !== undefined ? Number(initialData.consultationFee) : 0,
         education: initialData.education && initialData.education.length > 0 
@@ -188,6 +214,7 @@ export default function AddEditExpertModal({
       reset(formatted);
     } else if (isOpen && !initialData) {
       reset({
+        id: '',
         name: '',
         email: '',
         username: '',
@@ -206,9 +233,79 @@ export default function AddEditExpertModal({
         timezone: '',
         gender: undefined,
         location: '',
+        avatar: '',
+        introVideo: '',
       });
     }
   }, [isOpen, initialData, reset]);
+
+  const avatarVal = watch('avatar');
+  const introVideoVal = watch('introVideo');
+
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be less than 5MB');
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      const expertId = watch('id');
+      const res = await uploadExpertAvatarApi(file, expertId);
+      if (res.fileUrl) {
+        setValue('avatar', res.fileUrl);
+        toast.success('Profile photo uploaded successfully');
+      } else {
+        toast.error('Failed to upload profile photo');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : 'Failed to upload profile photo');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  const handleVideoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('video/')) {
+      toast.error('Please select a video file');
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error('Video size must be less than 50MB');
+      return;
+    }
+
+    setIsUploadingVideo(true);
+    try {
+      const expertId = watch('id');
+      const res = await uploadExpertVideoApi(file, expertId);
+      if (res.fileUrl) {
+        setValue('introVideo', res.fileUrl);
+        toast.success('Introduction video uploaded successfully');
+      } else {
+        toast.error('Failed to upload introduction video');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : 'Failed to upload introduction video');
+    } finally {
+      setIsUploadingVideo(false);
+    }
+  };
 
   const { fields: educationFields, append: appendEducation, remove: removeEducation } = useFieldArray({
     control,
@@ -231,6 +328,19 @@ export default function AddEditExpertModal({
   });
 
   const selectedServices = watch('services') || [];
+
+  const hasDefaultServices = orgServices.some((s: any) => !s.categoryId);
+  const displayedCategories = [
+    { id: 'all', name: 'All' },
+    ...(hasDefaultServices ? [{ id: 'default', name: 'Services' }] : []),
+    ...categories.map((c: any) => ({ id: c.id, name: c.name }))
+  ];
+
+  const filteredServices = orgServices.filter((s: any) => {
+    if (selectedCategoryFilter === 'all') return true;
+    if (selectedCategoryFilter === 'default') return !s.categoryId;
+    return s.categoryId === selectedCategoryFilter;
+  });
 
   const handleToggleService = (orgService: any) => {
     const existingIndex = selectedServices.findIndex((s: any) => s.name === orgService.name);
@@ -284,6 +394,45 @@ export default function AddEditExpertModal({
 
    const onSubmit = async (data: AddExpertFormData) => {
     setSubmitError('');
+
+    if (operatingHours && Array.isArray(operatingHours)) {
+      for (const slot of data.availability || []) {
+        const dayHours = operatingHours.find(
+          (h) => h && h.day && h.day.toLowerCase() === slot.dayOfWeek.toLowerCase()
+        );
+        if (!dayHours) {
+          const errMsg = `Organization operating hours are not configured for ${slot.dayOfWeek}.`;
+          setSubmitError(errMsg);
+          toast.error(errMsg);
+          return;
+        }
+        if (dayHours.is_closed) {
+          const errMsg = `Organization is closed on ${slot.dayOfWeek}. Availability cannot be set.`;
+          setSubmitError(errMsg);
+          toast.error(errMsg);
+          return;
+        }
+        if (slot.startTime < dayHours.open) {
+          const errMsg = `Start time on ${slot.dayOfWeek} cannot be earlier than organization open time (${formatToAmPm(dayHours.open)}).`;
+          setSubmitError(errMsg);
+          toast.error(errMsg);
+          return;
+        }
+        if (slot.endTime > dayHours.close) {
+          const errMsg = `End time on ${slot.dayOfWeek} cannot be later than organization close time (${formatToAmPm(dayHours.close)}).`;
+          setSubmitError(errMsg);
+          toast.error(errMsg);
+          return;
+        }
+        if (slot.startTime >= slot.endTime) {
+          const errMsg = `End time must be later than start time on ${slot.dayOfWeek}.`;
+          setSubmitError(errMsg);
+          toast.error(errMsg);
+          return;
+        }
+      }
+    }
+
     try {
       await onSave(data);
       handleModalClose();
@@ -314,6 +463,113 @@ return (
           {submitError}
         </div>
       )}
+      {/* Profile Media Section */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-gray-900 border-b border-[var(--primary-start)] pb-2">Profile Media</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-gray-50/50 border border-gray-100 rounded-xl">
+          {/* Avatar Upload */}
+          <div className="flex flex-col items-center sm:flex-row gap-4">
+            <div className="relative group w-24 h-24 shrink-0 rounded-full overflow-hidden border border-gray-200 bg-white">
+              {avatarVal ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={avatarVal} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
+                  <User className="w-10 h-10" />
+                </div>
+              )}
+              {isUploadingAvatar && (
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              )}
+            </div>
+            <div className="flex-1 space-y-2 text-center sm:text-left">
+              <h4 className="text-sm font-semibold text-gray-800">Profile Photo</h4>
+              <p className="text-xs text-gray-500">JPG, PNG, GIF up to 5MB.</p>
+              <div className="flex gap-2 justify-center sm:justify-start">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => document.getElementById('modal-avatar-upload')?.click()}
+                  disabled={isUploadingAvatar}
+                >
+                  Upload Image
+                </Button>
+                {avatarVal && (
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => setValue('avatar', '')}
+                  >
+                    Remove
+                  </Button>
+                )}
+                <input 
+                  id="modal-avatar-upload" 
+                  type="file" 
+                  className="hidden" 
+                  accept="image/*"
+                  onChange={handleAvatarUpload}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Video Upload */}
+          <div className="flex flex-col items-center sm:flex-row gap-4 border-t md:border-t-0 md:border-l border-gray-200 pt-4 md:pt-0 md:pl-6">
+            <div className="relative group w-24 h-24 shrink-0 rounded-lg overflow-hidden border border-gray-200 bg-zinc-950 flex items-center justify-center">
+              {introVideoVal ? (
+                <video src={introVideoVal} className="w-full h-full object-cover" />
+              ) : (
+                <Video className="w-8 h-8 text-zinc-600" />
+              )}
+              {isUploadingVideo && (
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              )}
+            </div>
+            <div className="flex-1 space-y-2 text-center sm:text-left">
+              <h4 className="text-sm font-semibold text-gray-800">Intro Video</h4>
+              <p className="text-xs text-gray-500">MP4, WebM up to 50MB.</p>
+              <div className="flex gap-2 justify-center sm:justify-start">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => document.getElementById('modal-video-upload')?.click()}
+                  disabled={isUploadingVideo}
+                >
+                  Upload Video
+                </Button>
+                {introVideoVal && (
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => setValue('introVideo', '')}
+                  >
+                    Remove
+                  </Button>
+                )}
+                <input 
+                  id="modal-video-upload" 
+                  type="file" 
+                  className="hidden" 
+                  accept="video/*"
+                  onChange={handleVideoUpload}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Basic Information */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-900 border-b border-[var(--primary-start)] pb-2">Basic Information</h3>
@@ -352,16 +608,6 @@ return (
               className="mt-1" 
             />
             {errors.experience && <p className="text-red-500 text-sm mt-1">{errors.experience.message}</p>}
-          </div>
-          <div>
-            <Label htmlFor="consultationFee">Consultation Fee (₹) *</Label>
-            <Input 
-              id="consultationFee" 
-              type="number" 
-              {...register('consultationFee', { valueAsNumber: true })} 
-              className="mt-1" 
-            />
-            {errors.consultationFee && <p className="text-red-500 text-sm mt-1">{errors.consultationFee.message}</p>}
           </div>
         </div>
         <div>
@@ -486,66 +732,119 @@ return (
             <Plus className="h-4 w-4 mr-1" /> Add Time Slot
           </Button>
         </div>
-        {availabilityFields.map((field, index) => (
-          <div key={field.id} className="p-4 border-b border-[var(--primary-start)] rounded-lg relative">
-            {index > 0 && (
-              <button
-                type="button"
-                onClick={() => removeAvailability(index)}
-                className="absolute top-2 right-2 text-red-500 hover:text-red-700"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            )}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label>Day *</Label>
-                <Select onValueChange={(value) => setValue(`availability.${index}.dayOfWeek`, value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select day" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {daysOfWeek.map(day => (
-                      <SelectItem key={day} value={day}>{day}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.availability?.[index]?.dayOfWeek && 
-                  <p className="text-red-500 text-sm mt-1">{errors.availability[index]?.dayOfWeek?.message}</p>}
-              </div>
-              <div>
-                <Label>Start Time *</Label>
-                <Select onValueChange={(value) => setValue(`availability.${index}.startTime`, value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select time" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {timeSlots.map(time => (
-                      <SelectItem key={time} value={time}>{time}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.availability?.[index]?.startTime && 
-                  <p className="text-red-500 text-sm mt-1">{errors.availability[index]?.startTime?.message}</p>}
-              </div>
-              <div>
-                <Label>End Time *</Label>
-                <Select onValueChange={(value) => setValue(`availability.${index}.endTime`, value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select time" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {timeSlots.map(time => (
-                      <SelectItem key={time} value={time}>{time}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.availability?.[index]?.endTime && 
-                  <p className="text-red-500 text-sm mt-1">{errors.availability[index]?.endTime?.message}</p>}
+        {availabilityFields.map((field, index) => {
+          const dayVal = watch(`availability.${index}.dayOfWeek`);
+          const startVal = watch(`availability.${index}.startTime`);
+          const endVal = watch(`availability.${index}.endTime`);
+
+          const dayHours = operatingHours?.find(
+            (h) => h && h.day && h.day.toLowerCase() === dayVal?.toLowerCase()
+          );
+
+          const isClosed = dayHours?.is_closed;
+
+          const filteredTimeSlots = timeSlots.filter((time) => {
+            if (!dayHours) return true;
+            return time >= dayHours.open && time <= dayHours.close;
+          });
+
+          const filteredEndTimeSlots = filteredTimeSlots.filter((time) => {
+            if (!startVal) return true;
+            return time > startVal;
+          });
+
+          return (
+            <div key={field.id} className="p-4 border-b border-[var(--primary-start)] rounded-lg relative">
+              {index > 0 && (
+                <button
+                  type="button"
+                  onClick={() => removeAvailability(index)}
+                  className="absolute top-2 right-2 text-red-500 hover:text-red-700"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label>Day *</Label>
+                  <Select
+                    value={dayVal || undefined}
+                    onValueChange={(value) => {
+                      setValue(`availability.${index}.dayOfWeek`, value);
+                      setValue(`availability.${index}.startTime`, '');
+                      setValue(`availability.${index}.endTime`, '');
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select day" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {daysOfWeek.map(day => {
+                        const dayOpenHours = operatingHours?.find(
+                          (h) => h && h.day && h.day.toLowerCase() === day.toLowerCase()
+                        );
+                        const dayIsClosed = dayOpenHours?.is_closed;
+                        return (
+                          <SelectItem key={day} value={day} disabled={dayIsClosed}>
+                            {day} {dayIsClosed ? '(Closed)' : ''}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                  {errors.availability?.[index]?.dayOfWeek && 
+                    <p className="text-red-500 text-sm mt-1">{errors.availability[index]?.dayOfWeek?.message}</p>}
+                  {isClosed && (
+                    <p className="text-red-500 text-xs mt-1">Organization is closed on this day.</p>
+                  )}
+                </div>
+                <div>
+                  <Label>Start Time *</Label>
+                  <Select
+                    value={startVal || undefined}
+                    onValueChange={(value) => {
+                      setValue(`availability.${index}.startTime`, value);
+                      if (endVal && endVal <= value) {
+                        setValue(`availability.${index}.endTime`, '');
+                      }
+                    }}
+                    disabled={!dayVal || isClosed}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={!dayVal ? "Select day first" : "Select time"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredTimeSlots.map(time => (
+                        <SelectItem key={time} value={time}>{formatToAmPm(time)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.availability?.[index]?.startTime && 
+                    <p className="text-red-500 text-sm mt-1">{errors.availability[index]?.startTime?.message}</p>}
+                </div>
+                <div>
+                  <Label>End Time *</Label>
+                  <Select
+                    value={endVal || undefined}
+                    onValueChange={(value) => setValue(`availability.${index}.endTime`, value)}
+                    disabled={!dayVal || isClosed || !startVal}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={!startVal ? "Select start time first" : "Select time"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredEndTimeSlots.map(time => (
+                        <SelectItem key={time} value={time}>{formatToAmPm(time)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.availability?.[index]?.endTime && 
+                    <p className="text-red-500 text-sm mt-1">{errors.availability[index]?.endTime?.message}</p>}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         {errors.availability && <p className="text-red-500 text-sm">{errors.availability.message}</p>}
       </div>
 
@@ -633,45 +932,90 @@ return (
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {orgServices.map((orgService) => {
-              const isSelected = selectedServices.some(
-                (s: any) => s.name === orgService.name
-              );
-              return (
-                <div
-                  key={orgService.id}
-                  onClick={() => handleToggleService(orgService)}
-                  className={`cursor-pointer p-4 rounded-xl border-2 transition-all duration-200 relative overflow-hidden flex flex-col justify-between h-28 ${
-                    isSelected
-                      ? 'border-indigo-600 bg-indigo-50/30 shadow-sm'
-                      : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/30'
-                  }`}
-                >
-                  {isSelected && (
-                    <div className="absolute top-0 right-0 bg-indigo-600 text-white p-1 rounded-bl-lg">
-                      <Check className="h-3 w-3" />
+          <div className="space-y-4">
+            {/* Category Filter Pills */}
+            <div className="flex flex-wrap gap-2 pb-1 border-b border-gray-100">
+              {displayedCategories.map((cat) => {
+                const isActive = selectedCategoryFilter === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setSelectedCategoryFilter(cat.id)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
+                      isActive
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {cat.name}
+                  </button>
+                );
+              })}
+            </div>
+
+            {filteredServices.length === 0 ? (
+              <div className="py-8 text-center bg-gray-50/50 border border-dashed border-gray-200 rounded-xl">
+                <p className="text-gray-500 text-sm">No services found in this category.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {filteredServices.map((orgService) => {
+                  const isSelected = selectedServices.some(
+                    (s: any) => s.name === orgService.name
+                  );
+                  return (
+                    <div
+                      key={orgService.id}
+                      onClick={() => handleToggleService(orgService)}
+                      className={`cursor-pointer p-4 rounded-xl border-2 transition-all duration-200 relative overflow-hidden flex gap-3 h-28 items-center ${
+                        isSelected
+                          ? 'border-indigo-600 bg-indigo-50/30 shadow-sm'
+                          : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/30'
+                      }`}
+                    >
+                      {isSelected && (
+                        <div className="absolute top-0 right-0 bg-indigo-600 text-white p-1 rounded-bl-lg z-10">
+                          <Check className="h-3 w-3" />
+                        </div>
+                      )}
+
+                      {orgService.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={orgService.imageUrl}
+                          alt={orgService.name}
+                          className="w-16 h-16 object-cover rounded-lg shrink-0 border border-gray-100"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded-lg bg-gray-50 flex items-center justify-center shrink-0 border border-gray-100">
+                          <Package className="w-6 h-6 text-gray-400" />
+                        </div>
+                      )}
+
+                      <div className="flex-1 min-w-0 flex flex-col justify-between h-full">
+                        <div>
+                          <h4 className="font-semibold text-gray-900 text-sm line-clamp-1">
+                            {orgService.name}
+                          </h4>
+                          <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">
+                            {orgService.description || 'No description available'}
+                          </p>
+                        </div>
+                        <div className="flex justify-between items-center mt-1 pt-1 border-t border-dashed border-gray-100">
+                          <span className="text-xs text-gray-400 font-medium">
+                            {orgService.durationMinutes || 60} mins
+                          </span>
+                          <span className="text-sm font-bold text-indigo-600">
+                            ₹{Number(orgService.basePrice).toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                  <div>
-                    <h4 className="font-semibold text-gray-900 text-sm line-clamp-1">
-                      {orgService.name}
-                    </h4>
-                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                      {orgService.description || 'No description available'}
-                    </p>
-                  </div>
-                  <div className="flex justify-between items-center mt-2 border-t pt-2 border-dashed border-gray-100">
-                    <span className="text-xs text-gray-400 font-medium">
-                      {orgService.durationMinutes || 60} mins
-                    </span>
-                    <span className="text-sm font-bold text-indigo-600">
-                      ₹{Number(orgService.basePrice).toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
         {errors.services && (

@@ -15,6 +15,7 @@ import {
 import { apiClient } from '@/client/api/api-client';
 import { Button } from '@/components/ui/button';
 import Modal from '@/components/modal/Modal';
+import { toast } from 'sonner';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -147,7 +148,7 @@ function buildCategoriesFromServices(
   // Initialize Default category
   categoryMap.set('default', {
     id: 'default',
-    name: 'Default',
+    name: 'Services',
     services: [],
   });
 
@@ -357,6 +358,8 @@ export default function ServicesPage() {
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [isServiceLayoutModalOpen, setIsServiceLayoutModalOpen] =
     useState(false);
+  const [layoutModalCategory, setLayoutModalCategory] =
+    useState<string>('default');
 
   const [draggedServiceId, setDraggedServiceId] = useState<string | null>(null);
   const [activeDropZone, setActiveDropZone] =
@@ -364,6 +367,42 @@ export default function ServicesPage() {
   const [serviceLayouts, setServiceLayouts] = useState<
     Record<string, CategoryServiceLayout>
   >({});
+
+  const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
+  const [isDeleteCategoryModalOpen, setIsDeleteCategoryModalOpen] = useState(false);
+
+  const requestDeleteCategory = (categoryId: string) => {
+    if (categoryId === 'default') return;
+    setCategoryToDelete(categoryId);
+    setIsDeleteCategoryModalOpen(true);
+  };
+
+  const updateDuration = (mins: number) => {
+    const clamped = Math.max(5, Math.min(300, mins));
+    if (editingService) {
+      setEditingService({
+        ...editingService,
+        duration: durationToLabel(clamped),
+        durationMinutes: clamped,
+      });
+    } else {
+      setNewService({
+        ...newService,
+        duration: durationToLabel(clamped),
+        durationMinutes: clamped,
+      });
+    }
+  };
+
+  const getMinuteOptions = (h: number) => {
+    if (h === 0) {
+      return [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+    }
+    if (h === 5) {
+      return [0];
+    }
+    return [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+  };
 
   const loadServices = async () => {
     setIsPageLoading(true);
@@ -440,6 +479,23 @@ export default function ServicesPage() {
   };
 
   const handleSaveService = async () => {
+    const name = editingService ? editingService.name : newService.name;
+    const price = editingService ? editingService.price : newService.price;
+    const duration = editingService ? editingService.duration : newService.duration;
+
+    if (!name || !name.trim()) {
+      alert('Service name is required.');
+      return;
+    }
+    if (price === undefined || price === null || Number.isNaN(price)) {
+      alert('Price is required.');
+      return;
+    }
+    if (!duration || !duration.trim()) {
+      alert('Duration is required.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -466,31 +522,27 @@ export default function ServicesPage() {
         );
 
         setEditingService(null);
-      } else if (
-        isAddingService &&
-        newService.name &&
-        newService.price !== undefined &&
-        !Number.isNaN(newService.price)
-      ) {
+        toast.success('Service updated successfully!');
+      } else if (isAddingService) {
         const category = categories.find(
           (item) => item.id === selectedCategory
         );
 
         const serviceToCreate: Service = {
           id: '',
-          name: newService.name,
-          price: newService.price,
+          name: newService.name || '',
+          price: newService.price || 0,
           discount: newService.discount || 0,
           duration: newService.duration || '',
           image: newService.image || null,
-          category: category?.name || 'Default',
+          category: category?.name || 'Services',
           discountType:
             newService.discount && newService.discount > 0 ? 'percent' : null,
           discountValue:
             newService.discount && newService.discount > 0
               ? String(newService.discount)
               : null,
-          durationMinutes: durationLabelToMinutes(newService.duration || ''),
+          durationMinutes: newService.durationMinutes ?? durationLabelToMinutes(newService.duration || ''),
           isActive: true,
           categoryId: selectedCategory === 'default' ? null : selectedCategory,
         };
@@ -520,13 +572,18 @@ export default function ServicesPage() {
           name: '',
           price: 0,
           discount: 0,
-          duration: '',
+          duration: '1 hour',
+          durationMinutes: 60,
           image: null,
         });
         setImagePreview(null);
+        toast.success('Service created successfully!');
       }
 
       setIsServiceModalOpen(false);
+    } catch (err) {
+      console.error('Error saving service:', err);
+      toast.error('Failed to save service.');
     } finally {
       setIsLoading(false);
     }
@@ -551,6 +608,14 @@ export default function ServicesPage() {
 
       setServiceLayouts((prev) => ({
         ...prev,
+        default: {
+          horizontal: (prev.default?.horizontal || []).filter(
+            (id) => id !== serviceId
+          ),
+          vertical: (prev.default?.vertical || []).filter(
+            (id) => id !== serviceId
+          ),
+        },
         [selectedCategory]: {
           horizontal: (prev[selectedCategory]?.horizontal || []).filter(
             (id) => id !== serviceId
@@ -560,6 +625,10 @@ export default function ServicesPage() {
           ),
         },
       }));
+      toast.success('Service deleted successfully!');
+    } catch (err) {
+      console.error('Error deleting service:', err);
+      toast.error('Failed to delete service.');
     } finally {
       setIsLoading(false);
     }
@@ -588,9 +657,10 @@ export default function ServicesPage() {
       setSelectedCategory(newCategory.id);
       setNewCategoryName('');
       setIsCategoryModalOpen(false);
+      toast.success('Category created successfully!');
     } catch (err) {
       console.error('Error creating category:', err);
-      alert('Failed to create category');
+      toast.error('Failed to create category.');
     } finally {
       setIsLoading(false);
     }
@@ -610,9 +680,10 @@ export default function ServicesPage() {
 
       // Re-load to properly move orphaned services of deleted category back to Default
       await loadServices();
+      toast.success('Category deleted successfully!');
     } catch (err) {
       console.error('Error deleting category:', err);
-      alert('Failed to delete category');
+      toast.error('Failed to delete category.');
     } finally {
       setIsLoading(false);
     }
@@ -625,7 +696,8 @@ export default function ServicesPage() {
       name: '',
       price: 0,
       discount: 0,
-      duration: '',
+      duration: '1 hour',
+      durationMinutes: 60,
       image: null,
     });
     setImagePreview(null);
@@ -647,7 +719,8 @@ export default function ServicesPage() {
       name: '',
       price: 0,
       discount: 0,
-      duration: '',
+      duration: '1 hour',
+      durationMinutes: 60,
       image: null,
     });
     setImagePreview(null);
@@ -697,6 +770,7 @@ export default function ServicesPage() {
   const handleOpenServiceLayoutModal = () => {
     setDraggedServiceId(null);
     setActiveDropZone(null);
+    setLayoutModalCategory(selectedCategory || 'default');
     setIsServiceLayoutModalOpen(true);
   };
 
@@ -711,7 +785,7 @@ export default function ServicesPage() {
 
     let nextLayout: CategoryServiceLayout | null = null;
 
-    updateCategoryLayout(selectedCategory, (layout) => {
+    updateCategoryLayout('default', (layout) => {
       const targetSection =
         orientation === 'horizontal' ? layout.horizontal : layout.vertical;
 
@@ -742,7 +816,7 @@ export default function ServicesPage() {
     });
 
     if (nextLayout) {
-      void saveServiceLayout(selectedCategory, nextLayout);
+      void saveServiceLayout('default', nextLayout);
     }
 
     setDraggedServiceId(null);
@@ -755,7 +829,7 @@ export default function ServicesPage() {
   ) => {
     let nextLayout: CategoryServiceLayout | null = null;
 
-    updateCategoryLayout(selectedCategory, (layout) => {
+    updateCategoryLayout('default', (layout) => {
       nextLayout = {
         ...layout,
         [orientation]: layout[orientation].filter((id) => id !== serviceId),
@@ -764,7 +838,7 @@ export default function ServicesPage() {
     });
 
     if (nextLayout) {
-      void saveServiceLayout(selectedCategory, nextLayout);
+      void saveServiceLayout('default', nextLayout);
     }
   };
 
@@ -772,10 +846,10 @@ export default function ServicesPage() {
     const nextLayout = { horizontal: [], vertical: [] };
     setServiceLayouts((prev) => ({
       ...prev,
-      [selectedCategory]: nextLayout,
+      default: nextLayout,
     }));
 
-    void saveServiceLayout(selectedCategory, nextLayout);
+    void saveServiceLayout('default', nextLayout);
 
     setDraggedServiceId(null);
     setActiveDropZone(null);
@@ -786,25 +860,31 @@ export default function ServicesPage() {
   );
 
   const currentServices = currentCategory?.services || [];
-  const currentLayout = getCategoryLayout(selectedCategory);
+
+  // Service Layout is global/independent of category, using 'default' layout
+  const allServices = categories.reduce<Service[]>((acc, cat) => {
+    return [...acc, ...cat.services];
+  }, []);
+
+  const currentLayout = getCategoryLayout('default');
   const layoutServiceIds = new Set([
     ...currentLayout.horizontal,
     ...currentLayout.vertical,
   ]);
 
-  const availableServices = currentServices.filter(
+  const totalAvailableCount = allServices.filter(
     (service) => !layoutServiceIds.has(service.id)
-  );
+  ).length;
 
   const horizontalServices = currentLayout.horizontal
     .map((serviceId) =>
-      currentServices.find((service) => service.id === serviceId)
+      allServices.find((service) => service.id === serviceId)
     )
     .filter((service): service is Service => Boolean(service));
 
   const verticalServices = currentLayout.vertical
     .map((serviceId) =>
-      currentServices.find((service) => service.id === serviceId)
+      allServices.find((service) => service.id === serviceId)
     )
     .filter((service): service is Service => Boolean(service));
 
@@ -854,7 +934,7 @@ export default function ServicesPage() {
                       <div
                         onClick={(event) => {
                           event.stopPropagation();
-                          handleDeleteCategory(category.id);
+                          requestDeleteCategory(category.id);
                         }}
                         className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition"
                       >
@@ -885,7 +965,7 @@ export default function ServicesPage() {
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
               <div className="p-4 border-b border-gray-100 bg-[var(--card-bg)] flex justify-between items-center">
                 <h3 className="font-semibold text-gray-900">
-                  Services in {currentCategory?.name || 'Default'}
+                  Services in {currentCategory?.name || 'Services'}
                 </h3>
 
                 <div className="flex space-x-2">
@@ -899,7 +979,7 @@ export default function ServicesPage() {
 
                   <Button
                     onClick={handleOpenServiceLayoutModal}
-                    disabled={isPageLoading || !selectedCategory}
+                    disabled={isPageLoading}
                   >
                     <LayoutPanelLeft className="w-4 h-4" />
                     <span>Service Layout</span>
@@ -983,7 +1063,7 @@ export default function ServicesPage() {
 
                     <button
                       onClick={openAddServiceModal}
-                      className="mt-3 text-purple-600 hover:text-purple-700"
+                      className="mt-3 text-[var(--primary-start)] hover:text-[var(--primary-end)] font-medium"
                     >
                       Add your first service
                     </button>
@@ -1029,7 +1109,7 @@ export default function ServicesPage() {
                     });
                   }
                 }}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-purple-400"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[var(--primary-start)] focus:ring-1 focus:ring-[var(--primary-start)]/30"
               />
             </div>
 
@@ -1057,7 +1137,7 @@ export default function ServicesPage() {
                     });
                   }
                 }}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-purple-400"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[var(--primary-start)] focus:ring-1 focus:ring-[var(--primary-start)]/30"
               />
             </div>
 
@@ -1091,40 +1171,188 @@ export default function ServicesPage() {
                     });
                   }
                 }}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-purple-400"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[var(--primary-start)] focus:ring-1 focus:ring-[var(--primary-start)]/30"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Duration
+                Duration *
               </label>
 
-              <input
-                type="text"
-                placeholder="e.g., 1 hour, 30 minutes"
-                value={
-                  editingService ? editingService.duration : newService.duration
-                }
-                onChange={(event) => {
-                  const duration = event.target.value;
+              <div className="space-y-4 bg-gray-50 p-4 rounded-xl border border-gray-100 shadow-inner">
+                {/* Header/Status */}
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-500 font-medium flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-[var(--primary-start)]" />
+                    Selected Duration:
+                  </span>
+                  <span className="font-bold text-[var(--primary-end)] bg-[var(--primary-start)]/10 border border-[var(--primary-start)]/25 px-3 py-1 rounded-full shadow-sm">
+                    {editingService 
+                      ? durationToLabel(editingService.durationMinutes || durationLabelToMinutes(editingService.duration))
+                      : durationToLabel(newService.durationMinutes || durationLabelToMinutes(newService.duration || '')) || '1 hour'}
+                  </span>
+                </div>
 
-                  if (editingService) {
-                    setEditingService({
-                      ...editingService,
-                      duration,
-                      durationMinutes: durationLabelToMinutes(duration),
-                    });
-                  } else {
-                    setNewService({
-                      ...newService,
-                      duration,
-                      durationMinutes: durationLabelToMinutes(duration),
-                    });
-                  }
-                }}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-purple-400"
-              />
+                {/* Slider with +/- buttons */}
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentVal = editingService
+                        ? (editingService.durationMinutes || durationLabelToMinutes(editingService.duration) || 60)
+                        : (newService.durationMinutes || durationLabelToMinutes(newService.duration || '') || 60);
+                      updateDuration(currentVal - 5);
+                    }}
+                    className="w-8 h-8 rounded-full border border-gray-200 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 active:scale-95 transition cursor-pointer select-none font-bold text-lg"
+                    title="Decrease by 5 minutes"
+                  >
+                    -
+                  </button>
+
+                  <div className="flex-1 flex flex-col">
+                    <input
+                      type="range"
+                      min="5"
+                      max="300"
+                      step="5"
+                      value={
+                        editingService
+                          ? (editingService.durationMinutes || durationLabelToMinutes(editingService.duration) || 60)
+                          : (newService.durationMinutes || durationLabelToMinutes(newService.duration || '') || 60)
+                      }
+                      onChange={(event) => {
+                        updateDuration(Number(event.target.value));
+                      }}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[var(--primary-start)] focus:outline-none focus:ring-2 focus:ring-[var(--primary-start)]/30 transition-all"
+                    />
+                    <div className="flex justify-between text-[10px] text-gray-400 mt-1">
+                      <span>5 mins</span>
+                      <span>5 hours</span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentVal = editingService
+                        ? (editingService.durationMinutes || durationLabelToMinutes(editingService.duration) || 60)
+                        : (newService.durationMinutes || durationLabelToMinutes(newService.duration || '') || 60);
+                      updateDuration(currentVal + 5);
+                    }}
+                    className="w-8 h-8 rounded-full border border-gray-200 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 active:scale-95 transition cursor-pointer select-none font-bold text-lg"
+                    title="Increase by 5 minutes"
+                  >
+                    +
+                  </button>
+                </div>
+
+                {/* Direct Dropdowns for Hours and Minutes */}
+                <div className="pt-2 border-t border-gray-200/60">
+                  <p className="text-[10px] font-semibold text-gray-400 mb-2 uppercase tracking-wider">Exact Time Selector</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] text-gray-500 mb-1">Hours</label>
+                      <select
+                        value={Math.floor(
+                          (editingService
+                            ? (editingService.durationMinutes || durationLabelToMinutes(editingService.duration) || 60)
+                            : (newService.durationMinutes || durationLabelToMinutes(newService.duration || '') || 60)
+                          ) / 60
+                        )}
+                        onChange={(e) => {
+                          const h = Number(e.target.value);
+                          const currentVal = editingService
+                            ? (editingService.durationMinutes || durationLabelToMinutes(editingService.duration) || 60)
+                            : (newService.durationMinutes || durationLabelToMinutes(newService.duration || '') || 60);
+                          const m = currentVal % 60;
+                          
+                          // If hours is 5, force mins to 0
+                          let targetMins = m;
+                          if (h === 5) {
+                            targetMins = 0;
+                          } else if (h === 0 && m === 0) {
+                            targetMins = 5; // force min 5 mins
+                          }
+                          updateDuration(h * 60 + targetMins);
+                        }}
+                        className="w-full px-2.5 py-1.5 border border-gray-200 bg-white rounded-lg focus:outline-none focus:border-[var(--primary-start)] focus:ring-1 focus:ring-[var(--primary-start)]/30 text-sm text-gray-700 font-medium"
+                      >
+                        {[0, 1, 2, 3, 4, 5].map((h) => (
+                          <option key={h} value={h}>
+                            {h} hour{h !== 1 ? 's' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] text-gray-500 mb-1">Minutes</label>
+                      <select
+                        value={
+                          (editingService
+                            ? (editingService.durationMinutes || durationLabelToMinutes(editingService.duration) || 60)
+                            : (newService.durationMinutes || durationLabelToMinutes(newService.duration || '') || 60)
+                          ) % 60
+                        }
+                        onChange={(e) => {
+                          const m = Number(e.target.value);
+                          const currentVal = editingService
+                            ? (editingService.durationMinutes || durationLabelToMinutes(editingService.duration) || 60)
+                            : (newService.durationMinutes || durationLabelToMinutes(newService.duration || '') || 60);
+                          const h = Math.floor(currentVal / 60);
+                          updateDuration(h * 60 + m);
+                        }}
+                        className="w-full px-2.5 py-1.5 border border-gray-200 bg-white rounded-lg focus:outline-none focus:border-[var(--primary-start)] focus:ring-1 focus:ring-[var(--primary-start)]/30 text-sm text-gray-700 font-medium"
+                      >
+                        {getMinuteOptions(
+                          Math.floor(
+                            (editingService
+                              ? (editingService.durationMinutes || durationLabelToMinutes(editingService.duration) || 60)
+                              : (newService.durationMinutes || durationLabelToMinutes(newService.duration || '') || 60)
+                            ) / 60
+                          )
+                        ).map((m) => (
+                          <option key={m} value={m}>
+                            {m} min{m !== 1 ? 's' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Presets */}
+                <div className="pt-2 border-t border-gray-200/60">
+                  <p className="text-[10px] font-semibold text-gray-400 mb-2 uppercase tracking-wider">Quick Presets</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[15, 30, 45, 60, 90, 120, 180].map((mins) => {
+                      const label = mins >= 60 ? `${mins / 60}h` : `${mins}m`;
+                      const currentVal = editingService
+                        ? (editingService.durationMinutes || durationLabelToMinutes(editingService.duration) || 60)
+                        : (newService.durationMinutes || durationLabelToMinutes(newService.duration || '') || 60);
+                      const isSelected = currentVal === mins;
+
+                      return (
+                        <button
+                          key={mins}
+                          type="button"
+                          onClick={() => {
+                            updateDuration(mins);
+                          }}
+                          className={`text-xs px-2.5 py-1 rounded-full border transition cursor-pointer select-none ${
+                            isSelected
+                              ? 'bg-[var(--primary-start)] border-[var(--primary-start)] text-white font-semibold shadow-sm'
+                              : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1133,7 +1361,7 @@ export default function ServicesPage() {
               Service Image
             </label>
 
-            <label className="flex flex-col items-center justify-center w-full p-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-purple-400 transition">
+            <label className="flex flex-col items-center justify-center w-full p-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-[var(--primary-start)] transition">
               <input
                 type="file"
                 accept="image/*"
@@ -1205,7 +1433,7 @@ export default function ServicesPage() {
               value={newCategoryName}
               onChange={(event) => setNewCategoryName(event.target.value)}
               placeholder="Enter category name"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-purple-400"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[var(--primary-start)] focus:ring-1 focus:ring-[var(--primary-start)]/30"
               autoFocus
             />
 
@@ -1217,11 +1445,42 @@ export default function ServicesPage() {
       </Modal>
 
       <Modal
+        isOpen={isDeleteCategoryModalOpen}
+        onClose={() => {
+          setIsDeleteCategoryModalOpen(false);
+          setCategoryToDelete(null);
+        }}
+        title="Delete Category"
+        size="sm"
+        confirmButtonText="Delete Category"
+        cancelButtonText="Cancel"
+        onConfirm={async () => {
+          if (categoryToDelete) {
+            setIsDeleteCategoryModalOpen(false);
+            const id = categoryToDelete;
+            setCategoryToDelete(null);
+            await handleDeleteCategory(id);
+          }
+        }}
+        onCancel={() => {
+          setIsDeleteCategoryModalOpen(false);
+          setCategoryToDelete(null);
+        }}
+        isConfirmLoading={isLoading}
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-gray-600 leading-relaxed">
+            Are you sure you want to delete this category? All services belonging to it will be moved back to the default <strong>Services</strong> category.
+          </p>
+        </div>
+      </Modal>
+
+      <Modal
         isOpen={isServiceLayoutModalOpen}
         onClose={handleCloseServiceLayoutModal}
         onCancel={handleCloseServiceLayoutModal}
         onConfirm={handleResetServiceLayout}
-        title={`Service Layout: ${currentCategory?.name || ''}`}
+        title="Service Layout"
         size="xl"
         cancelButtonText="Close"
         confirmButtonText="Reset Layout"
@@ -1239,26 +1498,69 @@ export default function ServicesPage() {
               </div>
 
               <span className="rounded-full bg-[var(--card-bg)] px-3 py-1 text-xs font-medium text-gray-700">
-                {availableServices.length} available
+                {totalAvailableCount} available
               </span>
             </div>
 
-            <div className="grid max-h-[18rem] gap-3 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
-              {availableServices.length > 0 ? (
-                availableServices.map((service) => (
-                  <ServiceLayoutCard
-                    key={service.id}
-                    service={service}
-                    draggable
-                    onDragStart={(serviceId) => setDraggedServiceId(serviceId)}
-                  />
-                ))
-              ) : (
-                <div className="col-span-full rounded-xl bg-[var(--card-bg-light)] px-4 py-10 text-center text-sm text-gray-500">
-                  All services in this category have been assigned to a layout
-                  section.
-                </div>
-              )}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 min-h-[18rem]">
+              {/* Left Column: Categories List */}
+              <div className="md:col-span-1 border-r border-gray-100 pr-3 max-h-[18rem] overflow-y-auto space-y-1">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Categories</p>
+                {categories.map((cat) => {
+                  const availableCount = cat.services.filter(s => !layoutServiceIds.has(s.id)).length;
+                  const isSelected = layoutModalCategory === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setLayoutModalCategory(cat.id)}
+                      className={`w-full text-left px-3 py-2 rounded-lg transition-all text-xs flex justify-between items-center cursor-pointer ${
+                        isSelected
+                          ? 'bg-[var(--card-bg)] font-semibold text-gray-900 border border-[var(--primary-start)]/20'
+                          : 'hover:bg-gray-50 text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      <span className="truncate pr-2">{cat.name.toUpperCase()}</span>
+                      <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${
+                        availableCount > 0 
+                          ? 'bg-[var(--primary-start)]/10 text-[var(--primary-start)]' 
+                          : 'bg-gray-100 text-gray-400'
+                      }`}>
+                        {availableCount}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Right Column: Services Grid */}
+              <div className="md:col-span-3 max-h-[18rem] overflow-y-auto pl-1">
+                {(() => {
+                  const cat = categories.find(c => c.id === layoutModalCategory);
+                  const availableInCat = cat?.services.filter(s => !layoutServiceIds.has(s.id)) || [];
+
+                  if (availableInCat.length > 0) {
+                    return (
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {availableInCat.map((service) => (
+                          <ServiceLayoutCard
+                            key={service.id}
+                            service={service}
+                            draggable
+                            onDragStart={(serviceId) => setDraggedServiceId(serviceId)}
+                          />
+                        ))}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="flex flex-col items-center justify-center h-full min-h-[15rem] rounded-xl bg-[var(--card-bg-light)] px-4 text-center text-xs text-gray-500">
+                      All services in {cat?.name || 'this category'} have been assigned to a layout section.
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
           </section>
 

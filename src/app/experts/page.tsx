@@ -18,6 +18,8 @@ import {
   Video,
   Mail,
   UserPlus,
+  Play,
+  ChevronDown,
 } from 'lucide-react';
 
 import Link from 'next/link';
@@ -50,6 +52,7 @@ import AddEditExpertModal, {
 } from '@/components/expert/AddEditExpertModal';
 import ChangeExpertTimingsModal from '@/components/expert/ChangeExpertTimingsModal';
 import { showConfirmDialog } from '@/components/ui/confirm-dialog';
+import { formatToAmPm, formatRangeToAmPm } from '@/lib/utils';
 import {
   createExpertApi,
   deleteExpertApi,
@@ -187,14 +190,14 @@ function normalizeTimings(value: unknown): ExpertTiming[] {
       if (dayOfWeek && startTime && endTime) {
         return {
           day: dayShortMap[dayOfWeek] ?? dayOfWeek.slice(0, 3),
-          time: `${startTime} - ${endTime}`,
+          time: `${formatToAmPm(startTime)} - ${formatToAmPm(endTime)}`,
         };
       }
 
       if (dayOfWeek && time) {
         return {
           day: dayShortMap[dayOfWeek] ?? dayOfWeek.slice(0, 3),
-          time,
+          time: formatRangeToAmPm(time),
         };
       }
 
@@ -369,6 +372,7 @@ export default function ExpertsPage() {
   const [changeDPOpen, setChangeDPOpen] = useState(false);
   const [changeVideoOpen, setChangeVideoOpen] = useState(false);
   const [changeTimingsOpen, setChangeTimingsOpen] = useState(false);
+  const [orgProfile, setOrgProfile] = useState<any>(null);
 
   const [inviteExpertOpen, setInviteExpertOpen] = useState(false);
   const [choiceModalOpen, setChoiceModalOpen] = useState(false);
@@ -420,12 +424,24 @@ export default function ExpertsPage() {
 
   useEffect(() => {
     void fetchExperts();
+    const fetchOrgProfile = async () => {
+      try {
+        const response = await apiClient(process.env.NEXT_PUBLIC_PROFILE_BASE_URL!);
+        setOrgProfile(response);
+      } catch (err) {
+        console.error('Failed to load organization profile', err);
+      }
+    };
+    void fetchOrgProfile();
   }, []);
 
   const transformApiToFormData = (
     apiData: GetExpertDetailsResponse
   ): AddExpertFormData => {
     return {
+      id: apiData.id,
+      avatar: apiData.avatarUrl || (apiData as any).profileImage || (apiData as any).avatar || '',
+      introVideo: apiData.videoUrl || (apiData as any).introVideo || '',
       name: apiData.name || '',
       email: apiData.email || '',
       username: apiData.username?.replace('@', '') || '',
@@ -488,12 +504,17 @@ export default function ExpertsPage() {
   const handleSaveExpert = async (data: AddExpertFormData) => {
     setIsSaving(true);
 
+    const payload = {
+      ...data,
+      consultationFee: data.consultationFee ?? 0,
+    };
+
     try {
       if (editingExpert && selectedExpert) {
-        await updateExpertApi(selectedExpert.id.toString(), data);
+        await updateExpertApi(selectedExpert.id.toString(), payload);
         toast.success('Expert updated successfully');
       } else {
-        await createExpertApi(data);
+        await createExpertApi(payload);
         toast.success('Expert created successfully');
       }
 
@@ -675,7 +696,7 @@ export default function ExpertsPage() {
 
       const updatedTimings = availability.map((slot) => ({
         day: slot.dayOfWeek.slice(0, 3),
-        time: `${slot.startTime} - ${slot.endTime}`,
+        time: `${formatToAmPm(slot.startTime)} - ${formatToAmPm(slot.endTime)}`,
       }));
 
       setExperts((prev) =>
@@ -929,202 +950,158 @@ export default function ExpertsPage() {
           filteredExperts.map((expert) => (
             <Card
               key={expert.id}
-              className="w-[280px] shadow-sm border-[#f79a4e] bg-[var(--card-bg)]"
+              className="w-[280px] shadow-sm border border-zinc-200 bg-white rounded-2xl overflow-hidden flex flex-col justify-between"
             >
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-6">
+              <div>
+                {/* 1. Cover Photo with play button overlay */}
+                <div className="relative aspect-[4/3] w-full bg-zinc-50 overflow-hidden border-b flex items-center justify-center">
+                  {expert.avatar ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={expert.avatar}
+                      alt={expert.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-orange-400 to-amber-600 flex items-center justify-center text-white text-3xl font-bold uppercase select-none">
+                      {expert.name.charAt(0)}
+                    </div>
+                  )}
+                  {expert.videoUrl && (
+                    <div 
+                      onClick={() => handleViewProfile(expert)}
+                      className="absolute inset-0 bg-black/15 flex items-center justify-center opacity-85 hover:opacity-100 transition-opacity cursor-pointer z-10"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-white/95 flex items-center justify-center shadow-lg hover:scale-105 transition-transform">
+                        <Play className="h-4.5 w-4.5 text-zinc-800 fill-zinc-800 ml-0.5" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Top Bar below image */}
+                <div className="flex items-center justify-between border-b text-xs text-zinc-600 bg-zinc-50/50">
+                  <button
+                    type="button"
+                    onClick={() => handleViewProfile(expert)}
+                    className="flex-1 py-2 text-center hover:bg-zinc-100/80 transition-colors font-semibold cursor-pointer text-[11px]"
+                  >
+                    View Profile
+                  </button>
+                  <div className="w-px h-8 bg-zinc-200" />
+                  <button
+                    type="button"
+                    onClick={() => handleToggleProfileStatus(expert)}
+                    title={expert.status === 'hidden' ? 'Show Profile' : 'Hide Profile'}
+                    className="px-3 py-2 hover:bg-zinc-100/80 transition-colors flex items-center justify-center cursor-pointer"
+                  >
+                    {expert.status === 'hidden' ? (
+                      <Ban className="h-3.5 w-3.5 text-red-500" />
+                    ) : (
+                      <Eye className="h-3.5 w-3.5 text-zinc-600" />
+                    )}
+                  </button>
+                  <div className="w-px h-8 bg-zinc-200" />
+                  <button
+                    type="button"
+                    onClick={() => handleEditProfile(expert)}
+                    title="Edit Profile"
+                    className="px-3 py-2 hover:bg-zinc-100/80 transition-colors flex items-center justify-center cursor-pointer"
+                  >
+                    <Edit className="h-3.5 w-3.5 text-zinc-600" />
+                  </button>
+                </div>
+
+                {/* 3. Info and Action Buttons */}
+                <div className="p-4 space-y-3">
                   <div>
-                    <h3 className="font-bold text-lg text-gray-900">
+                    <h3 className="font-bold text-zinc-900 text-base leading-tight truncate">
                       {expert.name}
                     </h3>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {expert.username}
+                    <p className="text-xs text-zinc-500 font-semibold mt-0.5 truncate uppercase tracking-wider">
+                      {expert.specialization || 'No Specialization'}
                     </p>
                   </div>
 
-                  <div className="relative">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 bg-gradient-to-r from-[var(--primary-start)] to-[var(--primary-end)] cursor-pointer"
-                      onClick={() =>
-                        setOpenDropdownId(
-                          openDropdownId === expert.id ? null : expert.id
-                        )
-                      }
+                  {/* Row 1: Bookings & Timings */}
+                  <div className="flex gap-2">
+                    <Link
+                      href={`/experts/${expert.id}/booking-details`}
+                      className="flex-1"
                     >
-                      <Menu className="h-4 w-4 cursor-pointer text-white" />
+                      <Button
+                        variant="outline"
+                        className="w-full h-9 rounded-lg text-xs bg-none bg-emerald-700 text-white hover:bg-emerald-800 hover:text-white font-semibold flex items-center justify-center gap-1 border-0 shadow-sm transition-all"
+                      >
+                        <CalendarDays className="h-3.5 w-3.5" /> Bookings
+                      </Button>
+                    </Link>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleChangeTimings(expert)}
+                      className="flex-1 h-9 rounded-lg text-xs font-semibold bg-none bg-white hover:bg-zinc-50 text-zinc-700 hover:text-zinc-900 flex items-center justify-center gap-1 border border-zinc-200 shadow-sm"
+                    >
+                      <Calendar className="h-3.5 w-3.5 text-zinc-500" /> Timings
+                    </Button>
+                  </div>
+
+                  {/* Row 2: Change Picture & Video dropdown */}
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => handleChangeDP(expert)}
+                      className="flex-1 h-8 rounded-lg text-[11px] font-semibold bg-none bg-white hover:bg-zinc-50 text-zinc-700 hover:text-zinc-900 flex items-center justify-center gap-1 border border-zinc-200 shadow-sm"
+                    >
+                      <User className="h-3.5 w-3.5 text-zinc-500" /> Change Picture
                     </Button>
 
-                    {openDropdownId === expert.id && (
-                      <div className="absolute right-0 top-8 z-50 w-48 bg-white border border-gray-200 rounded-md shadow-lg py-1">
-                        <div className="px-1 py-1 text-sm text-gray-700">
-                          <div
-                            className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded"
-                            onClick={() => handleEditProfile(expert)}
-                          >
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit Profile
-                          </div>
+                    <div className="relative shrink-0">
+                      <Button
+                        variant="outline"
+                        onClick={() =>
+                          setOpenDropdownId(
+                            openDropdownId === `video-${expert.id}`
+                              ? null
+                              : `video-${expert.id}`
+                          )
+                        }
+                        className="h-8 px-2.5 rounded-lg text-xs font-semibold bg-none bg-white hover:bg-zinc-50 text-zinc-700 hover:text-zinc-900 flex items-center justify-center gap-1 border border-zinc-200 shadow-sm"
+                      >
+                        <Video className="h-3.5 w-3.5 text-zinc-500" />
+                        <ChevronDown className="h-3 w-3 text-zinc-400" />
+                      </Button>
 
-                          <div
-                            className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded"
-                            onClick={() => handleViewProfile(expert)}
+                      {openDropdownId === `video-${expert.id}` && (
+                        <div className="absolute right-0 bottom-9 z-50 w-44 bg-white border border-zinc-200 rounded-lg shadow-xl py-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleChangeVideo(expert);
+                              setOpenDropdownId(null);
+                            }}
+                            className="w-full text-left px-3 py-2 text-xs text-zinc-700 hover:bg-zinc-50 flex items-center gap-2 cursor-pointer"
                           >
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Profile
-                          </div>
-
-                          <div className="border-t border-gray-100 my-1" />
-
-                          <div
-                            className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded"
-                            onClick={() => handleChangeDP(expert)}
-                          >
-                            <User className="mr-2 h-4 w-4" />
-                            Change D.P
-                          </div>
-
-                          <div
-                            className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded"
-                            onClick={() => handleChangeVideo(expert)}
-                          >
-                            <Video className="mr-2 h-4 w-4" />
+                            <Video className="h-3.5 w-3.5 text-zinc-500" />
                             Change Video
-                          </div>
-
-                          <div
-                            className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded"
-                            onClick={() => handleChangeTimings(expert)}
+                          </button>
+                          <div className="border-t border-zinc-100 my-1" />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleDisconnectExpert(expert);
+                              setOpenDropdownId(null);
+                            }}
+                            className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 cursor-pointer"
                           >
-                            <Calendar className="mr-2 h-4 w-4" />
-                            Change Timings
-                          </div>
-
-                          <div className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded">
-                            <CalendarDays className="mr-2 h-4 w-4" />
-                            <Link
-                              href={`/experts/${expert.id}/booking-details`}
-                              className="w-full"
-                            >
-                              Booking Details
-                            </Link>
-                          </div>
-
-                          <div className="border-t border-gray-100 my-1" />
-
-                          <div
-                            className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded"
-                            onClick={() => handleToggleProfileStatus(expert)}
-                          >
-                            <Eye className="mr-2 h-4 w-4" />
-                            {expert.status === 'hidden'
-                              ? 'Show Profile'
-                              : 'Hide Profile'}
-                          </div>
-
-                          <div
-                            className="flex items-center px-2 py-2 hover:bg-gray-100 cursor-pointer rounded text-red-600"
-                            onClick={() => handleDisconnectExpert(expert)}
-                          >
-                            <Ban className="mr-2 h-4 w-4" />
+                            <Ban className="h-3.5 w-3.5 text-red-500" />
                             Disconnect Expert
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex flex-col items-center mb-6">
-                  <Avatar className="h-20 w-20">
-                    <AvatarImage src={expert.avatar} alt={expert.name} />
-                    <AvatarFallback className="text-lg bg-gradient-to-r from-[var(--primary-start)] to-[var(--primary-end)] text-white">
-                      {expert.name.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                </div>
-
-                <div className="space-y-3 mb-5">
-                  <div className="flex items-center">
-                    <div className="flex justify-between w-full text-gray-700">
-                      {[
-                        {
-                          icon: Edit,
-                          label: 'Edit',
-                          onClick: () => handleEditProfile(expert),
-                        },
-                        {
-                          icon: Eye,
-                          label: 'View',
-                          onClick: () => handleViewProfile(expert),
-                        },
-                        {
-                          icon: User,
-                          label: 'Image',
-                          onClick: () => handleChangeDP(expert),
-                        },
-                        {
-                          icon: Video,
-                          label: 'Video',
-                          onClick: () => handleChangeVideo(expert),
-                        },
-                        {
-                          icon: Calendar,
-                          label: 'Timing',
-                          onClick: () => handleChangeTimings(expert),
-                        },
-                        {
-                          icon: CalendarDays,
-                          label: 'Details',
-                          onClick: () =>
-                            redirect(`/experts/${expert.id}/booking-details`),
-                        },
-                      ].map(({ icon: Icon, label, onClick }) => (
-                        <div
-                          key={label}
-                          className="relative group flex flex-col items-center"
-                        >
-                          <Icon
-                            className="h-5 w-5 cursor-pointer"
-                            onClick={onClick}
-                          />
-
-                          <span className="absolute bottom-8 scale-0 group-hover:scale-100 transition bg-gradient-to-r from-[var(--primary-start)] to-[var(--primary-end)] text-white text-xs rounded px-2 py-1">
-                            {label}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="bg-gradient-to-r from-[var(--primary-start)] p-0.5 rounded-lg">
-                    <div
-                      className="bg-gray-50 rounded-lg p-3 overflow-y-scroll scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-red-800"
-                      style={{ height: '6rem' }}
-                    >
-                      {expert.timings.length > 0 ? (
-                        <div className="space-y-2">
-                          {expert.timings.map((timing, index) => (
-                            <div key={index} className="text-sm text-gray-600">
-                              <span className="text-[var(--primary-end)]">
-                                {timing.day}
-                              </span>{' '}
-                              – {timing.time}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-sm text-gray-500">
-                          No timings added
+                          </button>
                         </div>
                       )}
                     </div>
                   </div>
                 </div>
-              </CardContent>
+              </div>
             </Card>
           ))}
 
@@ -1549,6 +1526,7 @@ export default function ExpertsPage() {
         initialData={editingExpert}
         mode={editingExpert ? 'edit' : 'add'}
         isLoading={isSaving || isLoadingExpertDetails}
+        operatingHours={orgProfile?.operatingHours}
       />
 
       <ChangeExpertTimingsModal
@@ -1557,6 +1535,7 @@ export default function ExpertsPage() {
         timings={selectedExpert?.timings ?? []}
         onClose={() => setChangeTimingsOpen(false)}
         onSave={handleSaveTimings}
+        operatingHours={orgProfile?.operatingHours}
       />
     </div>
   );

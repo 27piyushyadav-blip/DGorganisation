@@ -228,7 +228,7 @@ export async function deleteExpertApi(expertId: number | string): Promise<Delete
   return handleResponse<DeleteExpertResponse>(response);
 }
 
-export async function uploadExpertAvatarApi(file: File, expertId: number | string): Promise<UploadAvatarResponse> {
+export async function uploadExpertAvatarApi(file: File, expertId?: number | string): Promise<UploadAvatarResponse> {
   if (typeof window === "undefined") {
     throw new ExpertApiError("Avatar upload is only available in the browser", 500);
   }
@@ -241,7 +241,9 @@ export async function uploadExpertAvatarApi(file: File, expertId: number | strin
 
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("expertId", String(expertId));
+  if (expertId !== undefined && expertId !== null) {
+    formData.append("expertId", String(expertId));
+  }
 
   const response = await fetch(`${BASE_URL}/upload-avatar`, {
     method: "POST",
@@ -254,7 +256,7 @@ export async function uploadExpertAvatarApi(file: File, expertId: number | strin
   return handleResponse<UploadAvatarResponse>(response);
 }
 
-export async function uploadExpertVideoApi(file: File, expertId: number | string): Promise<UploadVideoResponse> {
+export async function uploadExpertVideoApi(file: File, expertId?: number | string): Promise<UploadVideoResponse> {
   if (typeof window === "undefined") {
     throw new ExpertApiError("Video upload is only available in the browser", 500);
   }
@@ -267,7 +269,9 @@ export async function uploadExpertVideoApi(file: File, expertId: number | string
 
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("expertId", String(expertId));
+  if (expertId !== undefined && expertId !== null) {
+    formData.append("expertId", String(expertId));
+  }
 
   const response = await fetch(`${BASE_URL}/upload-video`, {
     method: "POST",

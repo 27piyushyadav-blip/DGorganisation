@@ -44,6 +44,7 @@ import {
 import { useAuth } from "@/contexts/auth-context";
 import OnboardingForm from "@/components/OnboardingForm";
 import { toast } from "sonner";
+import { formatToAmPm } from "@/lib/utils";
 
 const PROFILE_BASE = process.env.NEXT_PUBLIC_PROFILE_BASE_URL!;
 
@@ -1377,7 +1378,7 @@ export default function ProfilePage() {
                             >
                               {day.is_closed
                                 ? "Closed"
-                                : `${day.open} - ${day.close}`}
+                                : `${formatToAmPm(day.open)} - ${formatToAmPm(day.close)}`}
                             </span>
                           </div>
                         ))}
