@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Cropper, { Area, Point } from 'react-easy-crop';
 import {
   Card,
   CardContent,
@@ -16,13 +17,11 @@ import { Badge } from '@/components/ui/badge';
 import { apiClient } from '@/client/api/api-client';
 import {
   Image as ImageIcon,
-  Upload,
   Trash2,
   Plus,
   Loader2,
   ExternalLink,
   AlertCircle,
-  Eye,
   ArrowRight,
   Pencil,
 } from 'lucide-react';
@@ -43,6 +42,62 @@ interface BannersState {
   vertical: BannerItem[];
 }
 
+const BANNER_ASPECTS = {
+  horizontal: 16 / 9,
+  vertical: 9 / 16,
+} as const;
+
+const BANNER_ASPECT_CLASSES = {
+  horizontal: 'aspect-[16/9]',
+  vertical: 'aspect-[9/16]',
+} as const;
+
+const objectUrlToImage = (url: string) =>
+  new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new window.Image();
+    image.addEventListener('load', () => resolve(image));
+    image.addEventListener('error', reject);
+    image.src = url;
+  });
+
+const canvasToFile = (canvas: HTMLCanvasElement, fileName: string, mimeType: string) =>
+  new Promise<File>((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(new Error('Failed to crop image'));
+          return;
+        }
+
+        resolve(new File([blob], fileName, { type: blob.type || mimeType }));
+      },
+      mimeType,
+      0.92
+    );
+  });
+
+const getCroppedImageFile = async (
+  imageSrc: string,
+  crop: Area,
+  fileName: string,
+  mimeType: string
+) => {
+  const image = await objectUrlToImage(imageSrc);
+  const canvas = document.createElement('canvas');
+  canvas.width = crop.width;
+  canvas.height = crop.height;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    throw new Error('Canvas context unavailable');
+  }
+
+  ctx.drawImage(image, crop.x, crop.y, crop.width, crop.height, 0, 0, crop.width, crop.height);
+
+  const safeMimeType = mimeType && mimeType.startsWith('image/') ? mimeType : 'image/jpeg';
+  return canvasToFile(canvas, fileName, safeMimeType);
+};
+
 export default function BannersPage() {
   const { user, isLoading: authLoading } = useAuth();
   const [banners, setBanners] = useState<BannersState>({ horizontal: [], vertical: [] });
@@ -57,6 +112,9 @@ export default function BannersPage() {
   const [newBannerLink, setNewBannerLink] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   
   // Edit modal state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -68,39 +126,71 @@ export default function BannersPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const loadBanners = async () => {
-    setIsLoading(true);
-    try {
-      const res = await apiClient<{ banners?: BannersState }>(`${API_BASE}/organizations/banners`);
-      if (res?.banners) {
-        setBanners({
-          horizontal: res.banners.horizontal || [],
-          vertical: res.banners.vertical || [],
-        });
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadBanners = async () => {
+      setIsLoading(true);
+      try {
+        const res = await apiClient<{ banners?: BannersState }>(`${API_BASE}/organizations/banners`);
+        if (!isMounted) return;
+
+        if (res?.banners) {
+          setBanners({
+            horizontal: res.banners.horizontal || [],
+            vertical: res.banners.vertical || [],
+          });
+        }
+      } catch (err) {
+        console.error('Error loading banners:', err);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
-    } catch (err) {
-      console.error('Error loading banners:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
+
+    void loadBanners();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
-    loadBanners();
-  }, []);
+    return () => {
+      if (previewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (previewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(previewUrl);
+      }
+
       setSelectedFile(file);
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
+      setCrop({ x: 0, y: 0 });
+      setZoom(1);
+      setCroppedAreaPixels(null);
     }
   };
 
   const resetUploadForm = () => {
+    if (previewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(previewUrl);
+    }
+
     setSelectedFile(null);
     setPreviewUrl('');
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCroppedAreaPixels(null);
     setNewBannerTitle('');
     setNewBannerDescription('');
     setNewBannerLink('');
@@ -122,13 +212,20 @@ export default function BannersPage() {
 
   const handleUploadBanner = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedFile) return;
+    if (!selectedFile || !previewUrl || !croppedAreaPixels) return;
 
     setIsUploading(true);
-    const formData = new FormData();
-    formData.append('file', selectedFile);
-
     try {
+      const croppedFile = await getCroppedImageFile(
+        previewUrl,
+        croppedAreaPixels,
+        selectedFile.name,
+        selectedFile.type || 'image/jpeg'
+      );
+
+      const formData = new FormData();
+      formData.append('file', croppedFile);
+
       // 1. Upload the image file to banners folder
       const uploadRes = await apiClient<{ imageUrl: string }>(
         `${API_BASE}/organizations/banners/upload`,
@@ -322,7 +419,7 @@ export default function BannersPage() {
             <div className="grid gap-6 sm:grid-cols-2">
               {banners.horizontal.map((banner) => (
                 <Card key={banner.id} className="group overflow-hidden border bg-[var(--card-bg)] hover:shadow-lg transition-all duration-300">
-                  <div className="relative aspect-[3/1] bg-muted overflow-hidden">
+                  <div className={`relative ${BANNER_ASPECT_CLASSES.horizontal} bg-muted overflow-hidden`}>
                     <img
                       src={banner.imageUrl}
                       alt={banner.title || 'Horizontal Banner'}
@@ -390,7 +487,7 @@ export default function BannersPage() {
             <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
               {banners.vertical.map((banner) => (
                 <Card key={banner.id} className="group overflow-hidden border bg-[var(--card-bg)] hover:shadow-lg transition-all duration-300">
-                  <div className="relative aspect-[3/5] bg-muted overflow-hidden">
+                  <div className={`relative ${BANNER_ASPECT_CLASSES.vertical} bg-muted overflow-hidden`}>
                     <img
                       src={banner.imageUrl}
                       alt={banner.title || 'Vertical Banner'}
@@ -445,7 +542,7 @@ export default function BannersPage() {
 
       {/* Upload Banner Dialog */}
       {isUploadModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs ">
           <Card className="w-full max-w-lg bg-[var(--card-bg)] border shadow-2xl animate-in fade-in zoom-in-95 duration-200">
             <CardHeader className="border-b pb-4">
               <div className="flex items-center justify-between">
@@ -454,38 +551,54 @@ export default function BannersPage() {
                   <span className="text-lg">×</span>
                 </Button>
               </div>
-              <CardDescription>
-                Banners show up directly on client pages. Upload a {uploadType === 'horizontal' ? 'wide aspect landscape' : 'tall aspect portrait'} image.
-              </CardDescription>
             </CardHeader>
 
             <form onSubmit={handleUploadBanner}>
-              <CardContent className="space-y-5 pt-5">
+              <CardContent className="space-y-5 pt-5 overflow-auto max-h-[70vh]">
                 <div className="space-y-2">
                   <Label>Select Banner File</Label>
                   <div
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer transition-all ${
+                    onClick={() => !previewUrl?fileInputRef.current?.click():null}
+                    className={`border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer transition-all ${
                       previewUrl
                         ? 'border-[var(--primary-start)]/65 bg-[var(--primary-start)]/5'
                         : 'border-border hover:border-[var(--primary-start)] hover:bg-[var(--card-bg-light)]'
                     }`}
                   >
                     {previewUrl ? (
-                      <div className="relative w-full overflow-hidden rounded-md flex justify-center bg-black/5">
-                        <img
-                          src={previewUrl}
-                          alt="Banner Preview"
-                          className={`object-cover rounded-md max-h-48 ${
-                            uploadType === 'horizontal' ? 'aspect-[3/1] w-full' : 'aspect-[3/5] h-48'
-                          }`}
-                        />
-                        <div className="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity rounded-md">
-                          <p className="text-white text-xs font-semibold flex items-center">
-                            <Upload className="h-4.5 w-4.5 mr-1" /> Change Image
-                          </p>
+                      <>
+                      <div className="w-full space-y-3">
+                        <div className="relative w-full h-80 overflow-hidden rounded-md bg-black/10">
+                          <Cropper
+                            image={previewUrl}
+                            crop={crop}
+                            zoom={zoom}
+                            aspect={BANNER_ASPECTS[uploadType]}
+                            showGrid={false}
+                            cropShape="rect"
+                            onCropChange={setCrop}
+                            onCropComplete={(_, area) => setCroppedAreaPixels(area)}
+                            onZoomChange={setZoom}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>Adjust crop and zoom before uploading</span>
+                            <span>{uploadType === 'horizontal' ? '16:9' : '9:16'}</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="1"
+                            max="3"
+                            step="0.01"
+                            value={zoom}
+                            onChange={(event) => setZoom(Number(event.target.value))}
+                            className="w-full"
+                          />
                         </div>
                       </div>
+                      
+                        </>
                     ) : (
                       <>
                         <ImageIcon className="h-10 w-10 text-muted-foreground opacity-50 mb-2" />
@@ -548,7 +661,7 @@ export default function BannersPage() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={!selectedFile || isUploading}
+                  disabled={!selectedFile || !croppedAreaPixels || isUploading}
                   className="bg-gradient-to-r from-[var(--primary-start)] to-[var(--primary-end)] text-white hover:opacity-95 shadow-md flex items-center"
                 >
                   {isUploading ? (
@@ -590,7 +703,7 @@ export default function BannersPage() {
                     src={editingBanner.imageUrl}
                     alt="Banner Preview"
                     className={`object-cover rounded-md max-h-48 ${
-                      editingType === 'horizontal' ? 'aspect-[3/1] w-full' : 'aspect-[3/5] h-48'
+                      editingType === 'horizontal' ? 'aspect-[16/9] w-full' : 'aspect-[9/16] h-48'
                     }`}
                   />
                 </div>
