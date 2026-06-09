@@ -65,8 +65,11 @@ export default function BannersPage() {
   const [editBannerTitle, setEditBannerTitle] = useState('');
   const [editBannerDescription, setEditBannerDescription] = useState('');
   const [editBannerLink, setEditBannerLink] = useState('');
+  const [editSelectedFile, setEditSelectedFile] = useState<File | null>(null);
+  const [editPreviewUrl, setEditPreviewUrl] = useState<string>('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
 
   const loadBanners = async () => {
     setIsLoading(true);
@@ -199,6 +202,8 @@ export default function BannersPage() {
     setEditBannerTitle(banner.title || '');
     setEditBannerDescription(banner.description || '');
     setEditBannerLink(banner.link || '');
+    setEditPreviewUrl(banner.imageUrl);
+    setEditSelectedFile(null);
     setIsEditModalOpen(true);
   };
 
@@ -208,6 +213,20 @@ export default function BannersPage() {
     setEditBannerTitle('');
     setEditBannerDescription('');
     setEditBannerLink('');
+    setEditPreviewUrl('');
+    setEditSelectedFile(null);
+    if (editFileInputRef.current) {
+      editFileInputRef.current.value = '';
+    }
+  };
+
+  const handleEditFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setEditSelectedFile(file);
+      const url = URL.createObjectURL(file);
+      setEditPreviewUrl(url);
+    }
   };
 
   const handleSaveEdit = async (e: React.FormEvent) => {
@@ -216,12 +235,33 @@ export default function BannersPage() {
 
     setIsLoading(true);
     try {
+      let finalImageUrl = editingBanner.imageUrl;
+
+      if (editSelectedFile) {
+        const formData = new FormData();
+        formData.append('file', editSelectedFile);
+
+        const uploadRes = await apiClient<{ imageUrl: string }>(
+          `${API_BASE}/organizations/banners/upload`,
+          {
+            method: 'POST',
+            body: formData,
+          }
+        );
+
+        if (!uploadRes?.imageUrl) {
+          throw new Error('Upload failed');
+        }
+        finalImageUrl = uploadRes.imageUrl;
+      }
+
       const nextBanners = {
         ...banners,
         [editingType]: banners[editingType].map((b) =>
           b.id === editingBanner.id
             ? {
                 ...b,
+                imageUrl: finalImageUrl,
                 title: editBannerTitle.trim() || undefined,
                 description: editBannerDescription.trim() || undefined,
                 link: editBannerLink.trim() || undefined,
@@ -328,7 +368,7 @@ export default function BannersPage() {
                       alt={banner.title || 'Horizontal Banner'}
                       className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
                     />
-                    <div className="absolute top-3 right-3 flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="absolute top-3 right-3 flex items-center space-x-2">
                       <Button
                         variant="secondary"
                         size="icon"
@@ -396,7 +436,7 @@ export default function BannersPage() {
                       alt={banner.title || 'Vertical Banner'}
                       className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
                     />
-                    <div className="absolute top-3 right-3 flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="absolute top-3 right-3 flex items-center space-x-2">
                       <Button
                         variant="secondary"
                         size="icon"
@@ -585,13 +625,33 @@ export default function BannersPage() {
 
             <form onSubmit={handleSaveEdit}>
               <CardContent className="space-y-5 pt-5">
-                <div className="flex justify-center bg-black/5 p-4 rounded-md border">
-                  <img
-                    src={editingBanner.imageUrl}
-                    alt="Banner Preview"
-                    className={`object-cover rounded-md max-h-48 ${
-                      editingType === 'horizontal' ? 'aspect-[3/1] w-full' : 'aspect-[3/5] h-48'
-                    }`}
+                <div className="space-y-2">
+                  <Label>Banner Image (Click to change)</Label>
+                  <div
+                    onClick={() => editFileInputRef.current?.click()}
+                    className="border-2 border-dashed rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer transition-all border-[var(--primary-start)]/40 bg-[var(--primary-start)]/5 hover:bg-[var(--primary-start)]/10"
+                  >
+                    <div className="relative w-full overflow-hidden rounded-md flex justify-center bg-black/5">
+                      <img
+                        src={editPreviewUrl}
+                        alt="Banner Preview"
+                        className={`object-cover rounded-md max-h-48 ${
+                          editingType === 'horizontal' ? 'aspect-[3/1] w-full' : 'aspect-[3/5] h-48'
+                        }`}
+                      />
+                      <div className="absolute inset-0 bg-black/30 hover:bg-black/45 flex items-center justify-center transition-colors rounded-md">
+                        <p className="text-white text-xs font-semibold flex items-center bg-black/55 px-3 py-1.5 rounded-md backdrop-blur-xs">
+                          <Upload className="h-4 w-4 mr-1.5" /> Change Image
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <input
+                    ref={editFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleEditFileChange}
+                    className="hidden"
                   />
                 </div>
 

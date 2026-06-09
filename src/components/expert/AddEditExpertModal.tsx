@@ -18,6 +18,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Clock } from 'lucide-react';
 import Modal from '../modal/Modal';
 import { apiClient } from '@/client/api/api-client';
 import { toast } from 'sonner';
@@ -89,13 +95,267 @@ interface AddEditExpertModalProps {
 }
 
 const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const timeSlots = Array.from({ length: 24 }, (_, i) => {
-  const hour = i.toString().padStart(2, '0');
-  return `${hour}:00`;
+const timeSlots = Array.from({ length: 48 }, (_, i) => {
+  const hour = Math.floor(i / 2).toString().padStart(2, '0');
+  const minute = i % 2 === 0 ? '00' : '30';
+  return `${hour}:${minute}`;
 });
 
 let cachedServices: any[] | null = null;
 let cachedCategories: any[] | null = null;
+
+const TimePicker = ({
+  value,
+  onChange,
+  disabled,
+  minTime,
+  maxTime,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  disabled?: boolean;
+  minTime?: string;
+  maxTime?: string;
+}) => {
+  const [open, setOpen] = React.useState(false);
+
+  const { hour, min, ampm } = React.useMemo(() => {
+    if (!value) return { hour: '09', min: '00', ampm: 'AM' };
+    const [h24Str, mStr] = value.split(':');
+    const h24 = parseInt(h24Str, 10);
+    const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+    return {
+      hour: h12.toString().padStart(2, '0'),
+      min: mStr || '00',
+      ampm: h24 >= 12 ? 'PM' : 'AM',
+    };
+  }, [value]);
+
+  // Convert "HH:MM" to total minutes
+  const toMins = (t: string) => {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + (m || 0);
+  };
+  const to24hMins = (h12: string, m: string, a: string) => {
+    let h24 = parseInt(h12, 10);
+    if (a === 'PM' && h24 !== 12) h24 += 12;
+    if (a === 'AM' && h24 === 12) h24 = 0;
+    return h24 * 60 + parseInt(m, 10);
+  };
+
+  const minMins = minTime ? toMins(minTime) : 0;
+  const maxMins = maxTime ? toMins(maxTime) : 23 * 60 + 59;
+
+  // An hour row is selectable if at least one minute of that hour falls in [minMins, maxMins]
+  const isHourValid = (h12: string, a: string) => {
+    let h24 = parseInt(h12, 10);
+    if (a === 'PM' && h24 !== 12) h24 += 12;
+    if (a === 'AM' && h24 === 12) h24 = 0;
+    return h24 * 60 + 59 >= minMins && h24 * 60 <= maxMins;
+  };
+
+  const isMinuteValidForAmpm = (m: string, a: string) => {
+    const total = to24hMins(hour, m, a);
+    return total >= minMins && total <= maxMins;
+  };
+
+  const isAmpmValid = (a: string) =>
+    Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0')).some(h =>
+      isHourValid(h, a)
+    );
+
+  const handleUpdate = React.useCallback(
+    (h: string, m: string, a: string) => {
+      let h24 = parseInt(h, 10);
+      if (a === 'PM' && h24 !== 12) h24 += 12;
+      if (a === 'AM' && h24 === 12) h24 = 0;
+      onChange(`${h24.toString().padStart(2, '0')}:${m}`);
+    },
+    [onChange]
+  );
+
+  const ITEM_H = 36;
+  const REPEATS = 7;
+
+  const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'));
+  const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
+  const repeatedHours = Array.from({ length: REPEATS }, () => hours).flat();
+  const repeatedMinutes = Array.from({ length: REPEATS }, () => minutes).flat();
+
+  const hourRef = React.useRef<HTMLDivElement>(null);
+  const minRef = React.useRef<HTMLDivElement>(null);
+
+  // On open: jump to the middle repeat at the currently selected item
+  React.useEffect(() => {
+    if (open) {
+      setTimeout(() => {
+        const hIdx = hours.indexOf(hour);
+        const mIdx = minutes.indexOf(min);
+        const midH = Math.floor(REPEATS / 2) * hours.length + hIdx;
+        const midM = Math.floor(REPEATS / 2) * minutes.length + mIdx;
+        if (hourRef.current) hourRef.current.scrollTop = midH * ITEM_H;
+        if (minRef.current) minRef.current.scrollTop = midM * ITEM_H;
+      }, 60);
+    }
+  }, [open]);
+
+  // Silently jump when approaching either edge so scrolling never stops
+  const handleHourScroll = () => {
+    const el = hourRef.current;
+    if (!el) return;
+    const oneLoop = hours.length * ITEM_H;
+    if (el.scrollTop < oneLoop) el.scrollTop += oneLoop * 2;
+    else if (el.scrollTop > oneLoop * (REPEATS - 2)) el.scrollTop -= oneLoop * 2;
+  };
+
+  const handleMinScroll = () => {
+    const el = minRef.current;
+    if (!el) return;
+    const oneLoop = minutes.length * ITEM_H;
+    if (el.scrollTop < oneLoop) el.scrollTop += oneLoop * 2;
+    else if (el.scrollTop > oneLoop * (REPEATS - 2)) el.scrollTop -= oneLoop * 2;
+  };
+
+  return (
+    <Popover open={open} onOpenChange={disabled ? undefined : setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          disabled={disabled}
+          className="flex items-center gap-2 h-9 px-3 rounded-md border border-gray-200 bg-white text-sm font-medium text-gray-800 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 transition disabled:opacity-50 disabled:cursor-not-allowed min-w-[120px]"
+        >
+          <Clock className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+          <span>{hour}:{min} {ampm}</span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="p-0 w-auto shadow-xl border border-gray-100 rounded-xl overflow-hidden"
+        align="start"
+        sideOffset={6}
+      >
+        {/* columns */}
+        <div className="flex">
+          {/* Hour column */}
+          <div className="flex flex-col w-16">
+            <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider text-center py-1.5 border-b border-gray-100">HR</div>
+            <div
+              ref={hourRef}
+              onScroll={handleHourScroll}
+              className="overflow-y-auto"
+              style={{ height: 180, scrollbarWidth: 'none' }}
+            >
+              {repeatedHours.map((h, i) => {
+                const otherAmpm = ampm === 'AM' ? 'PM' : 'AM';
+                const validCurrent = isHourValid(h, ampm);
+                const validOther = isHourValid(h, otherAmpm);
+                const valid = validCurrent || validOther;
+                const isSelected = h === hour && validCurrent;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    disabled={!valid}
+                    onClick={() => {
+                      if (validCurrent) {
+                        handleUpdate(h, min, ampm);
+                      } else if (validOther) {
+                        handleUpdate(h, min, otherAmpm);
+                      }
+                    }}
+                    style={{ height: ITEM_H }}
+                    className={`w-full text-sm font-medium text-center transition-colors ${
+                      isSelected
+                        ? 'bg-orange-500 text-white'
+                        : valid
+                        ? 'text-gray-700 hover:bg-orange-50'
+                        : 'text-gray-300 cursor-not-allowed'
+                    }`}
+                  >
+                    {h}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="w-px bg-gray-100" />
+
+          {/* Minute column */}
+          <div className="flex flex-col w-16">
+            <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider text-center py-1.5 border-b border-gray-100">MIN</div>
+            <div
+              ref={minRef}
+              onScroll={handleMinScroll}
+              className="overflow-y-auto"
+              style={{ height: 180, scrollbarWidth: 'none' }}
+            >
+              {repeatedMinutes.map((m, i) => {
+                const otherAmpm = ampm === 'AM' ? 'PM' : 'AM';
+                const validCurrent = isMinuteValidForAmpm(m, ampm);
+                const validOther = isMinuteValidForAmpm(m, otherAmpm);
+                const valid = validCurrent || validOther;
+                const isSelected = m === min && validCurrent;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    disabled={!valid}
+                    onClick={() => {
+                      if (validCurrent) {
+                        handleUpdate(hour, m, ampm);
+                      } else if (validOther) {
+                        handleUpdate(hour, m, otherAmpm);
+                      }
+                    }}
+                    style={{ height: ITEM_H }}
+                    className={`w-full text-sm font-medium text-center transition-colors ${
+                      isSelected
+                        ? 'bg-orange-500 text-white'
+                        : valid
+                        ? 'text-gray-700 hover:bg-orange-50'
+                        : 'text-gray-300 cursor-not-allowed'
+                    }`}
+                  >
+                    {m}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="w-px bg-gray-100" />
+
+          {/* AM/PM column */}
+          <div className="flex flex-col w-16">
+            <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider text-center py-1.5 border-b border-gray-100">AM/PM</div>
+            <div className="flex flex-col justify-center gap-1.5 p-1.5" style={{ height: 180 }}>
+              {(['AM', 'PM'] as const).map((a) => {
+                const valid = isAmpmValid(a);
+                return (
+                  <button
+                    key={a}
+                    type="button"
+                    disabled={!valid}
+                    onClick={() => valid && handleUpdate(hour, min, a)}
+                    className={`w-full py-3 text-xs font-semibold tracking-wide rounded-md transition-colors ${
+                      a === ampm
+                        ? 'bg-orange-500 text-white'
+                        : valid
+                        ? 'text-gray-600 hover:bg-orange-50'
+                        : 'text-gray-300 cursor-not-allowed'
+                    }`}
+                  >
+                    {a}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
 
 export default function AddEditExpertModal({ 
   isOpen, 
@@ -743,16 +1003,6 @@ return (
 
           const isClosed = dayHours?.is_closed;
 
-          const filteredTimeSlots = timeSlots.filter((time) => {
-            if (!dayHours) return true;
-            return time >= dayHours.open && time <= dayHours.close;
-          });
-
-          const filteredEndTimeSlots = filteredTimeSlots.filter((time) => {
-            if (!startVal) return true;
-            return time > startVal;
-          });
-
           return (
             <div key={field.id} className="p-4 border-b border-[var(--primary-start)] rounded-lg relative">
               {index > 0 && (
@@ -800,44 +1050,30 @@ return (
                 </div>
                 <div>
                   <Label>Start Time *</Label>
-                  <Select
-                    value={startVal || undefined}
-                    onValueChange={(value) => {
+                  <TimePicker
+                    value={startVal || ''}
+                    disabled={!dayVal || isClosed}
+                    minTime={dayHours?.open}
+                    maxTime={dayHours?.close}
+                    onChange={(value) => {
                       setValue(`availability.${index}.startTime`, value);
                       if (endVal && endVal <= value) {
                         setValue(`availability.${index}.endTime`, '');
                       }
                     }}
-                    disabled={!dayVal || isClosed}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={!dayVal ? "Select day first" : "Select time"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {filteredTimeSlots.map(time => (
-                        <SelectItem key={time} value={time}>{formatToAmPm(time)}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  />
                   {errors.availability?.[index]?.startTime && 
                     <p className="text-red-500 text-sm mt-1">{errors.availability[index]?.startTime?.message}</p>}
                 </div>
                 <div>
                   <Label>End Time *</Label>
-                  <Select
-                    value={endVal || undefined}
-                    onValueChange={(value) => setValue(`availability.${index}.endTime`, value)}
+                  <TimePicker
+                    value={endVal || ''}
                     disabled={!dayVal || isClosed || !startVal}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={!startVal ? "Select start time first" : "Select time"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {filteredEndTimeSlots.map(time => (
-                        <SelectItem key={time} value={time}>{formatToAmPm(time)}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    minTime={startVal || dayHours?.open}
+                    maxTime={dayHours?.close}
+                    onChange={(value) => setValue(`availability.${index}.endTime`, value)}
+                  />
                   {errors.availability?.[index]?.endTime && 
                     <p className="text-red-500 text-sm mt-1">{errors.availability[index]?.endTime?.message}</p>}
                 </div>

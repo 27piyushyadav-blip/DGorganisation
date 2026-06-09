@@ -10,17 +10,26 @@ import {
   Package,
   Clock,
   LayoutPanelLeft,
+  Eye,
 } from 'lucide-react';
 
 import { apiClient } from '@/client/api/api-client';
 import { Button } from '@/components/ui/button';
 import Modal from '@/components/modal/Modal';
 import { toast } from 'sonner';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const CLIENT_BASE = process.env.NEXT_PUBLIC_CLIENT_URL || 'http://localhost:3002';
 
 type DiscountType = 'percent' | 'fixed' | null;
-type LayoutOrientation = 'horizontal' | 'vertical';
+type LayoutOrientation = 'horizontal1' | 'horizontal2' | 'vertical1' | 'vertical2';
 
 type OrgService = {
   id: string;
@@ -53,12 +62,22 @@ interface Service {
 interface Category {
   id: string;
   name: string;
+  imageUrl?: string | null;
+  price?: string | null;
   services: Service[];
 }
 
+interface LayoutSection {
+  type: 'services' | 'categories' | 'staff' | 'products';
+  title: string;
+  services: string[];
+}
+
 interface CategoryServiceLayout {
-  horizontal: string[];
-  vertical: string[];
+  horizontal1: LayoutSection;
+  horizontal2: LayoutSection;
+  vertical1: LayoutSection;
+  vertical2: LayoutSection;
 }
 
 interface ServiceLayoutCardProps {
@@ -69,15 +88,16 @@ interface ServiceLayoutCardProps {
 }
 
 interface ServiceDropZoneProps {
-  title: string;
-  description: string;
-  services: Service[];
-  orientation: LayoutOrientation;
+  sectionKey: 'horizontal1' | 'horizontal2' | 'vertical1' | 'vertical2';
+  section: LayoutSection;
+  allAvailableServices: Service[];
+  onTitleChange: (title: string) => void;
+  onTypeChange: (type: 'services' | 'categories' | 'staff' | 'products') => void;
   isActive: boolean;
-  onDragOver: (orientation: LayoutOrientation) => void;
-  onDrop: (orientation: LayoutOrientation) => void;
+  onDragOver: () => void;
+  onDrop: () => void;
   onDragLeave: () => void;
-  onRemove: (serviceId: string, orientation: LayoutOrientation) => void;
+  onRemoveService: (serviceId: string) => void;
 }
 
 function durationToLabel(minutes: number | null): string {
@@ -141,7 +161,7 @@ function orgServiceToUiService(service: OrgService): Service {
 
 function buildCategoriesFromServices(
   services: OrgService[],
-  fetchedCategories: { id: string; name: string }[]
+  fetchedCategories: { id: string; name: string; imageUrl?: string | null; price?: string | null }[]
 ): Category[] {
   const categoryMap = new Map<string, Category>();
 
@@ -149,6 +169,8 @@ function buildCategoriesFromServices(
   categoryMap.set('default', {
     id: 'default',
     name: 'Services',
+    imageUrl: null,
+    price: null,
     services: [],
   });
 
@@ -157,6 +179,8 @@ function buildCategoriesFromServices(
     categoryMap.set(cat.id, {
       id: cat.id,
       name: cat.name,
+      imageUrl: cat.imageUrl || null,
+      price: cat.price || null,
       services: [],
     });
   }
@@ -251,87 +275,188 @@ function ServiceLayoutCard({
 }
 
 function ServiceDropZone({
-  title,
-  description,
-  services,
-  orientation,
+  sectionKey,
+  section,
+  allAvailableServices,
+  onTitleChange,
+  onTypeChange,
   isActive,
   onDragOver,
   onDrop,
   onDragLeave,
-  onRemove,
+  onRemoveService,
 }: ServiceDropZoneProps) {
+  const [localTitle, setLocalTitle] = useState(section.title);
+
+  // Keep localTitle in sync if section.title changes from outside
+  useEffect(() => {
+    setLocalTitle(section.title);
+  }, [section.title]);
+
   const maxItems = 5;
-  const isFull = services.length >= maxItems;
+  const sectionServices = (section.services || [])
+    .map((id) => allAvailableServices.find((s) => s.id === id))
+    .filter((s): s is Service => !!s);
+  const isFull = sectionServices.length >= maxItems;
 
   return (
-    <div
-      onDragOver={(event) => {
-        event.preventDefault();
-
-        if (!isFull) {
-          onDragOver(orientation);
-        }
-      }}
-      onDragLeave={onDragLeave}
-      onDrop={(event) => {
-        event.preventDefault();
-
-        if (!isFull) {
-          onDrop(orientation);
-        }
-      }}
-      className={`rounded-2xl border-2 border-dashed p-4 transition ${
-        isActive && !isFull
-          ? 'border-[var(--primary-start)] bg-[var(--card-bg)]'
-          : 'border-gray-200 bg-white'
-      } ${isFull ? 'cursor-not-allowed opacity-60' : ''}`}
-    >
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div>
-          <h3 className="text-base font-semibold text-gray-900">{title}</h3>
-          <p className="text-sm text-gray-500">{description}</p>
-        </div>
-
-        <div className="flex flex-col items-end gap-1">
-          <span
-            className={`rounded-full px-3 py-1 text-xs font-medium ${
-              services.length >= maxItems
-                ? 'bg-red-100 text-red-600'
-                : 'bg-[var(--card-bg)] text-gray-700'
-            }`}
-          >
-            {services.length} / {maxItems} selected
+    <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-4">
+      {/* Header with section name */}
+      <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+        <span className="text-xs font-bold text-[var(--primary-start)] uppercase tracking-wider">
+          {sectionKey.replace(/(\d+)/, ' $1')}
+        </span>
+        {section.type === 'services' && (
+          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+            sectionServices.length >= maxItems ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-600'
+          }`}>
+            {sectionServices.length} / {maxItems} Selected
           </span>
-
-          {isFull && <span className="text-xs text-red-500">Limit reached</span>}
-        </div>
-      </div>
-
-      <div
-        className={
-          orientation === 'horizontal'
-            ? 'grid gap-3 md:grid-cols-2 xl:grid-cols-3'
-            : 'space-y-3'
-        }
-      >
-        {services.length > 0 ? (
-          services.map((service) => (
-            <ServiceLayoutCard
-              key={service.id}
-              service={service}
-              onRemove={(serviceId) => onRemove(serviceId, orientation)}
-            />
-          ))
-        ) : (
-          <div className="rounded-xl border border-transparent bg-[var(--card-bg-light)] px-4 py-8 text-center text-sm text-gray-500">
-            Drag services here to build the {title.toLowerCase()} layout. (
-            {services.length}/{maxItems})
-          </div>
         )}
       </div>
-    </div>
-  );
+
+      {/* Title input */}
+      <div>
+        <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+          Section Title
+        </label>
+        <input
+          type="text"
+          value={section.type === 'staff' ? 'Our Staffs' : section.type === 'services' ? 'Featured Services' : section.type === 'products' ? 'Products' : section.type === 'categories' ? 'Services by Category' : ''}
+          readOnly
+          className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
+          placeholder="Enter section title..."
+        />
+      </div>
+
+      {/* Content Type Selector */}
+      <div>
+        <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+          Content Type
+        </label>
+        <Select value={section.type} onValueChange={(val: any) => onTypeChange(val)}>
+          <SelectTrigger className="w-full h-9 text-sm">
+            <SelectValue placeholder="Select content type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="services">Services (Separated / Direct List)</SelectItem>
+            <SelectItem value="categories">Services (Grouped by Categories)</SelectItem>
+            <SelectItem value="staff">Staff</SelectItem>
+            <SelectItem value="products">Products</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Drag & Drop or Auto-rendered preview */}
+      {section.type === 'services' ? (
+        <div
+          onDragOver={(event) => {
+            event.preventDefault();
+            if (!isFull) {
+              onDragOver();
+            }
+          }}
+          onDragLeave={onDragLeave}
+          onDrop={(event) => {
+            event.preventDefault();
+            if (!isFull) {
+              onDrop();
+            }
+          }}
+          className={`rounded-xl border-2 border-dashed p-3 transition min-h-[8rem] flex flex-col justify-center ${
+            isActive && !isFull
+              ? 'border-[var(--primary-start)] bg-[var(--card-bg)]'
+              : 'border-gray-200 bg-gray-50/50'
+          } ${isFull ? 'cursor-not-allowed opacity-60' : ''}`}
+        >
+          {sectionServices.length > 0 ? (
+            <div className="space-y-2 w-full">
+              {sectionServices.map((service) => (
+                <ServiceLayoutCard
+                  key={service.id}
+                  service={service}
+                  onRemove={() => onRemoveService(service.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-xs text-gray-400">
+              Drag services here
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="rounded-xl border border-gray-150 bg-gray-50/50 p-4 text-center text-xs text-gray-500 flex flex-col items-center justify-center min-h-[8rem] space-y-1">
+          <span className="font-semibold text-gray-700 capitalize">{section.type === 'categories' ? 'categories' : section.type} Section</span>
+          <span className="text-[10px] text-gray-400">
+            Automatically populates with all organization {section.type === 'categories' ? 'categories' : section.type === 'staff' ? 'staff members' : section.type}.
+          </span>
+        </div>
+      )}
+    </div>);
+}
+
+function normalizeLayout(rawLayout: any): CategoryServiceLayout {
+  const defaultSections: CategoryServiceLayout = {
+    horizontal1: { type: 'services', title: 'Featured Services', services: [] },
+    horizontal2: { type: 'staff', title: 'Our Staffs', services: [] },
+    vertical1: { type: 'services', title: 'Menu', services: [] },
+    vertical2: { type: 'products', title: 'Products', services: [] },
+  };
+
+  if (!rawLayout || typeof rawLayout !== 'object') {
+    return defaultSections;
+  }
+
+  const getSection = (key: string, fallbackType: 'services' | 'categories' | 'staff' | 'products', fallbackTitle: string): LayoutSection => {
+    const rawSec = rawLayout[key];
+    if (rawSec && typeof rawSec === 'object') {
+      return {
+        type: rawSec.type || fallbackType,
+        title: rawSec.title || fallbackTitle,
+        services: Array.isArray(rawSec.services) ? rawSec.services : [],
+      };
+    }
+    return { type: fallbackType, title: fallbackTitle, services: [] };
+  };
+
+  const hasOldKeys = ('horizontal' in rawLayout && Array.isArray(rawLayout.horizontal)) ||
+                      ('vertical' in rawLayout && Array.isArray(rawLayout.vertical)) ||
+                      ('vertical2' in rawLayout && Array.isArray(rawLayout.vertical2));
+
+  const hasNewKeys = 'horizontal1' in rawLayout || 'horizontal2' in rawLayout || 'vertical1' in rawLayout || 'vertical2' in rawLayout;
+
+  if (hasOldKeys && !hasNewKeys) {
+    return {
+      horizontal1: {
+        type: 'services',
+        title: 'Featured Services',
+        services: Array.isArray(rawLayout.horizontal) ? rawLayout.horizontal : [],
+      },
+      horizontal2: {
+        type: 'staff',
+        title: 'Our Staffs',
+        services: [],
+      },
+      vertical1: {
+        type: 'services',
+        title: 'Menu',
+        services: Array.isArray(rawLayout.vertical) ? rawLayout.vertical : [],
+      },
+      vertical2: {
+        type: 'products',
+        title: rawLayout.vertical2Name || 'Products',
+        services: Array.isArray(rawLayout.vertical2) ? rawLayout.vertical2 : [],
+      },
+    };
+  }
+
+  return {
+    horizontal1: getSection('horizontal1', 'services', 'Featured Services'),
+    horizontal2: getSection('horizontal2', 'staff', 'Our Staffs'),
+    vertical1: getSection('vertical1', 'services', 'Menu'),
+    vertical2: getSection('vertical2', 'products', 'Products'),
+  };
 }
 
 export default function ServicesPage() {
@@ -349,7 +474,13 @@ export default function ServicesPage() {
   });
 
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryPrice, setNewCategoryPrice] = useState('');
+  const [newCategoryImageUrl, setNewCategoryImageUrl] = useState<string | null>(null);
+  const [categoryImagePreview, setCategoryImagePreview] = useState<string | null>(null);
+  const [isCategoryImageUploading, setIsCategoryImageUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [showCategoriesSetting, setShowCategoriesSetting] = useState(false);
 
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -358,6 +489,7 @@ export default function ServicesPage() {
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [isServiceLayoutModalOpen, setIsServiceLayoutModalOpen] =
     useState(false);
+  const [isSavingLayout, setIsSavingLayout] = useState(false);
   const [layoutModalCategory, setLayoutModalCategory] =
     useState<string>('default');
 
@@ -367,6 +499,7 @@ export default function ServicesPage() {
   const [serviceLayouts, setServiceLayouts] = useState<
     Record<string, CategoryServiceLayout>
   >({});
+  const [orgId, setOrgId] = useState<string | null>(null);
 
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
   const [isDeleteCategoryModalOpen, setIsDeleteCategoryModalOpen] = useState(false);
@@ -408,9 +541,10 @@ export default function ServicesPage() {
     setIsPageLoading(true);
 
     try {
-      const [categoriesRes, servicesRes] = await Promise.all([
+      const [categoriesRes, servicesRes, profileRes] = await Promise.all([
         apiClient<any>(`${API_BASE}/organizations/services/categories`),
         apiClient<any>(`${API_BASE}/organizations/services`),
+        apiClient<any>(`${API_BASE}/organizations/profile`),
       ]);
 
       const fetchedCategories = categoriesRes.categories || [];
@@ -419,18 +553,42 @@ export default function ServicesPage() {
 
       setCategories(nextCategories);
       setSelectedCategory(nextCategories[0]?.id || 'default');
+      setShowCategoriesSetting(profileRes?.showCategories || false);
+      setOrgId(profileRes?.id || null);
 
       // Map and populate layouts for each category from backend
       const layoutsMap: Record<string, CategoryServiceLayout> = {};
-      layoutsMap['default'] = servicesRes.defaultLayout || { horizontal: [], vertical: [] };
+      layoutsMap['default'] = servicesRes.defaultLayout || { horizontal: [], vertical: [], vertical2: [], vertical2Name: 'Products' };
       for (const cat of fetchedCategories) {
-        layoutsMap[cat.id] = cat.layout || { horizontal: [], vertical: [] };
+        layoutsMap[cat.id] = cat.layout || { horizontal: [], vertical: [], vertical2: [], vertical2Name: 'Products' };
       }
       setServiceLayouts(layoutsMap);
     } catch (err) {
       console.error('Error loading services/categories:', err);
     } finally {
       setIsPageLoading(false);
+    }
+  };
+
+  const handleToggleShowCategories = async (checked: boolean) => {
+    setShowCategoriesSetting(checked);
+    try {
+      await apiClient<any>(`${API_BASE}/organizations/profile`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          showCategories: checked,
+        }),
+      });
+      toast.success(
+        checked
+          ? 'Categories will now be displayed on your booking page.'
+          : 'Services will now be displayed directly on your booking page.'
+      );
+    } catch (err) {
+      console.error('Failed to update category display setting:', err);
+      toast.error('Failed to update display setting.');
+      // Revert state on failure
+      setShowCategoriesSetting(!checked);
     }
   };
 
@@ -606,25 +764,31 @@ export default function ServicesPage() {
         }))
       );
 
-      setServiceLayouts((prev) => ({
-        ...prev,
-        default: {
-          horizontal: (prev.default?.horizontal || []).filter(
-            (id) => id !== serviceId
-          ),
-          vertical: (prev.default?.vertical || []).filter(
-            (id) => id !== serviceId
-          ),
-        },
-        [selectedCategory]: {
-          horizontal: (prev[selectedCategory]?.horizontal || []).filter(
-            (id) => id !== serviceId
-          ),
-          vertical: (prev[selectedCategory]?.vertical || []).filter(
-            (id) => id !== serviceId
-          ),
-        },
-      }));
+      setServiceLayouts((prev) => {
+        const nextServiceLayouts: Record<string, CategoryServiceLayout> = {};
+        for (const [key, value] of Object.entries(prev)) {
+          const normalized = normalizeLayout(value);
+          nextServiceLayouts[key] = {
+            horizontal1: {
+              ...normalized.horizontal1,
+              services: normalized.horizontal1.services.filter((id) => id !== serviceId),
+            },
+            horizontal2: {
+              ...normalized.horizontal2,
+              services: normalized.horizontal2.services.filter((id) => id !== serviceId),
+            },
+            vertical1: {
+              ...normalized.vertical1,
+              services: normalized.vertical1.services.filter((id) => id !== serviceId),
+            },
+            vertical2: {
+              ...normalized.vertical2,
+              services: normalized.vertical2.services.filter((id) => id !== serviceId),
+            },
+          };
+        }
+        return nextServiceLayouts;
+      });
       toast.success('Service deleted successfully!');
     } catch (err) {
       console.error('Error deleting service:', err);
@@ -634,33 +798,94 @@ export default function ServicesPage() {
     }
   };
 
-  const handleAddCategory = async () => {
-    if (!newCategoryName.trim()) return;
+  const openAddCategoryModal = () => {
+    setEditingCategory(null);
+    setNewCategoryName('');
+    setNewCategoryPrice('');
+    setNewCategoryImageUrl(null);
+    setCategoryImagePreview(null);
+    setIsCategoryModalOpen(true);
+  };
+
+  const openEditCategoryModal = (category: Category) => {
+    setEditingCategory(category);
+    setNewCategoryName(category.name);
+    setNewCategoryPrice(category.price || '');
+    setNewCategoryImageUrl(category.imageUrl || null);
+    setCategoryImagePreview(category.imageUrl || null);
+    setIsCategoryModalOpen(true);
+  };
+
+  const handleSaveCategory = async () => {
+    if (!newCategoryName.trim()) {
+      alert('Category name is required.');
+      return;
+    }
     setIsLoading(true);
 
     try {
-      const res = await apiClient<any>(
-        `${API_BASE}/organizations/services/categories`,
-        {
-          method: 'POST',
-          body: JSON.stringify({ name: newCategoryName.trim() }),
-        }
-      );
+      if (editingCategory) {
+        const res = await apiClient<any>(
+          `${API_BASE}/organizations/services/categories/${editingCategory.id}`,
+          {
+            method: 'PATCH',
+            body: JSON.stringify({
+              name: newCategoryName.trim(),
+              imageUrl: newCategoryImageUrl || null,
+              price: newCategoryPrice.trim() || null,
+            }),
+          }
+        );
 
-      const newCategory: Category = {
-        id: res.category.id,
-        name: res.category.name,
-        services: [],
-      };
+        setCategories((prev) =>
+          prev.map((cat) =>
+            cat.id === editingCategory.id
+              ? {
+                  ...cat,
+                  name: res.category.name,
+                  imageUrl: res.category.imageUrl || null,
+                  price: res.category.price || null,
+                }
+              : cat
+          )
+        );
 
-      setCategories((prev) => [...prev, newCategory]);
-      setSelectedCategory(newCategory.id);
+        setEditingCategory(null);
+        toast.success('Category updated successfully!');
+      } else {
+        const res = await apiClient<any>(
+          `${API_BASE}/organizations/services/categories`,
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              name: newCategoryName.trim(),
+              imageUrl: newCategoryImageUrl || null,
+              price: newCategoryPrice.trim() || null,
+            }),
+          }
+        );
+
+        const newCategory: Category = {
+          id: res.category.id,
+          name: res.category.name,
+          imageUrl: res.category.imageUrl || null,
+          price: res.category.price || null,
+          services: [],
+        };
+
+        setCategories((prev) => [...prev, newCategory]);
+        setSelectedCategory(newCategory.id);
+        toast.success('Category created successfully!');
+      }
+
       setNewCategoryName('');
+      setNewCategoryPrice('');
+      setNewCategoryImageUrl(null);
+      setCategoryImagePreview(null);
       setIsCategoryModalOpen(false);
-      toast.success('Category created successfully!');
     } catch (err) {
-      console.error('Error creating category:', err);
-      toast.error('Failed to create category.');
+      console.error('Error saving category:', err);
+      toast.error('Failed to save category.');
     } finally {
       setIsLoading(false);
     }
@@ -729,22 +954,52 @@ export default function ServicesPage() {
 
   const closeCategoryModal = () => {
     setIsCategoryModalOpen(false);
+    setEditingCategory(null);
     setNewCategoryName('');
+    setNewCategoryPrice('');
+    setNewCategoryImageUrl(null);
+    setCategoryImagePreview(null);
   };
 
-  const getCategoryLayout = (categoryId: string): CategoryServiceLayout =>
-    serviceLayouts[categoryId] || { horizontal: [], vertical: [] };
+  const handleCategoryImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Image must be less than 10MB');
+      return;
+    }
+    const previewUrl = URL.createObjectURL(file);
+    setCategoryImagePreview(previewUrl);
+    setIsCategoryImageUploading(true);
+    try {
+      const body = new FormData();
+      body.append('file', file);
+      const res = await apiClient<any>(
+        `${API_BASE}/organizations/services/categories/upload-image`,
+        { method: 'POST', body },
+      );
+      setNewCategoryImageUrl(res.imageUrl);
+    } catch (err) {
+      console.error('Category image upload failed:', err);
+      toast.error('Failed to upload image.');
+      setCategoryImagePreview(null);
+    } finally {
+      setIsCategoryImageUploading(false);
+      URL.revokeObjectURL(previewUrl);
+    }
+  };
+
+  const getCategoryLayout = (categoryId: string): CategoryServiceLayout => {
+    const layout = serviceLayouts[categoryId];
+    return normalizeLayout(layout);
+  };
 
   const updateCategoryLayout = (
     categoryId: string,
     updater: (layout: CategoryServiceLayout) => CategoryServiceLayout
   ) => {
     setServiceLayouts((prev) => {
-      const currentLayout = prev[categoryId] || {
-        horizontal: [],
-        vertical: [],
-      };
-
+      const currentLayout = normalizeLayout(prev[categoryId]);
       return {
         ...prev,
         [categoryId]: updater(currentLayout),
@@ -780,36 +1035,93 @@ export default function ServicesPage() {
     setIsServiceLayoutModalOpen(false);
   };
 
+  const handleSaveServiceLayout = async () => {
+    setIsSavingLayout(true);
+    try {
+      const currentLayout = getCategoryLayout(layoutModalCategory);
+      await saveServiceLayout(layoutModalCategory, currentLayout);
+      toast.success('Layout saved successfully!');
+    } catch (err) {
+      console.error('Error saving service layout:', err);
+      toast.error('Failed to save layout.');
+    } finally {
+      setIsSavingLayout(false);
+    }
+  };
+
+  const handleSectionTitleChange = (
+    orientation: LayoutOrientation,
+    title: string
+  ) => {
+    let nextLayout: CategoryServiceLayout | null = null;
+    updateCategoryLayout('default', (layout) => {
+      nextLayout = {
+        ...layout,
+        [orientation]: {
+          ...layout[orientation],
+          title,
+        },
+      };
+      return nextLayout;
+    });
+    if (nextLayout) {
+      void saveServiceLayout('default', nextLayout);
+    }
+  };
+
+  const handleSectionTypeChange = (
+    orientation: LayoutOrientation,
+    type: 'services' | 'categories' | 'staff' | 'products'
+  ) => {
+    let nextLayout: CategoryServiceLayout | null = null;
+    updateCategoryLayout('default', (layout) => {
+      nextLayout = {
+        ...layout,
+        [orientation]: {
+          ...layout[orientation],
+          type,
+        },
+      };
+      return nextLayout;
+    });
+    if (nextLayout) {
+      void saveServiceLayout('default', nextLayout);
+    }
+  };
+
   const handleServiceDrop = (orientation: LayoutOrientation) => {
     if (!draggedServiceId) return;
 
     let nextLayout: CategoryServiceLayout | null = null;
 
     updateCategoryLayout('default', (layout) => {
-      const targetSection =
-        orientation === 'horizontal' ? layout.horizontal : layout.vertical;
+      const targetSection = layout[orientation];
 
-      if (targetSection.length >= 5) {
-        alert(`Cannot add more than 5 services to the ${orientation} section.`);
+      if (targetSection.services.length >= 5) {
+        alert(`Cannot add more than 5 services to the ${targetSection.title} section.`);
         return layout;
       }
 
-      const nextHorizontal = layout.horizontal.filter(
-        (id) => id !== draggedServiceId
-      );
-      const nextVertical = layout.vertical.filter(
-        (id) => id !== draggedServiceId
-      );
+      const nextHorizontal1Services = (layout.horizontal1?.services || []).filter((id) => id !== draggedServiceId);
+      const nextHorizontal2Services = (layout.horizontal2?.services || []).filter((id) => id !== draggedServiceId);
+      const nextVertical1Services = (layout.vertical1?.services || []).filter((id) => id !== draggedServiceId);
+      const nextVertical2Services = (layout.vertical2?.services || []).filter((id) => id !== draggedServiceId);
 
-      if (orientation === 'horizontal') {
-        nextHorizontal.push(draggedServiceId);
-      } else {
-        nextVertical.push(draggedServiceId);
+      if (orientation === 'horizontal1') {
+        nextHorizontal1Services.push(draggedServiceId);
+      } else if (orientation === 'horizontal2') {
+        nextHorizontal2Services.push(draggedServiceId);
+      } else if (orientation === 'vertical1') {
+        nextVertical1Services.push(draggedServiceId);
+      } else if (orientation === 'vertical2') {
+        nextVertical2Services.push(draggedServiceId);
       }
 
       nextLayout = {
-        horizontal: nextHorizontal,
-        vertical: nextVertical,
+        horizontal1: { ...layout.horizontal1, services: nextHorizontal1Services },
+        horizontal2: { ...layout.horizontal2, services: nextHorizontal2Services },
+        vertical1: { ...layout.vertical1, services: nextVertical1Services },
+        vertical2: { ...layout.vertical2, services: nextVertical2Services },
       };
 
       return nextLayout;
@@ -830,9 +1142,13 @@ export default function ServicesPage() {
     let nextLayout: CategoryServiceLayout | null = null;
 
     updateCategoryLayout('default', (layout) => {
+      const targetSection = layout[orientation];
       nextLayout = {
         ...layout,
-        [orientation]: layout[orientation].filter((id) => id !== serviceId),
+        [orientation]: {
+          ...targetSection,
+          services: targetSection.services.filter((id) => id !== serviceId),
+        },
       };
       return nextLayout;
     });
@@ -843,7 +1159,12 @@ export default function ServicesPage() {
   };
 
   const handleResetServiceLayout = () => {
-    const nextLayout = { horizontal: [], vertical: [] };
+    const nextLayout: CategoryServiceLayout = {
+      horizontal1: { type: 'services', title: 'Featured Services', services: [] },
+      horizontal2: { type: 'staff', title: 'Our Staffs', services: [] },
+      vertical1: { type: 'services', title: 'Menu', services: [] },
+      vertical2: { type: 'products', title: 'Products', services: [] },
+    };
     setServiceLayouts((prev) => ({
       ...prev,
       default: nextLayout,
@@ -868,43 +1189,63 @@ export default function ServicesPage() {
 
   const currentLayout = getCategoryLayout('default');
   const layoutServiceIds = new Set([
-    ...currentLayout.horizontal,
-    ...currentLayout.vertical,
+    ...(currentLayout.horizontal1?.type === 'services' ? currentLayout.horizontal1.services : []),
+    ...(currentLayout.horizontal2?.type === 'services' ? currentLayout.horizontal2.services : []),
+    ...(currentLayout.vertical1?.type === 'services' ? currentLayout.vertical1.services : []),
+    ...(currentLayout.vertical2?.type === 'services' ? currentLayout.vertical2.services : []),
   ]);
 
   const totalAvailableCount = allServices.filter(
     (service) => !layoutServiceIds.has(service.id)
   ).length;
 
-  const horizontalServices = currentLayout.horizontal
-    .map((serviceId) =>
-      allServices.find((service) => service.id === serviceId)
-    )
+  const horizontal1Services = (currentLayout.horizontal1?.services || [])
+    .map((serviceId) => allServices.find((service) => service.id === serviceId))
     .filter((service): service is Service => Boolean(service));
 
-  const verticalServices = currentLayout.vertical
-    .map((serviceId) =>
-      allServices.find((service) => service.id === serviceId)
-    )
+  const horizontal2Services = (currentLayout.horizontal2?.services || [])
+    .map((serviceId) => allServices.find((service) => service.id === serviceId))
+    .filter((service): service is Service => Boolean(service));
+
+  const vertical1Services = (currentLayout.vertical1?.services || [])
+    .map((serviceId) => allServices.find((service) => service.id === serviceId))
+    .filter((service): service is Service => Boolean(service));
+
+  const vertical2Services = (currentLayout.vertical2?.services || [])
+    .map((serviceId) => allServices.find((service) => service.id === serviceId))
     .filter((service): service is Service => Boolean(service));
 
   return (
     <div className="min-h-full bg-[var(--card-bg-light)]">
       <header className="top-5 z-10 pt-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="items-center space-x-3">
+          <div className="flex flex-wrap justify-between items-center gap-4 py-4 border-b border-gray-100">
+            <div className="space-y-1">
               <h1 className="text-3xl font-bold tracking-tight">
                 Service Menu
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 Create and manage the services you offer to customers.
               </p>
             </div>
 
-            <Button onClick={loadServices} disabled={isPageLoading}>
-              Refresh
-            </Button>
+            <div className="flex items-center gap-4">
+              <Button onClick={loadServices} disabled={isPageLoading} variant="outline">
+                Refresh
+              </Button>
+
+              <Button
+                disabled={isPageLoading || !orgId}
+                onClick={() => {
+                  if (orgId) {
+                    window.open(`${CLIENT_BASE}/main/specific/${orgId}`, '_blank');
+                  }
+                }}
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                <span>Preview</span>
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -919,29 +1260,63 @@ export default function ServicesPage() {
 
               <div className="p-2 max-h-[13rem] min-h-[13rem] overflow-y-auto">
                 {categories.map((category) => (
-                  <button
+                  <div
                     key={category.id}
                     onClick={() => setSelectedCategory(category.id)}
-                    className={`w-full text-left px-3 py-2 rounded-lg mb-1 transition-all flex justify-between items-center group cursor-pointer ${
+                    className={`w-full text-left px-3 py-2 rounded-lg mb-1 transition-all flex justify-between items-center group cursor-pointer select-none ${
                       selectedCategory === category.id
                         ? 'bg-[var(--card-bg)] text-gray-900'
                         : 'hover:bg-[var(--card-bg)] text-gray-700'
                     }`}
                   >
-                    <span>{category.name.toUpperCase()}</span>
+                    <span className="flex items-center gap-2 min-w-0">
+                      {category.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={category.imageUrl}
+                          alt={category.name}
+                          className="w-7 h-7 rounded-md object-cover flex-shrink-0 border border-gray-200"
+                        />
+                      ) : (
+                        <span className="w-7 h-7 rounded-md bg-[var(--card-bg-light)] flex-shrink-0 flex items-center justify-center border border-gray-200">
+                          <Package className="w-3.5 h-3.5 text-gray-400" />
+                        </span>
+                      )}
+                      <span className="truncate">{category.name.toUpperCase()}</span>
+                      {category.price && (
+                        <span className="text-xs font-semibold text-[var(--primary-start)] flex-shrink-0">
+                          ${category.price}
+                        </span>
+                      )}
+                    </span>
 
                     {category.id !== 'default' && (
-                      <div
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          requestDeleteCategory(category.id);
-                        }}
-                        className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition"
-                      >
-                        <Trash2 className="w-3 h-3 text-[var(--primary-end)]" />
+                      <div className="flex items-center gap-1.5 transition flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openEditCategoryModal(category);
+                          }}
+                          className="p-1 text-gray-400 hover:text-gray-950 rounded hover:bg-gray-200 transition cursor-pointer"
+                          title="Edit Category"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            requestDeleteCategory(category.id);
+                          }}
+                          className="p-1 text-gray-400 hover:text-red-500 rounded hover:bg-red-50 transition cursor-pointer"
+                          title="Delete Category"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
                       </div>
                     )}
-                  </button>
+                  </div>
                 ))}
 
                 {!isPageLoading && categories.length === 0 && (
@@ -952,7 +1327,7 @@ export default function ServicesPage() {
               </div>
 
               <Button
-                onClick={() => setIsCategoryModalOpen(true)}
+                onClick={openAddCategoryModal}
                 className="w-full"
               >
                 <Plus className="w-4 h-4" />
@@ -963,10 +1338,44 @@ export default function ServicesPage() {
 
           <div className="lg:col-span-3">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="p-4 border-b border-gray-100 bg-[var(--card-bg)] flex justify-between items-center">
-                <h3 className="font-semibold text-gray-900">
-                  Services in {currentCategory?.name || 'Services'}
-                </h3>
+              <div className="p-4 border-b border-gray-100 bg-[var(--card-bg)] flex flex-wrap justify-between items-center gap-4">
+                <div className="flex items-center gap-3">
+                  {currentCategory?.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={currentCategory.imageUrl}
+                      alt={currentCategory.name}
+                      className="w-10 h-10 rounded-lg object-cover border border-gray-200 shadow-sm flex-shrink-0"
+                    />
+                  ) : (
+                    selectedCategory !== 'default' && (
+                      <div className="w-10 h-10 rounded-lg bg-[var(--card-bg-light)] flex items-center justify-center border border-gray-200 flex-shrink-0">
+                        <Package className="w-5 h-5 text-gray-400" />
+                      </div>
+                    )
+                  )}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-semibold text-gray-900 truncate">
+                        Services in {currentCategory?.name || 'Services'}
+                      </h3>
+                      {selectedCategory !== 'default' && currentCategory && (
+                        <button
+                          onClick={() => openEditCategoryModal(currentCategory)}
+                          className="p-1 rounded-md text-gray-400 hover:bg-gray-150 hover:text-gray-900 transition cursor-pointer flex items-center justify-center"
+                          title="Edit Category"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                    {selectedCategory !== 'default' && currentCategory?.price && (
+                      <p className="text-xs font-semibold text-[var(--primary-start)] mt-0.5">
+                        Starting Price: ${currentCategory.price}
+                      </p>
+                    )}
+                  </div>
+                </div>
 
                 <div className="flex space-x-2">
                   <Button
@@ -1415,19 +1824,19 @@ export default function ServicesPage() {
       <Modal
         isOpen={isCategoryModalOpen}
         onClose={closeCategoryModal}
-        title="Add New Category"
+        title={editingCategory ? 'Edit Category' : 'Add New Category'}
         size="sm"
-        confirmButtonText="Add Category"
-        onConfirm={handleAddCategory}
+        confirmButtonText={editingCategory ? 'Update Category' : 'Add Category'}
+        onConfirm={handleSaveCategory}
         onCancel={closeCategoryModal}
         isConfirmLoading={isLoading}
       >
         <div className="space-y-4">
+          {/* Category Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Category Name *
             </label>
-
             <input
               type="text"
               value={newCategoryName}
@@ -1436,9 +1845,72 @@ export default function ServicesPage() {
               className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[var(--primary-start)] focus:ring-1 focus:ring-[var(--primary-start)]/30"
               autoFocus
             />
+          </div>
 
-            <p className="mt-2 text-sm text-gray-500">
-              Categories help organize your services for better navigation.
+          {/* Category Price */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Starting Price (optional)
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium">$</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={newCategoryPrice}
+                onChange={(event) => setNewCategoryPrice(event.target.value)}
+                placeholder="0.00"
+                className="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[var(--primary-start)] focus:ring-1 focus:ring-[var(--primary-start)]/30"
+              />
+            </div>
+            <p className="mt-1 text-xs text-gray-400">Displayed beside the category name.</p>
+          </div>
+
+          {/* Category Image */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Category Image (optional)
+            </label>
+            {categoryImagePreview ? (
+              <div className="relative inline-block">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={categoryImagePreview}
+                  alt="Category preview"
+                  className="w-24 h-24 rounded-xl object-cover border border-gray-200 shadow-sm"
+                />
+                {isCategoryImageUploading && (
+                  <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/40">
+                    <span className="text-white text-xs font-medium">Uploading…</span>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => { setNewCategoryImageUrl(null); setCategoryImagePreview(null); }}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ) : (
+              <label
+                htmlFor="category-image-upload"
+                className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-[var(--primary-start)] hover:bg-[var(--card-bg-light)] transition"
+              >
+                <Upload className="w-5 h-5 text-gray-400 mb-1" />
+                <span className="text-xs text-gray-500">Click to upload image</span>
+                <input
+                  id="category-image-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleCategoryImageUpload}
+                />
+              </label>
+            )}
+            <p className="mt-2 text-xs text-gray-400">
+              Image shown beside the category name in the sidebar.
             </p>
           </div>
         </div>
@@ -1564,30 +2036,64 @@ export default function ServicesPage() {
             </div>
           </section>
 
-          <div className="grid gap-4 xl:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-2">
             <ServiceDropZone
-              title="Horizontal"
-              description="Best for side-by-side cards and grouped service rows."
-              services={horizontalServices}
-              orientation="horizontal"
-              isActive={activeDropZone === 'horizontal'}
-              onDragOver={setActiveDropZone}
-              onDrop={handleServiceDrop}
+              sectionKey="horizontal1"
+              section={currentLayout.horizontal1}
+              allAvailableServices={allServices}
+              onTitleChange={(title) => handleSectionTitleChange('horizontal1', title)}
+              onTypeChange={(type) => handleSectionTypeChange('horizontal1', type)}
+              isActive={activeDropZone === 'horizontal1'}
+              onDragOver={() => setActiveDropZone('horizontal1')}
+              onDrop={() => handleServiceDrop('horizontal1')}
               onDragLeave={() => setActiveDropZone(null)}
-              onRemove={handleRemoveFromLayout}
+              onRemoveService={(serviceId) => handleRemoveFromLayout(serviceId, 'horizontal1')}
             />
 
             <ServiceDropZone
-              title="Vertical"
-              description="Best for stacked service items and detailed lists."
-              services={verticalServices}
-              orientation="vertical"
-              isActive={activeDropZone === 'vertical'}
-              onDragOver={setActiveDropZone}
-              onDrop={handleServiceDrop}
+              sectionKey="horizontal2"
+              section={currentLayout.horizontal2}
+              allAvailableServices={allServices}
+              onTitleChange={(title) => handleSectionTitleChange('horizontal2', title)}
+              onTypeChange={(type) => handleSectionTypeChange('horizontal2', type)}
+              isActive={activeDropZone === 'horizontal2'}
+              onDragOver={() => setActiveDropZone('horizontal2')}
+              onDrop={() => handleServiceDrop('horizontal2')}
               onDragLeave={() => setActiveDropZone(null)}
-              onRemove={handleRemoveFromLayout}
+              onRemoveService={(serviceId) => handleRemoveFromLayout(serviceId, 'horizontal2')}
             />
+
+            <ServiceDropZone
+              sectionKey="vertical1"
+              section={currentLayout.vertical1}
+              allAvailableServices={allServices}
+              onTitleChange={(title) => handleSectionTitleChange('vertical1', title)}
+              onTypeChange={(type) => handleSectionTypeChange('vertical1', type)}
+              isActive={activeDropZone === 'vertical1'}
+              onDragOver={() => setActiveDropZone('vertical1')}
+              onDrop={() => handleServiceDrop('vertical1')}
+              onDragLeave={() => setActiveDropZone(null)}
+              onRemoveService={(serviceId) => handleRemoveFromLayout(serviceId, 'vertical1')}
+            />
+
+            <ServiceDropZone
+              sectionKey="vertical2"
+              section={currentLayout.vertical2}
+              allAvailableServices={allServices}
+              onTitleChange={(title) => handleSectionTitleChange('vertical2', title)}
+              onTypeChange={(type) => handleSectionTypeChange('vertical2', type)}
+              isActive={activeDropZone === 'vertical2'}
+              onDragOver={() => setActiveDropZone('vertical2')}
+              onDrop={() => handleServiceDrop('vertical2')}
+              onDragLeave={() => setActiveDropZone(null)}
+              onRemoveService={(serviceId) => handleRemoveFromLayout(serviceId, 'vertical2')}
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+            <Button onClick={handleSaveServiceLayout} disabled={isSavingLayout}>
+              {isSavingLayout ? 'Saving...' : 'Save All'}
+            </Button>
           </div>
         </div>
       </Modal>

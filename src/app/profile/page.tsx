@@ -43,10 +43,12 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import OnboardingForm from "@/components/OnboardingForm";
+import Modal from "@/components/modal/Modal";
 import { toast } from "sonner";
 import { formatToAmPm } from "@/lib/utils";
 
 const PROFILE_BASE = process.env.NEXT_PUBLIC_PROFILE_BASE_URL!;
+const CLIENT_BASE = process.env.NEXT_PUBLIC_CLIENT_URL || 'http://localhost:3002';
 
 export default function ProfilePage() {
   const { user, isLoading: authLoading, refreshUser } = useAuth();
@@ -55,6 +57,8 @@ export default function ProfilePage() {
   const [isFixing, setIsFixing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState<any>(null);
+  const [orgId, setOrgId] = useState<string | null>(null);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
@@ -144,6 +148,7 @@ export default function ProfilePage() {
       const data: any = await apiClient(PROFILE_BASE);
 
       setProfileData(data);
+      setOrgId(data.id || null);
 
       setFormData({
         name: data.name || "",
@@ -643,6 +648,15 @@ export default function ProfilePage() {
         </h2>
 
         <div className="flex items-center space-x-2">
+          <Button
+            disabled={loading || !orgId}
+            onClick={() => setIsPreviewModalOpen(true)}
+            variant="outline"
+          >
+            <Eye className="mr-2 h-4 w-4" />
+            Preview
+          </Button>
+
           {isEditing ? (
             <>
               <Button onClick={handleSave} disabled={isSaving}>
@@ -1795,6 +1809,36 @@ export default function ProfilePage() {
           </Tabs>
         </div>
       </div>
+
+      <Modal
+        isOpen={isPreviewModalOpen}
+        onClose={() => setIsPreviewModalOpen(false)}
+        title="Organization Profile Preview"
+        size="xl"
+        showCloseButton={true}
+        cancelButtonText="Close"
+        confirmButtonText="Open in Client Site"
+        onConfirm={() => {
+          if (orgId) {
+            window.open(`${CLIENT_BASE}/main/specific/${orgId}`, '_blank');
+          }
+        }}
+      >
+        <div className="w-full h-[80vh]">
+          {orgId ? (
+            <iframe
+              src={`${CLIENT_BASE}/main/specific/${orgId}`}
+              className="w-full h-full border-0 rounded-lg"
+              title="Organization Profile Preview"
+              sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full text-gray-500">
+              Loading preview...
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }
