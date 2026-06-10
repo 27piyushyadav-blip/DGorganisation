@@ -7,13 +7,15 @@ interface ModalProps {
   onClose: () => void;
   title?: string;
   children: ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
   showCloseButton?: boolean;
   cancelButtonText?: string;
   confirmButtonText?: string;
   onCancel?: () => void;
   onConfirm?: () => void;
   isConfirmLoading?: boolean;
+  showConfirmButton?: boolean;
+  showFooter?: boolean;
 }
 
 const Modal: React.FC<ModalProps> = ({
@@ -28,6 +30,8 @@ const Modal: React.FC<ModalProps> = ({
   onCancel,
   onConfirm,
   isConfirmLoading = false,
+  showConfirmButton = true,
+  showFooter = true,
 }) => {
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -54,6 +58,7 @@ const Modal: React.FC<ModalProps> = ({
     md: 'max-w-lg',
     lg: 'max-w-2xl',
     xl: 'max-w-4xl',
+    xxl: 'max-w-7xl w-[95vw]',
   };
 
   const handleCancel = () => {
@@ -120,23 +125,27 @@ const Modal: React.FC<ModalProps> = ({
           <div className="flex-1 overflow-auto p-4 bg-[var(--card-bg-light)]">{children}</div>
 
           {/* Footer with Buttons */}
-          <div className="border-t p-4  bg-[var(--card-bg)] rounded-b-lg">
-            <div className="flex gap-3">
-              <Button
-                onClick={handleCancel}
-                className="flex-1 bg-white border-[var(--primary-start)] hover:bg-[var(--primary-end)] text-black hover:text-white"
-              >
-                {cancelButtonText}
-              </Button>
-              <Button
-                onClick={handleConfirm}
-                disabled={isConfirmLoading}
-                variant="outline" className="flex-1 "
-              >
-                {isConfirmLoading ? 'Loading...' : confirmButtonText}
-              </Button>
+          {showFooter && (
+            <div className="border-t p-4  bg-[var(--card-bg)] rounded-b-lg">
+              <div className="flex gap-3">
+                <Button
+                  onClick={handleCancel}
+                  className="flex-1 bg-white border-[var(--primary-start)] hover:bg-[var(--primary-end)] text-black hover:text-white"
+                >
+                  {cancelButtonText}
+                </Button>
+                {showConfirmButton && (
+                  <Button
+                    onClick={handleConfirm}
+                    disabled={isConfirmLoading}
+                    variant="outline" className="flex-1 "
+                  >
+                    {isConfirmLoading ? 'Loading...' : confirmButtonText}
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </>
