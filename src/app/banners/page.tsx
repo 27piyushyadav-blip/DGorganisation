@@ -126,6 +126,9 @@ export default function BannersPage() {
   const [editBannerLink, setEditBannerLink] = useState('');
   const [editSelectedFile, setEditSelectedFile] = useState<File | null>(null);
   const [editPreviewUrl, setEditPreviewUrl] = useState<string>('');
+  const [editCrop, setEditCrop] = useState<Point>({ x: 0, y: 0 });
+  const [editZoom, setEditZoom] = useState(1);
+  const [editCroppedAreaPixels, setEditCroppedAreaPixels] = useState<Area | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editFileInputRef = useRef<HTMLInputElement>(null);
@@ -168,6 +171,14 @@ export default function BannersPage() {
       }
     };
   }, [previewUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (editPreviewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(editPreviewUrl);
+      }
+    };
+  }, [editPreviewUrl]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -302,6 +313,9 @@ export default function BannersPage() {
     setEditBannerLink(banner.link || '');
     setEditPreviewUrl(banner.imageUrl);
     setEditSelectedFile(null);
+    setEditCrop({ x: 0, y: 0 });
+    setEditZoom(1);
+    setEditCroppedAreaPixels(null);
     setIsEditModalOpen(true);
   };
 
@@ -313,6 +327,9 @@ export default function BannersPage() {
     setEditBannerLink('');
     setEditPreviewUrl('');
     setEditSelectedFile(null);
+    setEditCrop({ x: 0, y: 0 });
+    setEditZoom(1);
+    setEditCroppedAreaPixels(null);
     if (editFileInputRef.current) {
       editFileInputRef.current.value = '';
     }
@@ -321,9 +338,16 @@ export default function BannersPage() {
   const handleEditFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (editPreviewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(editPreviewUrl);
+      }
+
       setEditSelectedFile(file);
       const url = URL.createObjectURL(file);
       setEditPreviewUrl(url);
+      setEditCrop({ x: 0, y: 0 });
+      setEditZoom(1);
+      setEditCroppedAreaPixels(null);
     }
   };
 
@@ -336,8 +360,19 @@ export default function BannersPage() {
       let finalImageUrl = editingBanner.imageUrl;
 
       if (editSelectedFile) {
+        if (!editPreviewUrl || !editCroppedAreaPixels) {
+          throw new Error('Please select and crop the image first');
+        }
+
+        const croppedFile = await getCroppedImageFile(
+          editPreviewUrl,
+          editCroppedAreaPixels,
+          editSelectedFile.name,
+          editSelectedFile.type || 'image/jpeg'
+        );
+
         const formData = new FormData();
-        formData.append('file', editSelectedFile);
+        formData.append('file', croppedFile);
 
         const uploadRes = await apiClient<{ imageUrl: string }>(
           `${API_BASE}/organizations/banners/upload`,
@@ -738,28 +773,95 @@ export default function BannersPage() {
             </CardHeader>
 
             <form onSubmit={handleSaveEdit}>
-              <CardContent className="space-y-5 pt-5">
+              <CardContent className="space-y-5 pt-5 overflow-auto max-h-[70vh]">
                 <div className="space-y-2">
-                  <Label>Banner Image (Click to change)</Label>
-                  <div
-                    onClick={() => editFileInputRef.current?.click()}
-                    className="border-2 border-dashed rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer transition-all border-[var(--primary-start)]/40 bg-[var(--primary-start)]/5 hover:bg-[var(--primary-start)]/10"
-                  >
-                    <div className="relative w-full overflow-hidden rounded-md flex justify-center bg-black/5">
-                      <img
-                        src={editPreviewUrl}
-                        alt="Banner Preview"
-                        className={`object-cover rounded-md max-h-48 ${
-                          editingType === 'horizontal' ? 'aspect-[16/9] w-full' : 'aspect-[9/16] h-48'
-                        }`}
-                      />
-                      <div className="absolute inset-0 bg-black/30 hover:bg-black/45 flex items-center justify-center transition-colors rounded-md">
-                        <p className="text-white text-xs font-semibold flex items-center bg-black/55 px-3 py-1.5 rounded-md backdrop-blur-xs">
-                          <Upload className="h-4 w-4 mr-1.5" /> Change Image
-                        </p>
+                  <Label>Banner Image</Label>
+                  {editPreviewUrl.startsWith('blob:') ? (
+                    <div className="border-2 border-dashed rounded-lg p-3 flex flex-col items-center justify-center border-[var(--primary-start)]/65 bg-[var(--primary-start)]/5">
+                      <div className="w-full space-y-3">
+                        <div className="relative w-full h-64 overflow-hidden rounded-md bg-black/10">
+                          <Cropper
+                            image={editPreviewUrl}
+                            crop={editCrop}
+                            zoom={editZoom}
+                            aspect={BANNER_ASPECTS[editingType]}
+                            showGrid={false}
+                            cropShape="rect"
+                            onCropChange={setEditCrop}
+                            onCropComplete={(_, area) => setEditCroppedAreaPixels(area)}
+                            onZoomChange={setEditZoom}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>Adjust crop and zoom before saving</span>
+                            <span>{editingType === 'horizontal' ? '16:9' : '9:16'}</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="1"
+                            max="3"
+                            step="0.01"
+                            value={editZoom}
+                            onChange={(event) => setEditZoom(Number(event.target.value))}
+                            className="w-full"
+                          />
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="text-xs flex-1 flex items-center justify-center gap-1.5"
+                            onClick={() => editFileInputRef.current?.click()}
+                          >
+                            <Upload className="h-3.5 w-3.5" /> Select Different Image
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs text-red-500 hover:text-red-600 hover:bg-red-50"
+                            onClick={() => {
+                              if (editPreviewUrl.startsWith('blob:')) {
+                                URL.revokeObjectURL(editPreviewUrl);
+                              }
+                              setEditPreviewUrl(editingBanner.imageUrl);
+                              setEditSelectedFile(null);
+                              setEditCrop({ x: 0, y: 0 });
+                              setEditZoom(1);
+                              setEditCroppedAreaPixels(null);
+                              if (editFileInputRef.current) {
+                                editFileInputRef.current.value = '';
+                              }
+                            }}
+                          >
+                            Cancel Change
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div
+                      onClick={() => editFileInputRef.current?.click()}
+                      className="border-2 border-dashed rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer transition-all border-[var(--primary-start)]/40 bg-[var(--primary-start)]/5 hover:bg-[var(--primary-start)]/10"
+                    >
+                      <div className="relative w-full overflow-hidden rounded-md flex justify-center bg-black/5">
+                        <img
+                          src={editPreviewUrl}
+                          alt="Banner Preview"
+                          className={`object-cover rounded-md max-h-48 ${
+                            editingType === 'horizontal' ? 'aspect-[16/9] w-full' : 'aspect-[9/16] h-48'
+                          }`}
+                        />
+                        <div className="absolute inset-0 bg-black/30 hover:bg-black/45 flex items-center justify-center transition-colors rounded-md">
+                          <p className="text-white text-xs font-semibold flex items-center bg-black/55 px-3 py-1.5 rounded-md backdrop-blur-xs">
+                            <Upload className="h-4 w-4 mr-1.5" /> Change Image
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <input
                     ref={editFileInputRef}
                     type="file"
