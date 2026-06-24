@@ -39,6 +39,7 @@ type OrgService = {
   discountValue: string | null;
   durationMinutes: number | null;
   imageUrl: string | null;
+  description: string | null;
   isActive: boolean;
   categoryId?: string | null;
   updatedAt?: string;
@@ -51,6 +52,7 @@ interface Service {
   discount: number;
   duration: string;
   image: string | null;
+  description: string | null;
   category: string;
   discountType?: DiscountType;
   discountValue?: string | null;
@@ -117,6 +119,7 @@ function orgServiceToUiService(service: OrgService): Service {
         : 0,
     duration: durationToLabel(service.durationMinutes),
     image: service.imageUrl,
+    description: service.description ?? null,
     category: service.categoryId || 'default',
     discountType: service.discountType,
     discountValue: service.discountValue,
@@ -183,6 +186,7 @@ function uiServiceToPayload(service: Service) {
     durationMinutes:
       service.durationMinutes ?? durationLabelToMinutes(service.duration),
     imageUrl: service.image,
+    description: service.description ?? null,
     isActive: service.isActive ?? true,
     categoryId: service.categoryId === 'default' ? null : (service.categoryId ?? null),
   };
@@ -201,6 +205,7 @@ export default function ServicesPage() {
     discount: 0,
     duration: '',
     image: null,
+    description: null,
   });
 
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -416,6 +421,7 @@ export default function ServicesPage() {
               ? String(newService.discount)
               : null,
           durationMinutes: newService.durationMinutes ?? durationLabelToMinutes(newService.duration || ''),
+          description: newService.description || null,
           isActive: true,
           categoryId: selectedCategory === 'default' ? null : selectedCategory,
         };
@@ -448,6 +454,7 @@ export default function ServicesPage() {
           duration: '1 hour',
           durationMinutes: 60,
           image: null,
+          description: null,
         });
         setImagePreview(null);
         toast.success('Service created successfully!');
@@ -636,6 +643,7 @@ export default function ServicesPage() {
       duration: '1 hour',
       durationMinutes: 60,
       image: null,
+      description: null,
     });
     setImagePreview(null);
     setIsAddingService(false);
@@ -1286,6 +1294,36 @@ export default function ServicesPage() {
                 </button>
               </div>
             )}
+          </div>
+
+          {/* Nature of Service */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Nature of Service
+              <span className="ml-1.5 text-xs font-normal text-gray-400">( max 50 words — shown on client service cards )</span>
+            </label>
+            <textarea
+              rows={3}
+              maxLength={300}
+              placeholder="Briefly describe what this service involves, its benefits, or who it's for…"
+              value={editingService ? (editingService.description ?? '') : (newService.description ?? '')}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (editingService) {
+                  setEditingService({ ...editingService, description: val || null });
+                } else {
+                  setNewService({ ...newService, description: val || null });
+                }
+              }}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[var(--primary-start)] focus:ring-1 focus:ring-[var(--primary-start)]/30 text-sm resize-none"
+            />
+            <p className="mt-1 text-right text-[11px] text-gray-400">
+              {(() => {
+                const val = editingService ? (editingService.description ?? '') : (newService.description ?? '');
+                const words = val.trim().split(/\s+/).filter(Boolean).length;
+                return `${words} / 50 words`;
+              })()}
+            </p>
           </div>
         </div>
       </Modal>

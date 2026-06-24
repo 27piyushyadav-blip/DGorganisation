@@ -90,7 +90,7 @@ export default function MessagesPage() {
       case 'USD':
         return '$';
       case 'INR':
-        return '₹';
+        return '$';
       case 'EUR':
         return '€';
       case 'GBP':

@@ -43,7 +43,7 @@ type RefundRequest = {
 
 const currency = new Intl.NumberFormat('en-IN', {
   style: 'currency',
-  currency: 'INR',
+  currency: 'AUD',
 });
 
 export default function ExchangeServicepage() {

@@ -66,6 +66,12 @@ export default function Sidebar({ currentPage }: SidebarProps) {
       protected: true,
     },
     {
+      title: 'Action Centre',
+      href: '/action-centre',
+      icon: AlertCircle,
+      protected: true,
+    },
+    {
       title: 'Communication',
       href: '/communication',
       icon: Bell,
@@ -238,6 +244,12 @@ export default function Sidebar({ currentPage }: SidebarProps) {
           icon: ReceiptRussianRuble,
         },
       ],
+    },
+    {
+      title: 'Activity Log',
+      href: '/activity-log',
+      icon: History,
+      protected: true,
     },
     {
       title: 'Profile',

@@ -31,7 +31,7 @@ export type OrgExpert = {
 };
 
 export type CreateVoiceCallBookingPayload = {
-  orderId: string;
+  orderId?: string;
   customerName: string;
   customerPhone: string;
   customerEmail?: string;
@@ -46,7 +46,7 @@ export type CreateVoiceCallBookingPayload = {
   scheduledDate?: string | null;
   scheduledTime?: string | null;
   totalAmount: number;
-  paymentLink: string;
+  paymentLink?: string;
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -256,3 +256,42 @@ export async function sendPaymentLinkApi(payload: {
 
   return handleResponse(response);
 }
+
+// ─── Action Centre API Functions ─────────────────────────────────────────────
+
+export async function getActionCentreRequestsApi(): Promise<{ requests: any[]; metrics: any }> {
+  const token = getAccessToken();
+  if (!token) throw new ServicesApiError('Not authenticated', 401);
+
+  const response = await fetch(`${API_BASE}/organizations/action-centre/requests`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  return handleResponse(response);
+}
+
+export async function getRequestDetailsApi(id: string, type: string): Promise<any> {
+  const token = getAccessToken();
+  if (!token) throw new ServicesApiError('Not authenticated', 401);
+
+  const response = await fetch(`${API_BASE}/organizations/action-centre/requests/${id}?type=${type}`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  return handleResponse(response);
+}
+
+export async function getRequestLogsApi(): Promise<any[]> {
+  const token = getAccessToken();
+  if (!token) throw new ServicesApiError('Not authenticated', 401);
+
+  const response = await fetch(`${API_BASE}/organizations/action-centre/logs`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  return handleResponse(response);
+}
+

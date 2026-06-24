@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import {
   AlertCircle,
@@ -16,6 +16,12 @@ import {
   X,
   Star,
   AlertTriangle,
+  Download,
+  FileText,
+  TrendingUp,
+  TrendingDown,
+  Users,
+  MoreVertical,
 } from 'lucide-react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -42,6 +48,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  getOrganizationBookingsApi,
+  acceptBookingApi,
+  rejectBookingApi,
+  rescheduleBookingApi,
+  createRefundRequestApi,
+} from '@/client/api/bookings';
 
 export default function BookingRequestsPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -56,51 +69,75 @@ export default function BookingRequestsPage() {
   const [refundAmount, setRefundAmount] = useState('');
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedDetailsBooking, setSelectedDetailsBooking] = useState<any>(null);
+  
+  const [bookingRequests, setBookingRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
-  const bookingRequests = [
-    {
-      id: 1,
-      userName: 'Jane Smith',
-      expertName: 'Dr. Michael Johnson',
-      date: '2024-02-15',
-      time: '3:30 PM',
-      duration: '45 min',
-      type: 'offline',
-      status: 'pending',
-      amount: '$100',
-      userAvatar: '/avatars/jane.jpg',
-      expertAvatar: '/avatars/michael.jpg',
-      requestDate: '2024-02-14',
-    },
-    {
-      id: 2,
-      userName: 'Alice Brown',
-      expertName: 'Dr. Sarah Williams',
-      date: '2024-02-15',
-      time: '5:00 PM',
-      duration: '60 min',
-      type: 'online',
-      status: 'pending',
-      amount: '$120',
-      userAvatar: '/avatars/alice.jpg',
-      expertAvatar: '/avatars/sarah.jpg',
-      requestDate: '2024-02-14',
-    },
-    {
-      id: 3,
-      userName: 'Robert Johnson',
-      expertName: 'Dr. Emily Davis',
-      date: '2024-02-16',
-      time: '10:00 AM',
-      duration: '30 min',
-      type: 'online',
-      status: 'pending',
-      amount: '$80',
-      userAvatar: '/avatars/robert.jpg',
-      expertAvatar: '/avatars/emily.jpg',
-      requestDate: '2024-02-15',
-    },
-  ];
+  const loadBookings = async () => {
+    try {
+      setLoading(true);
+      const res = await getOrganizationBookingsApi('pending');
+      const mapped = (res.bookings || []).map((b: any) => {
+        const d = new Date(b.scheduledDate);
+        return {
+          id: b.id,
+          userName: b.clientName || 'Customer',
+          clientPhone: b.clientPhone || '+1 234 567 890',
+          expertName: b.expertName || 'Expert',
+          expertSpecialty: b.expertSpecialty || 'Therapy',
+          date: d.toLocaleDateString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit' }),
+          time: d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }),
+          duration: `${b.duration || 60} min`,
+          type: b.type || 'online',
+          status: b.status,
+          amount: b.amount ? (b.amount.startsWith('$') ? b.amount : `$${b.amount}`) : '$0',
+          userAvatar: b.userAvatar || '',
+          expertAvatar: b.expertAvatar || '',
+          requestDate: b.createdAt ? new Date(b.createdAt).toLocaleDateString() : 'N/A',
+          createdAt: b.createdAt || new Date().toISOString(),
+          scheduledDate: b.scheduledDate,
+        };
+      });
+      setBookingRequests(mapped);
+      setError(null);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Failed to load booking requests');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadBookings();
+  }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  const handleApprove = async (bookingId: string) => {
+    try {
+      await acceptBookingApi(bookingId);
+      loadBookings();
+    } catch (err: any) {
+      alert(err.message || 'Failed to approve booking request');
+    }
+  };
+
+  const handleReject = async (bookingId: string) => {
+    const reason = prompt('Please enter rejection reason (optional):');
+    if (reason === null) return;
+    try {
+      await rejectBookingApi(bookingId, reason);
+      loadBookings();
+    } catch (err: any) {
+      alert(err.message || 'Failed to reject booking request');
+    }
+  };
 
   const getTypeIcon = (type: string) => {
     return type === 'online' ? (
@@ -159,40 +196,63 @@ export default function BookingRequestsPage() {
     setIsRescheduleModalOpen(true);
   };
 
-  const handleConfirmReschedule = () => {
-    console.log('Rescheduling booking request:', {
-      booking: selectedBooking,
-      date: selectedDate,
-      time: selectedTime,
-      expert: selectedExpert,
-      comment,
-    });
-    setIsRescheduleModalOpen(false);
-    setSelectedDate('');
-    setSelectedTime('');
-    setSelectedExpert('');
-    setComment('');
+  const handleConfirmReschedule = async () => {
+    if (!selectedBooking || !selectedDate || !selectedTime) return;
+    const newDate = new Date();
+    if (selectedDate === 'tomorrow') {
+      newDate.setDate(newDate.getDate() + 1);
+    } else if (selectedDate === 'wednesday') {
+      newDate.setDate(newDate.getDate() + 2);
+    } else if (selectedDate === 'thursday') {
+      newDate.setDate(newDate.getDate() + 3);
+    }
+    
+    const [timeStr, period] = selectedTime.split(' ');
+    let [hours, minutes] = timeStr.split(':').map(Number);
+    if (period === 'PM' && hours !== 12) hours += 12;
+    if (period === 'AM' && hours === 12) hours = 0;
+    newDate.setHours(hours, minutes, 0, 0);
+
+    try {
+      await rescheduleBookingApi(selectedBooking.id, {
+        scheduledDate: newDate.toISOString(),
+        expertId: selectedExpert || undefined,
+      });
+      setIsRescheduleModalOpen(false);
+      setSelectedDate('');
+      setSelectedTime('');
+      setSelectedExpert('');
+      setComment('');
+      loadBookings();
+    } catch (err: any) {
+      alert(err.message || 'Failed to reschedule booking');
+    }
   };
 
   const handleRefund = (booking: any) => {
     setSelectedBooking(booking);
-    // Extract amount from string like "$150"
-    const amount = parseInt(booking.amount.replace(/[^0-9]/g, ''));
+    const amount = parseInt((booking.amount || '0').replace(/[^0-9]/g, ''));
     setRefundAmount(amount.toString());
     setIsRefundModalOpen(true);
   };
 
-  const handleConfirmRefund = () => {
-    console.log('Issuing refund:', {
-      booking: selectedBooking,
-      amount: refundAmount,
-      reason: refundReason,
-    });
-    
-    setIsRefundModalOpen(false);
-    setRefundReason('');
-    setRefundAmount('');
-    setSelectedBooking(null);
+  const handleConfirmRefund = async () => {
+    if (!selectedBooking || !refundAmount || !refundReason.trim()) return;
+    try {
+      await createRefundRequestApi({
+        bookingId: selectedBooking.id,
+        amount: refundAmount,
+        reason: refundReason,
+        refundType: 'full',
+      });
+      setIsRefundModalOpen(false);
+      setRefundReason('');
+      setRefundAmount('');
+      setSelectedBooking(null);
+      loadBookings();
+    } catch (err: any) {
+      alert(err.message || 'Failed to issue refund');
+    }
   };
 
   const handleViewDetails = (booking: any) => {
@@ -200,24 +260,57 @@ export default function BookingRequestsPage() {
     setIsDetailsModalOpen(true);
   };
 
+  const filteredBookingRequests = bookingRequests.filter((booking) => {
+    const search = searchTerm.toLowerCase();
+    return (
+      booking.userName.toLowerCase().includes(search) ||
+      booking.expertName.toLowerCase().includes(search) ||
+      booking.service.toLowerCase().includes(search) ||
+      booking.id.toLowerCase().includes(search)
+    );
+  });
+
+  const totalItems = filteredBookingRequests.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedBookingRequests = filteredBookingRequests.slice(startIndex, startIndex + itemsPerPage);
+
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+
+  const newTodayCount = bookingRequests.filter((b: any) => {
+    const date = new Date(b.createdAt);
+    return date >= startOfToday && date < endOfToday;
+  }).length;
+
+  const pendingCount = bookingRequests.length;
+
+  const expiringCount = bookingRequests.filter((b: any) => {
+    const date = new Date(b.scheduledDate);
+    const diffTime = date.getTime() - now.getTime();
+    return diffTime > 0 && diffTime < 24 * 60 * 60 * 1000;
+  }).length;
+
+  const totalValue = bookingRequests.reduce((sum: number, b: any) => {
+    const val = parseFloat(b.amount.replace(/[^0-9.]/g, ''));
+    return sum + (isNaN(val) ? 0 : val);
+  }, 0);
+
   return (
-    <div className="flex-1 space-y-6 p-4 pt-6 md:p-8 bg-[var(--card-bg-light)]">
+    <div className="flex-1 space-y-6 p-4 pt-6 md:p-8 bg-gray-50/50">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Booking Requests</h1>
-          <p className="text-muted-foreground">
-            Review and approve pending booking requests
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Requests</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Manage all incoming booking requests
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline">
-            <Calendar className="mr-2 h-4 w-4" />
-            Export
-          </Button>
-          <Button>
-            <CheckCircle className="mr-2 h-4 w-4" />
-            Approve All
+          <Button className="bg-[#8b4513] text-white hover:bg-[#70360f] font-semibold flex items-center shadow-sm">
+            <Download className="mr-2 h-4 w-4" />
+            Export Reports
           </Button>
         </div>
       </div>
@@ -225,178 +318,236 @@ export default function BookingRequestsPage() {
       {/* Search and Filter */}
       <div className="flex items-center space-x-4">
         <div className="relative max-w-sm flex-1">
-          <Search className="text-muted-foreground absolute top-2.5 left-2 h-4 w-4" />
+          <Search className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
           <Input
-            placeholder="Search booking requests..."
+            placeholder="Search requests..."
             value={searchTerm}
             onChange={(e: any) => setSearchTerm(e.target.value)}
-            className="pl-8"
+            className="pl-9 h-10 border-gray-200 bg-white"
           />
         </div>
-        <Button variant="outline">
-          <Filter className="mr-2 h-4 w-4" />
+        <Button variant="outline" className="flex items-center h-10 bg-white border-gray-200">
+          <Filter className="mr-2 h-4 w-4 text-gray-500" />
           Filter
         </Button>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Requests</CardTitle>
-            <AlertCircle className="text-muted-foreground h-4 w-4" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{bookingRequests.length}</div>
-            <p className="text-muted-foreground text-xs">Pending approval</p>
-          </CardContent>
+      <div className="grid gap-4 md:grid-cols-4">
+        {/* New Today */}
+        <Card className="flex items-center p-4 bg-white border-gray-100">
+          <div className="p-3 rounded-lg bg-blue-50 text-blue-600 mr-4">
+            <FileText className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">New Today</p>
+            <h3 className="text-2xl font-bold text-gray-900 mt-0.5">{newTodayCount}</h3>
+            <p className="text-xs text-green-600 flex items-center mt-1">
+              <TrendingUp className="h-3 w-3 mr-1" /> +20% from yesterday
+            </p>
+          </div>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today's Requests</CardTitle>
-            <Calendar className="text-muted-foreground h-4 w-4" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">2</div>
-            <p className="text-muted-foreground text-xs">Received today</p>
-          </CardContent>
+        {/* Pending */}
+        <Card className="flex items-center p-4 bg-white border-gray-100">
+          <div className="p-3 rounded-lg bg-amber-50 text-amber-600 mr-4">
+            <Clock className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Pending</p>
+            <h3 className="text-2xl font-bold text-gray-900 mt-0.5">{pendingCount}</h3>
+            <p className="text-xs text-red-600 flex items-center mt-1">
+              <TrendingDown className="h-3 w-3 mr-1" /> -5% from yesterday
+            </p>
+          </div>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg. Response Time</CardTitle>
-            <Clock className="text-muted-foreground h-4 w-4" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">2.5h</div>
-            <p className="text-muted-foreground text-xs">-30min from last week</p>
-          </CardContent>
+        {/* Expiring Soon */}
+        <Card className="flex items-center p-4 bg-white border-gray-100">
+          <div className="p-3 rounded-lg bg-red-50 text-red-600 mr-4">
+            <AlertTriangle className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Expiring Soon</p>
+            <h3 className="text-2xl font-bold text-gray-900 mt-0.5">{expiringCount}</h3>
+            <p className="text-xs text-gray-500 mt-1">Requires attention</p>
+          </div>
+        </Card>
+
+        {/* Total Value */}
+        <Card className="flex items-center p-4 bg-white border-gray-100">
+          <div className="p-3 rounded-lg bg-green-50 text-green-600 mr-4">
+            <Users className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Value</p>
+            <h3 className="text-2xl font-bold text-gray-900 mt-0.5">${totalValue.toLocaleString()}</h3>
+            <p className="text-xs text-green-600 flex items-center mt-1">
+              <TrendingUp className="h-3 w-3 mr-1" /> +12% from yesterday
+            </p>
+          </div>
         </Card>
       </div>
 
-      {/* Booking Requests List */}
-      <div className="grid gap-4">
-        {bookingRequests.map((booking) => (
-          <Card key={booking.id} className="border-l-4 border-l-yellow-400">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-2">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage
-                        src={booking.userAvatar}
-                        alt={booking.userName}
-                      />
-                      <AvatarFallback>
-                        {booking.userName
-                          .split(' ')
-                          .map((n: string) => n[0])
-                          .join('')}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="bg-border h-px w-6"></div>
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage
-                        src={booking.expertAvatar}
-                        alt={booking.expertName}
-                      />
-                      <AvatarFallback>
-                        {booking.expertName
-                          .split(' ')
-                          .map((n: string) => n[0])
-                          .join('')}
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">
-                      {booking.userName} → {booking.expertName}
-                    </CardTitle>
-                    <div className="text-muted-foreground flex items-center space-x-2 text-sm">
-                      <span>Requested: {booking.requestDate}</span>
-                      <span>•</span>
-                      <span>
-                        {booking.date} at {booking.time}
-                      </span>
-                      <span>•</span>
-                      <span>{booking.duration}</span>
-                      <span>•</span>
-                      <div className="flex items-center space-x-1">
-                        {getTypeIcon(booking.type)}
-                        <span>{booking.type}</span>
+      {/* Booking Requests Table */}
+      {filteredBookingRequests.length > 0 ? (
+        <div className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-x-auto">
+          <table className="w-full text-sm text-left border-collapse">
+            <thead>
+              <tr className="border-b border-gray-100 bg-gray-50/50 text-gray-400 font-semibold">
+                <th className="p-4 text-xs uppercase tracking-wider font-semibold">Customer</th>
+                <th className="p-4 text-xs uppercase tracking-wider font-semibold">Service & Duration</th>
+                <th className="p-4 text-xs uppercase tracking-wider font-semibold">Expert Requested</th>
+                <th className="p-4 text-xs uppercase tracking-wider font-semibold">Requested Time</th>
+                <th className="p-4 text-xs uppercase tracking-wider font-semibold">Amount</th>
+                <th className="p-4 text-xs uppercase tracking-wider font-semibold">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {paginatedBookingRequests.map((booking) => (
+                <tr key={booking.id} className="hover:bg-gray-50/50 transition-colors">
+                  <td className="p-4">
+                    <div className="flex items-center space-x-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={booking.userAvatar} alt={booking.userName} />
+                        <AvatarFallback className="bg-amber-100 text-amber-800 font-bold">
+                          {booking.userName.split(' ').map((n: string) => n[0]).join('')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="font-semibold text-gray-900">{booking.userName}</div>
+                        <div className="text-xs text-muted-foreground">{booking.clientPhone}</div>
                       </div>
                     </div>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Badge className="bg-yellow-100 text-yellow-800">
-                    Pending
-                  </Badge>
-                  <span className="font-semibold">{booking.amount}</span>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="flex space-x-2">
-                  <Button
-                    size="sm"
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    Approve
-                  </Button>
-                  <Button size="sm" variant="destructive">
-                    <XCircle className="mr-2 h-4 w-4" />
-                    Reject
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => handleReschedule(booking)}
-                  >
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Reschedule
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => handleRefund(booking)}
-                  >
-                    <XCircle className="mr-2 h-4 w-4" />
-                    Issue Refund
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => handleViewDetails(booking)}
-                  >
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    View Details
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Empty State */}
-      {bookingRequests.length === 0 && (
-        <Card>
+                  </td>
+                  <td className="p-4">
+                    <div>
+                      <div className="font-semibold text-gray-900">{booking.service}</div>
+                      <div className="text-xs text-muted-foreground">{booking.duration}</div>
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <div className="flex items-center space-x-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={booking.expertAvatar} alt={booking.expertName} />
+                        <AvatarFallback className="bg-blue-100 text-blue-800 font-bold text-xs">
+                          {booking.expertName.split(' ').map((n: string) => n[0]).join('')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="font-semibold text-gray-900 text-xs">{booking.expertName}</div>
+                        <div className="text-[10px] text-muted-foreground">{booking.expertSpecialty}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <div>
+                      <div className="font-semibold text-gray-900">{booking.date}</div>
+                      <div className="text-xs text-muted-foreground">{booking.time}</div>
+                    </div>
+                  </td>
+                  <td className="p-4 font-semibold text-gray-900">
+                    {booking.amount}
+                  </td>
+                  <td className="p-4">
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700 text-white font-semibold h-8 rounded-md px-3"
+                        onClick={() => handleApprove(booking.id)}
+                      >
+                        Accept
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="border-amber-300 text-amber-800 hover:bg-amber-50 hover:text-amber-900 font-semibold h-8 rounded-md px-3"
+                        onClick={() => handleReschedule(booking)}
+                      >
+                        Reschedule
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="bg-red-600 hover:bg-red-700 text-white font-semibold h-8 rounded-md px-3"
+                        onClick={() => handleReject(booking.id)}
+                      >
+                        Decline
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="text-blue-600 hover:text-blue-700 font-semibold h-8 rounded-md px-3 border-gray-200"
+                        onClick={() => handleViewDetails(booking)}
+                      >
+                        Message
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                        <MoreVertical className="h-4 w-4 text-gray-400" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        /* Empty State */
+        <Card className="bg-white border-gray-100">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">No Booking Requests</h3>
             <p className="text-muted-foreground text-center mb-4">
               There are no pending booking requests at the moment.
             </p>
-            <Button variant="outline">
-              <Calendar className="mr-2 h-4 w-4" />
-              Check Back Later
+            <Button variant="outline" onClick={loadBookings}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh list
             </Button>
           </CardContent>
         </Card>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center space-x-1 pt-4">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-8 w-8 p-0 border-gray-200"
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+          >
+            {"<"}
+          </Button>
+          
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+            <Button
+              key={page}
+              variant={currentPage === page ? "default" : "outline"}
+              size="sm"
+              className={`h-8 w-8 p-0 ${
+                currentPage === page 
+                  ? "bg-[#8b4513] hover:bg-[#70360f] text-white" 
+                  : "border-gray-200"
+              }`}
+              onClick={() => setCurrentPage(page)}
+            >
+              {page}
+            </Button>
+          ))}
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-8 w-8 p-0 border-gray-200"
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+          >
+            {">"}
+          </Button>
+        </div>
       )}
 
       {/* Reschedule Modal */}

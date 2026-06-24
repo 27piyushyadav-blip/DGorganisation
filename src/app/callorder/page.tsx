@@ -339,7 +339,8 @@ export default function Home() {
   
   // Payment link state
   const [orderId] = useState(() => `#VO-${Math.floor(Math.random() * 90000) + 10000}`);
-  const [paymentLink] = useState(() => `https://99messages.com/pay/${Math.floor(Math.random() * 90000) + 10000}`);
+  const [paymentLink, setPaymentLink] = useState('');
+  const [createdBooking, setCreatedBooking] = useState<any | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
   const [paymentSent, setPaymentSent] = useState(false);
   const [sendingMethod, setSendingMethod] = useState<string | null>(null);
@@ -415,6 +416,41 @@ export default function Home() {
     loadData();
     return () => { cancelled = true; };
   }, []);
+
+  // Auto-generate booking & payment link when landing on payment tab with date/time selected
+  useEffect(() => {
+    if (activeTab === 'payment' && selectedDate && selectedTime && !createdBooking && !isSubmitting) {
+      const autoCreate = async () => {
+        setIsSubmitting(true);
+        setSendPaymentError(null);
+        try {
+          const res = await createVoiceCallBookingApi({
+            customerName: customer.name,
+            customerPhone: customer.phone,
+            customerEmail: customer.email || undefined,
+            customerNotes: customer.notes || undefined,
+            services: selectedServices.map((s) => ({
+              id: s.id,
+              name: s.name,
+              price: s.price,
+              quantity: s.quantity,
+            })),
+            expertId: selectedExpert?.id ?? null,
+            scheduledDate: selectedDate.toISOString(),
+            scheduledTime: selectedTime,
+            totalAmount,
+          });
+          setCreatedBooking(res.booking);
+          setPaymentLink(res.booking.paymentLink || `http://localhost:3002/invoice/${res.booking.id}`);
+        } catch (err: any) {
+          setSendPaymentError(err?.message || 'Failed to auto-generate payment link.');
+        } finally {
+          setIsSubmitting(false);
+        }
+      };
+      autoCreate();
+    }
+  }, [activeTab, selectedDate, selectedTime]);
 
   // Order date
   const orderDate = selectedDate ?? new Date(2025, 4, 18, 11, 30);
@@ -525,35 +561,62 @@ export default function Home() {
     setSendPaymentError(null);
     setPaymentSent(false);
 
-    if (method === 'Email') {
-      if (!customer.email || !customer.email.trim()) {
-        setSendPaymentError('Customer email address is required to send payment link.');
-        return;
+    try {
+      let currentBooking = createdBooking;
+      let currentPaymentLink = paymentLink;
+
+      if (!currentBooking) {
+        setIsSendingPayment(true);
+        const res = await createVoiceCallBookingApi({
+          customerName: customer.name,
+          customerPhone: customer.phone,
+          customerEmail: customer.email || undefined,
+          customerNotes: customer.notes || undefined,
+          services: selectedServices.map((s) => ({
+            id: s.id,
+            name: s.name,
+            price: s.price,
+            quantity: s.quantity,
+          })),
+          expertId: selectedExpert?.id ?? null,
+          scheduledDate: selectedDate ? selectedDate.toISOString() : null,
+          scheduledTime: selectedTime ?? null,
+          totalAmount,
+        });
+        currentBooking = res.booking;
+        setCreatedBooking(res.booking);
+        currentPaymentLink = res.booking.paymentLink || `http://localhost:3002/invoice/${res.booking.id}`;
+        setPaymentLink(currentPaymentLink);
       }
 
-      setIsSendingPayment(true);
-      try {
+      if (method === 'Email') {
+        if (!customer.email || !customer.email.trim()) {
+          setSendPaymentError('Customer email address is required to send payment link.');
+          return;
+        }
+
+        setIsSendingPayment(true);
         await sendPaymentLinkApi({
           customerEmail: customer.email,
           customerName: customer.name,
-          paymentLink: paymentLink,
+          paymentLink: currentPaymentLink,
           totalAmount: totalAmount
         });
         setPaymentSent(true);
         setTimeout(() => setPaymentSent(false), 5000);
-      } catch (err: any) {
-        setSendPaymentError(err?.message || 'Failed to send payment email. Please try again.');
-      } finally {
-        setIsSendingPayment(false);
+      } else {
+        // Mock SMS and WhatsApp options using the real link
+        setIsSendingPayment(true);
+        setTimeout(() => {
+          setIsSendingPayment(false);
+          setPaymentSent(true);
+          setTimeout(() => setPaymentSent(false), 3000);
+        }, 600);
       }
-    } else {
-      // Mock SMS and WhatsApp options
-      setIsSendingPayment(true);
-      setTimeout(() => {
-        setIsSendingPayment(false);
-        setPaymentSent(true);
-        setTimeout(() => setPaymentSent(false), 3000);
-      }, 600);
+    } catch (err: any) {
+      setSendPaymentError(err?.message || 'Failed to generate booking or send payment link. Please try again.');
+    } finally {
+      setIsSendingPayment(false);
     }
   };
 
@@ -1180,15 +1243,17 @@ export default function Home() {
                   </div>
 
                   {/* Generated Link Success */}
-                  <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
-                    <div className="flex items-center gap-2 text-green-700">
-                      <CheckCircle className="w-5 h-5" />
-                      <span className="font-medium">Payment link generated successfully!</span>
+                  {paymentLink && (
+                    <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200 animate-in fade-in duration-300">
+                      <div className="flex items-center gap-2 text-green-700">
+                        <CheckCircle className="w-5 h-5" />
+                        <span className="font-medium">Payment link generated successfully!</span>
+                      </div>
+                      <p className="text-sm text-green-600 mt-1">
+                        Send this link to customer via SMS, WhatsApp or Email.
+                      </p>
                     </div>
-                    <p className="text-sm text-green-600 mt-1">
-                      Send this link to customer via SMS, WhatsApp or Email.
-                    </p>
-                  </div>
+                  )}
 
                   {/* Payment Link Display */}
                   <div className="bg-slate-50 rounded-xl p-4 mb-6">
@@ -1198,11 +1263,13 @@ export default function Home() {
                         type="text"
                         value={paymentLink}
                         readOnly
+                        placeholder={isSubmitting ? "Generating payment link..." : "Please select Date & Time below to generate..."}
                         className="flex-1 bg-transparent text-blue-600 text-sm font-mono outline-none"
                       />
                       <button
                         onClick={copyPaymentLink}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-blue-50 hover:border-blue-200 transition text-sm"
+                        disabled={!paymentLink}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-blue-50 hover:border-blue-200 transition text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {linkCopied ? (
                           <>
@@ -1274,10 +1341,10 @@ export default function Home() {
                     <div className="grid grid-cols-3 gap-3">
                       <button
                         onClick={() => handleSendPayment('SMS')}
-                        disabled={isSendingPayment}
+                        disabled={isSendingPayment || !selectedDate || !selectedTime}
                         className={cn(
                           "flex flex-col items-center gap-2 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition group cursor-pointer",
-                          isSendingPayment && "opacity-50 cursor-not-allowed"
+                          (isSendingPayment || !selectedDate || !selectedTime) && "opacity-50 cursor-not-allowed"
                         )}
                       >
                         <MessageSquare className="w-5 h-5" />
@@ -1285,10 +1352,10 @@ export default function Home() {
                       </button>
                       <button
                         onClick={() => handleSendPayment('WhatsApp')}
-                        disabled={isSendingPayment}
+                        disabled={isSendingPayment || !selectedDate || !selectedTime}
                         className={cn(
                           "flex flex-col items-center gap-2 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition group cursor-pointer",
-                          isSendingPayment && "opacity-50 cursor-not-allowed"
+                          (isSendingPayment || !selectedDate || !selectedTime) && "opacity-50 cursor-not-allowed"
                         )}
                       >
                         <Send className="w-5 h-5" />
@@ -1296,10 +1363,10 @@ export default function Home() {
                       </button>
                       <button
                         onClick={() => handleSendPayment('Email')}
-                        disabled={isSendingPayment}
+                        disabled={isSendingPayment || !selectedDate || !selectedTime}
                         className={cn(
                           "flex flex-col items-center gap-2 py-3 bg-slate-600 text-white rounded-xl hover:bg-slate-700 transition group cursor-pointer",
-                          isSendingPayment && "opacity-50 cursor-not-allowed"
+                          (isSendingPayment || !selectedDate || !selectedTime) && "opacity-50 cursor-not-allowed"
                         )}
                       >
                         {isSendingPayment && sendingMethod === 'Email' ? (
@@ -1511,24 +1578,26 @@ export default function Home() {
                       setIsSubmitting(true);
                       setSubmitError(null);
                       try {
-                        await createVoiceCallBookingApi({
-                          orderId,
-                          customerName: customer.name,
-                          customerPhone: customer.phone,
-                          customerEmail: customer.email || undefined,
-                          customerNotes: customer.notes || undefined,
-                          services: selectedServices.map((s) => ({
-                            id: s.id,
-                            name: s.name,
-                            price: s.price,
-                            quantity: s.quantity,
-                          })),
-                          expertId: selectedExpert?.id ?? null,
-                          scheduledDate: selectedDate ? selectedDate.toISOString() : null,
-                          scheduledTime: selectedTime ?? null,
-                          totalAmount,
-                          paymentLink,
-                        });
+                        if (!createdBooking) {
+                          const res = await createVoiceCallBookingApi({
+                            customerName: customer.name,
+                            customerPhone: customer.phone,
+                            customerEmail: customer.email || undefined,
+                            customerNotes: customer.notes || undefined,
+                            services: selectedServices.map((s) => ({
+                              id: s.id,
+                              name: s.name,
+                              price: s.price,
+                              quantity: s.quantity,
+                            })),
+                            expertId: selectedExpert?.id ?? null,
+                            scheduledDate: selectedDate ? selectedDate.toISOString() : null,
+                            scheduledTime: selectedTime ?? null,
+                            totalAmount,
+                          });
+                          setCreatedBooking(res.booking);
+                          setPaymentLink(res.booking.paymentLink || `http://localhost:3002/invoice/${res.booking.id}`);
+                        }
                         setSubmitSuccess(true);
                       } catch (err: any) {
                         setSubmitError(err?.message || 'Failed to create order. Please try again.');

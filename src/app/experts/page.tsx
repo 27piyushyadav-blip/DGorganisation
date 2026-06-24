@@ -1271,7 +1271,7 @@ export default function ExpertsPage() {
                     Consultation Fee
                   </Label>
                   <p className="text-sm font-semibold">
-                    ₹{viewExpertDetails.consultationFee || 0}
+                    ${viewExpertDetails.consultationFee || 0}
                   </p>
                 </div>
 
@@ -1317,7 +1317,7 @@ export default function ExpertsPage() {
                       Total Revenue
                     </Label>
                     <p className="text-sm font-semibold">
-                      ₹{selectedExpert?.revenue || 0}
+                      ${selectedExpert?.revenue || 0}
                     </p>
                   </div>
                 </div>

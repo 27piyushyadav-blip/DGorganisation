@@ -163,7 +163,7 @@ export default function NewExpertPage() {
             duration: orgService.durationMinutes || 60,
             videoPrice: String(orgService.basePrice) || '0',
             clinicPrice: String(orgService.basePrice) || '0',
-            currency: 'INR',
+            currency: 'AUD',
             description: orgService.description || '',
             organizationServiceId: orgService.id,
           }
@@ -827,7 +827,7 @@ export default function NewExpertPage() {
                                       {orgService.durationMinutes || 60} mins
                                     </span>
                                     <span className="text-sm font-bold text-indigo-600">
-                                      ₹{Number(orgService.basePrice).toLocaleString()}
+                                      ${Number(orgService.basePrice).toLocaleString()}
                                     </span>
                                   </div>
                                 </div>
