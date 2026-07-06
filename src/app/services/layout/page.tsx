@@ -25,7 +25,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 
 type DiscountType = 'percent' | 'fixed' | null;
 type LayoutOrientation = 'horizontal1' | 'horizontal2' | 'vertical1' | 'vertical2';

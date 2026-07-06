@@ -380,7 +380,7 @@ export default function AddEditExpertModal({
         setIsLoadingServices(true);
       }
       try {
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL;
         const [servicesRes, categoriesRes] = await Promise.all([
           apiClient<any>(`${baseUrl}/organizations/services`),
           apiClient<any>(`${baseUrl}/organizations/services/categories`)

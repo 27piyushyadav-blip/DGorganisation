@@ -48,7 +48,7 @@ import { toast } from "sonner";
 import { formatToAmPm } from "@/lib/utils";
 
 const PROFILE_BASE = process.env.NEXT_PUBLIC_PROFILE_BASE_URL!;
-const CLIENT_BASE = process.env.NEXT_PUBLIC_CLIENT_URL || 'http://localhost:3002';
+const CLIENT_BASE = process.env.NEXT_PUBLIC_CLIENT_URL;
 
 export default function ProfilePage() {
   const { user, isLoading: authLoading, refreshUser } = useAuth();

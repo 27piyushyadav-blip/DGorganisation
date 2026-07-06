@@ -26,8 +26,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-const CLIENT_BASE = process.env.NEXT_PUBLIC_CLIENT_URL || 'http://localhost:3002';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+const CLIENT_BASE = process.env.NEXT_PUBLIC_CLIENT_URL;
 
 type DiscountType = 'percent' | 'fixed' | null;
 

@@ -1,5 +1,5 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL!;
-const BASE_URL = `${API_BASE}/organizations/experts` || "http://localhost:3000/organizations/experts";
+const BASE_URL = `${API_BASE}/organizations/experts`;
 
 export type EducationPayload = {
   degree: string;

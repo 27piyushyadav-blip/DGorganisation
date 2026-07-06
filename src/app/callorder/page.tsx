@@ -45,6 +45,8 @@ import {
   sendPaymentLinkApi,
 } from '@/client/api/services-bookings';
 
+const CLIENT_BASE = process.env.NEXT_PUBLIC_CLIENT_URL;
+
 // Service type definition
 type Service = {
   id: string;
@@ -441,7 +443,7 @@ export default function Home() {
             totalAmount,
           });
           setCreatedBooking(res.booking);
-          setPaymentLink(res.booking.paymentLink || `http://localhost:3002/invoice/${res.booking.id}`);
+          setPaymentLink(res.booking.paymentLink || `${CLIENT_BASE}/invoice/${res.booking.id}`);
         } catch (err: any) {
           setSendPaymentError(err?.message || 'Failed to auto-generate payment link.');
         } finally {
@@ -585,7 +587,7 @@ export default function Home() {
         });
         currentBooking = res.booking;
         setCreatedBooking(res.booking);
-        currentPaymentLink = res.booking.paymentLink || `http://localhost:3002/invoice/${res.booking.id}`;
+        currentPaymentLink = res.booking.paymentLink || `${CLIENT_BASE}/invoice/${res.booking.id}`;
         setPaymentLink(currentPaymentLink);
       }
 
@@ -1596,7 +1598,7 @@ export default function Home() {
                             totalAmount,
                           });
                           setCreatedBooking(res.booking);
-                          setPaymentLink(res.booking.paymentLink || `http://localhost:3002/invoice/${res.booking.id}`);
+                          setPaymentLink(res.booking.paymentLink || `${CLIENT_BASE}/invoice/${res.booking.id}`);
                         }
                         setSubmitSuccess(true);
                       } catch (err: any) {
