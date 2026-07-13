@@ -35,6 +35,7 @@ import {
   ReceiptRussianRuble,
   Phone,
   ArrowLeftRightIcon,
+  FileText,
 } from 'lucide-react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -242,6 +243,11 @@ export default function Sidebar({ currentPage }: SidebarProps) {
           title: 'Payment Refund',
           href: '/paymentrefund',
           icon: ReceiptRussianRuble,
+        },
+        {
+          title: 'Customize Invoice',
+          href: '/customize-invoice',
+          icon: FileText,
         },
       ],
     },
