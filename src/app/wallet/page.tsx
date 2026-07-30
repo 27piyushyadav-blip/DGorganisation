@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 import {
   Dialog,
@@ -16,77 +17,112 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DollarSign, ArrowUpDown, AlertCircle, CheckCircle } from 'lucide-react';
+import { apiClient } from '@/client/api/api-client';
 
 export default function WalletPage() {
+  const router = useRouter();
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // Sample data - in real app this would come from API
-  const walletData = {
-    availableBalance: 8750.00,
-    onHoldAmount: 1250.00,
-    totalEarnings: 10000.00,
-    lastWithdrawal: '2024-02-15',
+  const [walletData, setWalletData] = useState<{
+    availableBalance: number;
+    onHoldAmount: number;
+    totalEarnings: number;
+    lastWithdrawal: string;
     bankAccount: {
-      bankName: 'Commonwealth Bank',
-      accountNumber: '****1234',
-      bsb: '063-000',
-    },
+      bankName?: string;
+      accountName?: string;
+      accountNumber?: string;
+      bsbCode?: string;
+      ifscCode?: string;
+    } | null;
+  }>({
+    availableBalance: 0,
+    onHoldAmount: 0,
+    totalEarnings: 0,
+    lastWithdrawal: 'N/A',
+    bankAccount: null,
+  });
+
+  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
+
+  const fetchWalletDetails = async () => {
+    try {
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+      const [summary, txns] = await Promise.all([
+        apiClient<any>(`${API_BASE}/organizations/wallet/summary`),
+        apiClient<any>(`${API_BASE}/organizations/wallet/transactions?limit=5`),
+      ]);
+
+      let formattedLastWithdrawal = 'N/A';
+      if (summary.lastWithdrawal && summary.lastWithdrawal !== 'N/A') {
+        const d = new Date(summary.lastWithdrawal);
+        if (!isNaN(d.getTime())) {
+          formattedLastWithdrawal = d.toLocaleDateString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+          });
+        }
+      }
+
+      setWalletData({
+        availableBalance: Number(summary.availableBalance) || 0,
+        onHoldAmount: Number(summary.onHoldAmount) || 0,
+        totalEarnings: Number(summary.totalEarnings) || 0,
+        lastWithdrawal: formattedLastWithdrawal,
+        bankAccount: summary.bankAccount || null,
+      });
+
+      if (txns && Array.isArray(txns.transactions)) {
+        setRecentTransactions(
+          txns.transactions.map((t: any) => ({
+            id: t.id,
+            type: t.type === 'session_payment' ? 'payment' : t.type,
+            description: t.description || 'Transaction',
+            amount: Number(t.netAmount),
+            date: new Date(t.createdAt).toLocaleDateString('en-IN', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+            }),
+            status: t.status,
+          }))
+        );
+      }
+    } catch (error) {
+      console.error('Error fetching wallet details:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const recentTransactions = [
-    {
-      id: 1,
-      type: 'payment',
-      description: 'Health Consultation - Sarah Johnson',
-      amount: 150.00,
-      date: '2024-02-20',
-      status: 'completed',
-    },
-    {
-      id: 2,
-      type: 'refund',
-      description: 'Refund - Michael Brown',
-      amount: -100.00,
-      date: '2024-02-19',
-      status: 'completed',
-    },
-    {
-      id: 3,
-      type: 'withdrawal',
-      description: 'Bank Transfer',
-      amount: -2000.00,
-      date: '2024-02-15',
-      status: 'completed',
-    },
-    {
-      id: 4,
-      type: 'payment',
-      description: 'Mental Health Session - Robert Davis',
-      amount: 200.00,
-      date: '2024-02-18',
-      status: 'pending',
-    },
-  ];
+  useEffect(() => {
+    fetchWalletDetails();
+  }, []);
 
   const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsWithdrawing(true);
+    if (!withdrawAmount || parseFloat(withdrawAmount) <= 0) return;
 
+    setIsWithdrawing(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Reset form and close modal
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+      await apiClient(`${API_BASE}/organizations/wallet/withdraw`, {
+        method: 'POST',
+        body: JSON.stringify({ amount: parseFloat(withdrawAmount) }),
+      });
+
       setWithdrawAmount('');
       setIsWithdrawModalOpen(false);
-      
-      // Show success message (in real app, you'd use a toast notification)
       alert('Withdrawal processed successfully!');
-    } catch (error) {
+      setLoading(true);
+      await fetchWalletDetails();
+    } catch (error: any) {
       console.error('Withdrawal error:', error);
-      alert('Withdrawal failed. Please try again.');
+      alert(error.message || 'Withdrawal failed. Please try again.');
     } finally {
       setIsWithdrawing(false);
     }
@@ -94,20 +130,31 @@ export default function WalletPage() {
 
   const getTransactionBadge = (type: string, status: string) => {
     if (status === 'pending') {
-      return <Badge className="bg-orange-100 text-orange-800">Pending</Badge>;
+      return <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100">Pending</Badge>;
     }
 
     switch (type) {
       case 'payment':
-        return <Badge className="bg-green-100 text-green-800">Payment</Badge>;
+        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Payment</Badge>;
       case 'refund':
-        return <Badge className="bg-red-100 text-red-800">Refund</Badge>;
+        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Refund</Badge>;
       case 'withdrawal':
-        return <Badge className="bg-blue-100 text-blue-800">Withdrawal</Badge>;
+      case 'payout':
+        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Withdrawal</Badge>;
       default:
         return <Badge variant="secondary">Unknown</Badge>;
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-8 bg-[var(--card-bg-light)] min-h-screen">
+        <p className="text-muted-foreground animate-pulse text-lg font-medium">Loading Wallet...</p>
+      </div>
+    );
+  }
+
+  const hasBankDetails = walletData.bankAccount && walletData.bankAccount.accountNumber;
 
   return (
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8 bg-[var(--card-bg-light)]">
@@ -130,7 +177,7 @@ export default function WalletPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-green-800">
-              ${walletData.availableBalance.toLocaleString()}
+              ${walletData.availableBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-green-600 text-xs">Ready for withdrawal</p>
           </CardContent>
@@ -143,7 +190,7 @@ export default function WalletPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-orange-800">
-              ${walletData.onHoldAmount.toLocaleString()}
+              ${walletData.onHoldAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-orange-600 text-xs">Pending completion</p>
           </CardContent>
@@ -156,9 +203,9 @@ export default function WalletPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-blue-800">
-              ${walletData.totalEarnings.toLocaleString()}
+              ${walletData.totalEarnings.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </div>
-            <p className="text-blue-600 text-xs">All time earnings</p>
+            <p className="text-blue-600 text-xs">All time net earnings</p>
           </CardContent>
         </Card>
 
@@ -194,13 +241,14 @@ export default function WalletPage() {
             </div>
             <div className="text-right">
               <div className="text-2xl font-bold text-green-600">
-                ${walletData.availableBalance.toLocaleString()}
+                ${walletData.availableBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </div>
               <Button 
                 onClick={() => {
                   setWithdrawAmount(walletData.availableBalance.toString());
                   setIsWithdrawModalOpen(true);
                 }}
+                disabled={!hasBankDetails || walletData.availableBalance <= 0}
                 className="mt-2"
               >
                 <ArrowUpDown className="mr-2 h-4 w-4" />
@@ -212,12 +260,24 @@ export default function WalletPage() {
           {/* Bank Account Info */}
           <div className="mt-4 p-4 bg-blue-50 rounded-lg">
             <h4 className="font-medium text-sm mb-2">Bank Account</h4>
-            <div className="text-sm text-gray-600 space-y-1">
-              <p><strong>Bank:</strong> {walletData.bankAccount.bankName}</p>
-              <p><strong>Account:</strong> {walletData.bankAccount.accountNumber}</p>
-              <p><strong>BSB:</strong> {walletData.bankAccount.bsb}</p>
-            </div>
-            <Button variant="outline" size="sm" className="mt-2">
+            {hasBankDetails ? (
+              <div className="text-sm text-gray-600 space-y-1">
+                <p><strong>Bank:</strong> {walletData.bankAccount?.bankName || 'N/A'}</p>
+                <p><strong>Account Holder:</strong> {walletData.bankAccount?.accountName || 'N/A'}</p>
+                <p><strong>Account Number:</strong> {walletData.bankAccount?.accountNumber ? '****' + walletData.bankAccount.accountNumber.slice(-4) : 'N/A'}</p>
+                <p><strong>BSB / IFSC:</strong> {walletData.bankAccount?.bsbCode || walletData.bankAccount?.ifscCode || 'N/A'}</p>
+              </div>
+            ) : (
+              <p className="text-sm text-orange-600 font-medium my-2">
+                No bank account registered. Please set up your bank details to enable withdrawals.
+              </p>
+            )}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-2"
+              onClick={() => router.push('/bank-details')}
+            >
               Update Bank Details
             </Button>
           </div>
@@ -226,95 +286,107 @@ export default function WalletPage() {
 
       {/* Recent Transactions */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Recent Transactions</CardTitle>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => router.push('/wallet/transactions')}
+          >
+            View All
+          </Button>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {recentTransactions.map((transaction) => (
-              <div key={transaction.id} className="flex items-center justify-between p-3 border border-[var(--primary-start)] rounded-lg">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-1">
-                    {getTransactionBadge(transaction.type, transaction.status)}
-                    <span className="text-sm text-gray-500">{transaction.date}</span>
+          {recentTransactions.length > 0 ? (
+            <div className="space-y-3">
+              {recentTransactions.map((transaction) => (
+                <div key={transaction.id} className="flex items-center justify-between p-3 border border-[var(--primary-start)] rounded-lg">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-1">
+                      {getTransactionBadge(transaction.type, transaction.status)}
+                      <span className="text-sm text-gray-500">{transaction.date}</span>
+                    </div>
+                    <p className="font-medium text-sm">{transaction.description}</p>
                   </div>
-                  <p className="font-medium">{transaction.description}</p>
+                  <div className={`text-lg font-bold ${
+                    transaction.amount > 0 ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {transaction.amount > 0 ? '+' : ''}${Math.abs(transaction.amount).toFixed(2)}
+                  </div>
                 </div>
-                <div className={`text-lg font-bold ${
-                  transaction.amount > 0 ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {transaction.amount > 0 ? '+' : ''}${Math.abs(transaction.amount).toFixed(2)}
-                </div>
-              </div>
-            ))}
-          </div>
-          <Button variant="outline" className="w-full mt-4">
-            View All Transactions
-          </Button>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center py-6 text-sm text-muted-foreground">
+              No transactions recorded yet.
+            </p>
+          )}
         </CardContent>
       </Card>
 
       {/* Withdraw Modal */}
-      <Dialog open={isWithdrawModalOpen} onOpenChange={setIsWithdrawModalOpen}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle>Withdraw Funds</DialogTitle>
-            <DialogDescription>
-              Enter the amount you want to withdraw to your bank account.
-            </DialogDescription>
-          </DialogHeader>
+      {hasBankDetails && (
+        <Dialog open={isWithdrawModalOpen} onOpenChange={setIsWithdrawModalOpen}>
+          <DialogContent className="sm:max-w-[400px]">
+            <DialogHeader>
+              <DialogTitle>Withdraw Funds</DialogTitle>
+              <DialogDescription>
+                Enter the amount you want to withdraw to your bank account.
+              </DialogDescription>
+            </DialogHeader>
 
-          <form onSubmit={handleWithdraw} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="withdrawAmount">Withdrawal Amount</Label>
-              <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  id="withdrawAmount"
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  max={walletData.availableBalance}
-                  value={withdrawAmount}
-                  onChange={(e) => setWithdrawAmount(e.target.value)}
-                  className="pl-10"
-                  placeholder="0.00"
-                  required
-                />
+            <form onSubmit={handleWithdraw} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="withdrawAmount">Withdrawal Amount</Label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="withdrawAmount"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    max={walletData.availableBalance}
+                    value={withdrawAmount}
+                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                    className="pl-10"
+                    placeholder="0.00"
+                    required
+                  />
+                </div>
+                <p className="text-xs text-gray-500">
+                  Maximum: ${walletData.availableBalance.toFixed(2)}
+                </p>
               </div>
-              <p className="text-xs text-gray-500">
-                Maximum: ${walletData.availableBalance.toFixed(2)}
-              </p>
-            </div>
 
-            {/* Bank Account Summary */}
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <h4 className="font-medium text-sm mb-2">Funds will be sent to:</h4>
-              <div className="text-sm text-gray-600 space-y-1">
-                <p><strong>Bank:</strong> {walletData.bankAccount.bankName}</p>
-                <p><strong>Account:</strong> {walletData.bankAccount.accountNumber}</p>
-                <p><strong>BSB:</strong> {walletData.bankAccount.bsb}</p>
+              {/* Bank Account Summary */}
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <h4 className="font-medium text-sm mb-2">Funds will be sent to:</h4>
+                <div className="text-sm text-gray-600 space-y-1">
+                  <p><strong>Bank:</strong> {walletData.bankAccount?.bankName || 'N/A'}</p>
+                  <p><strong>Account:</strong> ****{walletData.bankAccount?.accountNumber?.slice(-4)}</p>
+                  <p><strong>Holder:</strong> {walletData.bankAccount?.accountName}</p>
+                </div>
               </div>
-            </div>
 
-            <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setIsWithdrawModalOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={isWithdrawing || !withdrawAmount || parseFloat(withdrawAmount) <= 0}
-              >
-                {isWithdrawing ? 'Processing...' : 'Confirm Withdrawal'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+              <DialogFooter>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setIsWithdrawModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={isWithdrawing || !withdrawAmount || parseFloat(withdrawAmount) <= 0}
+                >
+                  {isWithdrawing ? 'Processing...' : 'Confirm Withdrawal'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

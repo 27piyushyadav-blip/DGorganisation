@@ -1,47 +1,72 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Filter, Download, CreditCard, ArrowUpDown } from 'lucide-react';
+import { Search, Filter, Download, ArrowUpDown } from 'lucide-react';
+import { apiClient } from '@/client/api/api-client';
 
 export default function Transactions() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const transactions = [
-    { id: 'TXN001', date: '2024-02-20', customer: 'Sarah Lee', service: 'Digital Consultation', amount: 300, status: 'Available', type: 'Credit', reference: 'BK001' },
-    { id: 'TXN002', date: '2024-02-20', customer: 'John Smith', service: 'Health Assessment', amount: 200, status: 'Pending', type: 'Credit', reference: 'BK002' },
-    { id: 'TXN003', date: '2024-02-19', customer: 'Emma Wilson', service: 'Wellness Check', amount: 150, status: 'Refunded', type: 'Refund', reference: 'BK003' },
-    { id: 'TXN004', date: '2024-02-19', customer: 'Michael Brown', service: 'Mental Health Session', amount: 400, status: 'Available', type: 'Credit', reference: 'BK004' },
-    { id: 'TXN005', date: '2024-02-18', customer: 'Lisa Davis', service: 'Nutrition Planning', amount: 250, status: 'Withdrawn', type: 'Withdrawal', reference: 'WD001' },
-    { id: 'TXN006', date: '2024-02-18', customer: 'David Johnson', service: 'Physical Therapy', amount: 350, status: 'Available', type: 'Credit', reference: 'BK005' },
-    { id: 'TXN007', date: '2024-02-17', customer: 'Jennifer White', service: 'Mental Health Session', amount: 300, status: 'Auto Refunded', type: 'Refund', reference: 'BK006' },
-    { id: 'TXN008', date: '2024-02-17', customer: 'Robert Taylor', service: 'Digital Consultation', amount: 200, status: 'On Hold', type: 'Credit', reference: 'BK007' },
-    { id: 'TXN009', date: '2024-02-16', customer: 'Maria Garcia', service: 'Health Assessment', amount: 180, status: 'Available', type: 'Credit', reference: 'BK008' },
-    { id: 'TXN010', date: '2024-02-16', customer: 'James Miller', service: 'Wellness Check', amount: 120, status: 'Withdrawn', type: 'Withdrawal', reference: 'WD002' },
-  ];
+  const fetchTransactions = async () => {
+    try {
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+      const data = await apiClient<any>(`${API_BASE}/organizations/wallet/transactions?limit=100`);
+      
+      if (data && Array.isArray(data.transactions)) {
+        setTransactions(
+          data.transactions.map((t: any) => ({
+            id: `TXN-${t.id.slice(0, 5).toUpperCase()}`,
+            rawId: t.id,
+            date: new Date(t.createdAt).toLocaleDateString('en-IN', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+            }),
+            customer: t.clientName || 'N/A',
+            service: t.service || t.description || 'Consultation',
+            amount: Number(t.netAmount),
+            status: t.status === 'completed' ? 'Available' : t.status === 'pending' ? 'Pending' : t.status,
+            type: t.type === 'session_payment' ? 'Credit' : t.type === 'refund' ? 'Refund' : t.type === 'payout' ? 'Withdrawal' : t.type,
+            reference: t.bookingId ? `BK-${t.bookingId.slice(0, 5).toUpperCase()}` : 'N/A',
+          }))
+        );
+      }
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTransactions();
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Available':
-        return 'bg-green-100 text-green-800';
+      case 'completed':
+        return 'bg-green-100 text-green-800 hover:bg-green-100';
       case 'Pending':
-        return 'bg-yellow-100 text-yellow-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100';
       case 'Refunded':
-        return 'bg-red-100 text-red-800';
-      case 'Auto Refunded':
-        return 'bg-orange-100 text-orange-800';
+        return 'bg-red-100 text-red-800 hover:bg-red-100';
       case 'Withdrawn':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-100 text-blue-800 hover:bg-blue-100';
       case 'On Hold':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-800 hover:bg-gray-100';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-800 hover:bg-gray-100';
     }
   };
 
@@ -61,19 +86,46 @@ export default function Transactions() {
   const filteredTransactions = transactions.filter(transaction => {
     const matchesSearch = transaction.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          transaction.service.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         transaction.id.toLowerCase().includes(searchTerm.toLowerCase());
+                         transaction.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         transaction.reference.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || transaction.status === statusFilter;
     const matchesType = typeFilter === 'all' || transaction.type === typeFilter;
     
     return matchesSearch && matchesStatus && matchesType;
   });
 
+  const handleExport = () => {
+    const headers = ['Transaction ID', 'Date', 'Customer', 'Service', 'Amount', 'Status', 'Type', 'Reference'];
+    const rows = filteredTransactions.map(t => [
+      t.id, t.date, t.customer, t.service, t.amount, t.status, t.type, t.reference
+    ]);
+
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + [headers.join(','), ...rows.map(e => e.map(val => `"${val}"`).join(","))].join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `organization_transactions_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8 bg-[var(--card-bg-light)] min-h-screen">
+        <p className="text-muted-foreground animate-pulse text-lg font-medium">Loading Transactions...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 p-4 pt-6 md:p-8 bg-[var(--card-bg-light)]">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Transactions</h1>
         <div className="flex space-x-3">
-          <Button variant="outline" className="flex items-center space-x-2">
+          <Button variant="outline" onClick={handleExport} className="flex items-center space-x-2">
             <Download className="h-4 w-4" />
             <span>Export</span>
           </Button>
@@ -110,7 +162,6 @@ export default function Transactions() {
                 <SelectItem value="On Hold">On Hold</SelectItem>
                 <SelectItem value="Withdrawn">Withdrawn</SelectItem>
                 <SelectItem value="Refunded">Refunded</SelectItem>
-                <SelectItem value="Auto Refunded">Auto Refunded</SelectItem>
               </SelectContent>
             </Select>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
@@ -135,9 +186,9 @@ export default function Transactions() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[var(--primary-start)]">
+                <tr className="border-b border-[var(--primary-start)] text-muted-foreground">
                   <th className="text-left p-3">Transaction ID</th>
                   <th className="text-left p-3">Date</th>
                   <th className="text-left p-3">Customer</th>
@@ -150,14 +201,14 @@ export default function Transactions() {
               </thead>
               <tbody>
                 {filteredTransactions.map((transaction) => (
-                  <tr key={transaction.id} className="border-b border-[var(--primary-start)] hover:bg-[var(--card-bg-light)]">
+                  <tr key={transaction.rawId} className="border-b border-[var(--primary-start)] hover:bg-[var(--card-bg-light)]">
                     <td className="p-3 font-medium">{transaction.id}</td>
                     <td className="p-3">{transaction.date}</td>
                     <td className="p-3">{transaction.customer}</td>
                     <td className="p-3">{transaction.service}</td>
                     <td className={`p-3 text-right font-medium ${getTypeColor(transaction.type)}`}>
-                      {transaction.type === 'Credit' ? '+' : transaction.type === 'Refund' ? '-' : ''}
-                      ${transaction.amount}
+                      {transaction.amount > 0 ? '+' : ''}
+                      ${transaction.amount.toFixed(2)}
                     </td>
                     <td className="p-3 text-center">
                       <Badge className={getStatusColor(transaction.status)}>

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 import {
   Dialog,
@@ -14,55 +15,95 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { AlertTriangle, Building2, History, CheckCircle } from 'lucide-react';
+import { AlertTriangle, Building2, History, CheckCircle, CreditCard } from 'lucide-react';
+import { apiClient } from '@/client/api/api-client';
 
 export default function BankDetailsPage() {
+  const router = useRouter();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [checkingStripe, setCheckingStripe] = useState(true);
 
-  // Sample data - in real app this would come from API
   const [bankDetails, setBankDetails] = useState({
-    accountNumber: '123456789',
-    bsb: '063000',
-    abn: '12345678901',
-    bankName: 'Commonwealth Bank',
+    accountNumber: '',
+    accountName: '',
+    bsb: '',
+    abn: '',
+    bankName: '',
   });
 
   const [formData, setFormData] = useState({
-    accountNumber: bankDetails.accountNumber,
-    bsb: bankDetails.bsb,
-    abn: bankDetails.abn,
-    bankName: bankDetails.bankName,
+    accountNumber: '',
+    accountName: '',
+    bsb: '',
+    abn: '',
+    bankName: '',
   });
 
-  const bankHistory = [
-    {
-      id: 1,
-      date: '2024-02-15',
-      accountNumber: '****5678',
-      bankName: 'Commonwealth Bank',
-      changedBy: 'Admin User',
-    },
-    {
-      id: 2,
-      date: '2024-01-10',
-      accountNumber: '****1234',
-      bankName: 'Westpac',
-      changedBy: 'Admin User',
-    },
-    {
-      id: 3,
-      date: '2023-12-05',
-      accountNumber: '****9876',
-      bankName: 'ANZ',
-      changedBy: 'Admin User',
-    },
-  ];
+  const [stripeStatus, setStripeStatus] = useState<{
+    onboarded: boolean;
+    payoutsEnabled: boolean;
+    detailsSubmitted: boolean;
+    accountId: string | null;
+  }>({
+    onboarded: false,
+    payoutsEnabled: false,
+    detailsSubmitted: false,
+    accountId: null,
+  });
+
+  const fetchBankDetails = async () => {
+    try {
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+      const profile: any = await apiClient(`${API_BASE}/organizations/profile`);
+      if (profile) {
+        const details = profile.bankDetails || {};
+        const stateData = {
+          accountNumber: details.accountNumber || '',
+          accountName: details.accountName || profile.name || '',
+          bsb: details.bsbCode || '',
+          abn: details.abn || profile.taxIdNumber || '',
+          bankName: details.bankName || '',
+        };
+        setBankDetails(stateData);
+        setFormData(stateData);
+      }
+    } catch (error) {
+      console.error('Error fetching bank details:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchStripeStatus = async () => {
+    try {
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+      const res = await apiClient<any>(`${API_BASE}/organizations/wallet/stripe-connect/status`);
+      if (res) {
+        setStripeStatus({
+          onboarded: res.onboarded,
+          payoutsEnabled: res.payoutsEnabled,
+          detailsSubmitted: res.detailsSubmitted,
+          accountId: res.accountId,
+        });
+      }
+    } catch (e) {
+      console.error('Error fetching Stripe status:', e);
+    } finally {
+      setCheckingStripe(false);
+    }
+  };
+
+  useEffect(() => {
+    Promise.all([fetchBankDetails(), fetchStripeStatus()]);
+  }, []);
 
   const handleEdit = () => {
     setFormData({
       accountNumber: bankDetails.accountNumber,
+      accountName: bankDetails.accountName,
       bsb: bankDetails.bsb,
       abn: bankDetails.abn,
       bankName: bankDetails.bankName,
@@ -75,28 +116,66 @@ export default function BankDetailsPage() {
     setIsSaving(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Update bank details
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+      await apiClient(`${API_BASE}/organizations/profile`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          bankDetails: {
+            bankName: formData.bankName,
+            accountName: formData.accountName,
+            accountNumber: formData.accountNumber,
+            bsbCode: formData.bsb,
+            abn: formData.abn,
+          },
+          taxIdNumber: formData.abn,
+        }),
+      });
+
       setBankDetails(formData);
       setIsEditModalOpen(false);
       setShowWarning(false);
-      
-      // Show success message (in real app, you'd use a toast notification)
       alert('Bank details updated successfully!');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Save error:', error);
-      alert('Failed to update bank details. Please try again.');
+      alert(error.message || 'Failed to update bank details. Please try again.');
     } finally {
       setIsSaving(false);
     }
   };
 
+  const handleConnectStripe = async () => {
+    try {
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+      const res: any = await apiClient(`${API_BASE}/organizations/wallet/stripe-connect/onboard`, {
+        method: 'POST',
+        body: JSON.stringify({
+          returnUrl: window.location.origin + '/bank-details?status=stripe_success',
+          refreshUrl: window.location.origin + '/bank-details?status=stripe_refresh',
+        }),
+      });
+      if (res && res.url) {
+        window.location.href = res.url;
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to start Stripe onboarding.');
+    }
+  };
+
   const maskAccountNumber = (accountNumber: string) => {
+    if (!accountNumber) return 'N/A';
     if (accountNumber.length <= 4) return '****';
     return '****' + accountNumber.slice(-4);
   };
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-8 bg-[var(--card-bg-light)] min-h-screen">
+        <p className="text-muted-foreground animate-pulse text-lg font-medium">Loading Bank Details...</p>
+      </div>
+    );
+  }
+
+  const hasBankDetails = bankDetails.accountNumber !== '';
 
   return (
     <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
@@ -114,76 +193,127 @@ export default function BankDetailsPage() {
         </Button>
       </div>
 
-      {/* Current Bank Details */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Building2 className="mr-2 h-5 w-5" />
-            Current Bank Account
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-600">Bank Name</Label>
-              <p className="font-semibold">{bankDetails.bankName}</p>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-600">Account Number</Label>
-              <p className="font-semibold">{maskAccountNumber(bankDetails.accountNumber)}</p>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-600">BSB</Label>
-              <p className="font-semibold">{bankDetails.bsb}</p>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-600">ABN</Label>
-              <p className="font-semibold">{bankDetails.abn}</p>
-            </div>
-          </div>
-          
-          <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-            <div className="flex items-center space-x-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <span className="text-sm font-medium text-green-800">Verified Account</span>
-            </div>
-            <p className="text-xs text-green-600 mt-1">
-              Your bank account is verified and ready for withdrawals
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Bank History */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <History className="mr-2 h-5 w-5" />
-            Bank History (Read Only)
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {bankHistory.map((record) => (
-              <div key={record.id} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <span className="text-sm text-gray-500">{record.date}</span>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Current Bank Details */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Building2 className="mr-2 h-5 w-5" />
+              Manual Bank Payouts
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {hasBankDetails ? (
+              <>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-600">Bank Name</Label>
+                    <p className="font-semibold">{bankDetails.bankName || 'N/A'}</p>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
-                    <div>
-                      <span className="font-medium">Account:</span> {record.accountNumber}
-                    </div>
-                    <div>
-                      <span className="font-medium">Bank:</span> {record.bankName}
-                    </div>
-                    <div>
-                      <span className="font-medium">Changed By:</span> {record.changedBy}
-                    </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-600">Account Holder Name</Label>
+                    <p className="font-semibold">{bankDetails.accountName || 'N/A'}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-600">Account Number</Label>
+                    <p className="font-semibold">{maskAccountNumber(bankDetails.accountNumber)}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-600">BSB / IFSC</Label>
+                    <p className="font-semibold">{bankDetails.bsb || 'N/A'}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-600">ABN</Label>
+                    <p className="font-semibold">{bankDetails.abn || 'N/A'}</p>
                   </div>
                 </div>
+                
+                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    <span className="text-sm font-medium text-green-800">Verified Account</span>
+                  </div>
+                  <p className="text-xs text-green-600 mt-1">
+                    Your bank account is verified and ready for withdrawals
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-6 text-muted-foreground">
+                No bank account registered. Click 'Update Bank Details' to configure your account.
               </div>
-            ))}
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Stripe Connect Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <CreditCard className="mr-2 h-5 w-5" />
+              Stripe Connect (Instant Payouts)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {checkingStripe ? (
+              <p className="text-muted-foreground animate-pulse text-sm">Checking Stripe status...</p>
+            ) : stripeStatus.onboarded ? (
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2 text-green-600">
+                  <CheckCircle className="h-5 w-5" />
+                  <span className="font-semibold text-sm">Stripe Account Linked successfully!</span>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2 text-sm text-muted-foreground border-t border-[var(--primary-start)] pt-3">
+                  <div>
+                    <span className="font-medium text-gray-700 block">Stripe Account ID</span> 
+                    <code className="text-xs bg-gray-100 p-1 rounded font-mono">{stripeStatus.accountId}</code>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700 block">Payouts Enabled</span> 
+                    <span className="text-green-600 font-semibold">Active</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700 block">Verification Status</span> 
+                    <span className="text-green-600 font-semibold">Completed</span>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleConnectStripe}>
+                  Update Stripe Account Details
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Link your business Stripe account to receive withdrawals instantly to your connected bank account. 
+                  Express onboarding takes less than 2 minutes.
+                </p>
+                <Button onClick={handleConnectStripe} className="w-full sm:w-auto">
+                  Connect Stripe Account
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Security Info Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center text-sm font-semibold">
+            Security & Compliance Notice
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3 text-sm text-muted-foreground">
+            <p>
+              • Every change to your bank details is logged and audited for security reasons.
+            </p>
+            <p>
+              • In case of unauthorized access, bank account modification notifies all administrators.
+            </p>
+            <p>
+              • Sensitive database records are encrypted to keep your financial information secure.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -256,6 +386,17 @@ export default function BankDetailsPage() {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="accountHolderName">Account Holder Name</Label>
+              <Input
+                id="accountHolderName"
+                value={formData.accountName}
+                onChange={(e) => setFormData({ ...formData, accountName: e.target.value })}
+                placeholder="Enter account holder name"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="accountNumber">Account Number</Label>
               <Input
                 id="accountNumber"
@@ -268,26 +409,25 @@ export default function BankDetailsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="bsb">BSB</Label>
+              <Label htmlFor="bsb">BSB / IFSC Code</Label>
               <Input
                 id="bsb"
                 type="text"
                 value={formData.bsb}
                 onChange={(e) => setFormData({ ...formData, bsb: e.target.value })}
-                placeholder="Enter BSB (e.g., 063000)"
+                placeholder="Enter BSB or IFSC code"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="abn">ABN</Label>
+              <Label htmlFor="abn">ABN (Optional)</Label>
               <Input
                 id="abn"
                 type="text"
                 value={formData.abn}
                 onChange={(e) => setFormData({ ...formData, abn: e.target.value })}
                 placeholder="Enter ABN (11 digits)"
-                required
               />
             </div>
 

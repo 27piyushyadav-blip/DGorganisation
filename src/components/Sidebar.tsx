@@ -179,14 +179,14 @@ export default function Sidebar({ currentPage }: SidebarProps) {
       protected: true,
     },
     {
-      title: 'Bank',
-      href: '/bank',
-      icon: Building2,
+      title: 'Wallet',
+      href: '/wallet',
+      icon: Wallet,
       hasSubmenu: true,
       protected: true,
       submenu: [
         {
-          title: 'Wallet',
+          title: 'Overview',
           href: '/wallet',
           icon: Wallet,
         },
@@ -326,7 +326,7 @@ export default function Sidebar({ currentPage }: SidebarProps) {
                   (item.title === 'Payment' && (currentPage === '/callorder' || currentPage === '/paymentrefund' || currentPage === '/exchangeservice')) ||
                   (item.title === 'Bookings' && currentPage.startsWith('/bookings')) ||
                   (item.title === 'Refund' && (currentPage === '/refunds' || currentPage.startsWith('/refunds/') || currentPage === '/wallet/refund-logs')) ||
-                  (item.title === 'Bank' && (currentPage === '/bank' || currentPage === '/wallet' || currentPage === '/bank-details' || currentPage.startsWith('/wallet/') && currentPage !== '/wallet/refund-logs'));
+                  (item.title === 'Wallet' && (currentPage === '/bank' || currentPage === '/wallet' || currentPage === '/bank-details' || currentPage.startsWith('/wallet/') && currentPage !== '/wallet/refund-logs'));
                 return (
                   <div key={item.title}>
                     <button
