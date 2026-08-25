@@ -46,6 +46,7 @@ import OnboardingForm from "@/components/OnboardingForm";
 import Modal from "@/components/modal/Modal";
 import { toast } from "sonner";
 import { formatToAmPm } from "@/lib/utils";
+import QRCodeCard from "@/components/QRCodeCard";
 
 const PROFILE_BASE = process.env.NEXT_PUBLIC_PROFILE_BASE_URL!;
 const CLIENT_BASE = process.env.NEXT_PUBLIC_CLIENT_URL;
@@ -101,6 +102,8 @@ export default function ProfilePage() {
     tags: [] as string[],
     products: [] as { name: string; price: string; image?: string }[],
     features: [] as { title: string; description: string }[],
+    loyaltyPointsEnabled: false,
+    loyaltyPointsAwarded: 20,
   });
 
   const [visibilitySettings, setVisibilitySettings] = useState({
@@ -189,6 +192,8 @@ export default function ProfilePage() {
         tags: data.tags || [],
         products: data.products || [],
         features: data.features || [],
+        loyaltyPointsEnabled: data.loyaltyPointsEnabled || false,
+        loyaltyPointsAwarded: data.loyaltyPointsAwarded || 20,
       });
     } catch (err) {
       console.error(err);
@@ -927,8 +932,8 @@ export default function ProfilePage() {
                 ) : (
                   <AlertCircle
                     className={`h-4 w-4 ${status === "REJECTED"
-                        ? "text-red-500"
-                        : "text-yellow-500"
+                      ? "text-red-500"
+                      : "text-yellow-500"
                       }`}
                   />
                 )}
@@ -983,6 +988,15 @@ export default function ProfilePage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* QR Code Card */}
+          {orgId && (
+            <QRCodeCard
+              orgId={orgId}
+              orgName={formData.name}
+              logoUrl={formData.logo}
+            />
+          )}
         </div>
 
         <div className="md:col-span-2 space-y-6">
@@ -1328,6 +1342,51 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
+                  <div className="border-t pt-4 space-y-4">
+                    <h3 className="font-semibold text-sm">Loyalty Points Settings</h3>
+                    
+                    <p className="text-[11px] text-zinc-500 bg-muted/30 p-2.5 rounded-md border max-w-xl">
+                      <strong>Conversion Value Rate:</strong> 1 loyalty point = 0.20 cents ($0.002 AUD). 
+                      For example, a customer redeeming 1,000 points will get a $2.00 AUD discount on their next booking.
+                    </p>
+                    
+                    <div className="grid grid-cols-2 gap-4 items-center">
+                      <div className="flex items-center space-x-2">
+                        {isEditing ? (
+                          <input
+                            type="checkbox"
+                            id="loyaltyPointsEnabled"
+                            checked={formData.loyaltyPointsEnabled}
+                            onChange={(e) => handleInputChange("loyaltyPointsEnabled", e.target.checked)}
+                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                          />
+                        ) : (
+                          <div className={`h-2.5 w-2.5 rounded-full ${formData.loyaltyPointsEnabled ? "bg-green-500 animate-pulse" : "bg-red-500"}`} />
+                        )}
+                        <Label htmlFor="loyaltyPointsEnabled" className="cursor-pointer font-medium text-xs">
+                          Enable loyalty points system for bookings
+                        </Label>
+                      </div>
+
+                      {formData.loyaltyPointsEnabled && (
+                        <div className="space-y-2">
+                          <Label className="text-xs">Points awarded per booking</Label>
+                          {isEditing ? (
+                            <Input
+                              type="number"
+                              min="0"
+                              value={formData.loyaltyPointsAwarded}
+                              onChange={(e) => handleInputChange("loyaltyPointsAwarded", parseInt(e.target.value) || 0)}
+                              className="h-8 text-xs bg-white"
+                            />
+                          ) : (
+                            <p className="text-xs font-semibold text-primary">{formData.loyaltyPointsAwarded} points</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <Label>Booking Policy</Label>
                     {isEditing ? (
@@ -1352,7 +1411,7 @@ export default function ProfilePage() {
                         {formData.operatingHours?.map((hour: any, i: number) => (
                           <div key={hour.day} className="grid grid-cols-4 items-center gap-3">
                             <span className="text-xs font-medium w-max">{hour.day}</span>
-                             <Input
+                            <Input
                               type="time"
                               className="h-8 text-xs bg-white cursor-pointer"
                               value={hour.open}

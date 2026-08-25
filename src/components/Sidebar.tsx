@@ -258,6 +258,12 @@ export default function Sidebar({ currentPage }: SidebarProps) {
       protected: true,
     },
     {
+      title: 'Price Centre',
+      href: '/price-centre',
+      icon: DollarSign,
+      protected: true,
+    },
+    {
       title: 'Profile',
       href: '/profile',
       icon: Settings,
