@@ -247,6 +247,17 @@ export default function PriceCentrePage() {
     setServices((prev) =>
       prev.map((s) => {
         if (s.id === id) {
+          return { ...s, modifiedPrice: value };
+        }
+        return s;
+      })
+    );
+  };
+
+  const handleServicePriceBlur = (id: string, value: string) => {
+    setServices((prev) =>
+      prev.map((s) => {
+        if (s.id === id) {
           const numVal = parseFloat(value);
           const finalVal = isNaN(numVal) || numVal < 0 ? "0.00" : numVal.toFixed(2);
           return { ...s, modifiedPrice: finalVal };
@@ -273,6 +284,17 @@ export default function PriceCentrePage() {
     setProducts((prev) =>
       prev.map((p) => {
         if (p.index === index) {
+          return { ...p, modifiedPrice: value };
+        }
+        return p;
+      })
+    );
+  };
+
+  const handleProductPriceBlur = (index: number, value: string) => {
+    setProducts((prev) =>
+      prev.map((p) => {
+        if (p.index === index) {
           const numVal = parseFloat(value);
           const finalVal = isNaN(numVal) || numVal < 0 ? "0.00" : numVal.toFixed(2);
           return { ...p, modifiedPrice: finalVal };
@@ -296,6 +318,17 @@ export default function PriceCentrePage() {
   };
 
   const handleDealPriceChange = (id: string, value: string) => {
+    setDeals((prev) =>
+      prev.map((d) => {
+        if (d.id === id) {
+          return { ...d, modifiedPrice: value };
+        }
+        return d;
+      })
+    );
+  };
+
+  const handleDealPriceBlur = (id: string, value: string) => {
     setDeals((prev) =>
       prev.map((d) => {
         if (d.id === id) {
@@ -687,6 +720,7 @@ export default function PriceCentrePage() {
                           type="text"
                           value={getDealPrice(deal)}
                           onChange={(e) => handleDealPriceChange(deal.id, e.target.value)}
+                          onBlur={(e) => handleDealPriceBlur(deal.id, e.target.value)}
                           className={`w-[68px] h-7 border rounded text-center text-xs font-bold pl-3.5 ${
                             isDealModified(deal) ? "border-amber-500 bg-amber-50/50" : ""
                           }`}
@@ -797,6 +831,7 @@ export default function PriceCentrePage() {
                             type="text"
                             value={getServicePrice(service)}
                             onChange={(e) => handleServicePriceChange(service.id, e.target.value)}
+                            onBlur={(e) => handleServicePriceBlur(service.id, e.target.value)}
                             className={`w-[68px] h-7 border rounded text-center text-xs font-bold pl-3.5 ${
                               isServiceModified(service) ? "border-amber-500 bg-amber-50/50" : ""
                             }`}
@@ -921,6 +956,7 @@ export default function PriceCentrePage() {
                             type="text"
                             value={getProductPrice(product)}
                             onChange={(e) => handleProductPriceChange(product.index, e.target.value)}
+                            onBlur={(e) => handleProductPriceBlur(product.index, e.target.value)}
                             className={`w-[68px] h-7 border rounded text-center text-xs font-bold pl-3.5 ${
                               isProductModified(product) ? "border-amber-500 bg-amber-50/50" : ""
                             }`}
